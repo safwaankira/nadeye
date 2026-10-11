@@ -1,0 +1,563 @@
+<title>PixelProof Leaderboard</title>
+<meta name="description" content="PixelProof — scanners detect AI-generated images locally and record verdicts on Monad. Leaderboard and registry, read straight from the chain.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<style>
+/* Layout: a darkroom light-table — one centered column; stats strip, podium,
+   ranked table; the registry shows every image as its 8x8 pHash bit tile. */
+:root {
+  --bg: #0d0c12; --surface: #16141f; --raised: #1f1c2b; --line: #2a2638;
+  --ink: #ece9f5; --muted: #8f89a6; --accent: #8b77ff; --accent-ink: #b7aaff; --accent-soft: rgba(139,119,255,.14);
+  --ai: #ff6a55; --real: #5fd39a; --warn: #f2b84b;
+  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f6f5fa; --surface: #ffffff; --raised: #f0eef8; --line: #e1ddee;
+  --ink: #17151f; --muted: #6a6480; --accent: #6a52f0; --accent-ink: #4d36d4; --accent-soft: rgba(106,82,240,.10);
+  --ai: #d9402b; --real: #1f9a62; --warn: #b67a0c; color-scheme: light } }
+:root[data-theme="light"] {
+  --bg: #f6f5fa; --surface: #ffffff; --raised: #f0eef8; --line: #e1ddee;
+  --ink: #17151f; --muted: #6a6480; --accent: #6a52f0; --accent-ink: #4d36d4; --accent-soft: rgba(106,82,240,.10);
+  --ai: #d9402b; --real: #1f9a62; --warn: #b67a0c; color-scheme: light }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 0 64px; }
+a { color: var(--accent-ink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding-block: 18px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 20px/1 var(--display); letter-spacing: .02em; }
+.brand canvas { width: 28px; height: 28px; image-rendering: pixelated; border-radius: 4px; }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav button { font: 500 14px var(--body); color: var(--muted); background: none; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; }
+nav button[aria-selected="true"] { color: var(--ink); background: var(--raised); }
+nav button:hover { color: var(--ink); }
+
+.hero { padding-block: 34px 10px; display: grid; gap: 10px; }
+.eyebrow { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--accent-ink); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pill { font: 500 11px var(--mono); padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); letter-spacing: .06em; }
+.pill.live { color: var(--real); border-color: color-mix(in srgb, var(--real) 45%, transparent); }
+.pill.demo { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+h1 { font: 700 clamp(30px, 5vw, 50px)/1.05 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h1 em { font-style: normal; color: var(--accent-ink); }
+.lede { color: var(--muted); max-width: 62ch; margin: 0; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-block: 24px; }
+.stat { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; min-width: 0; }
+.stat b { font: 600 26px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stat span { font: 500 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+@media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.notice { border: 1px dashed color-mix(in srgb, var(--warn) 50%, transparent); color: var(--muted); border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; margin-block: 0 18px; }
+.notice b { color: var(--warn); font-weight: 600; }
+
+/* podium */
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-block: 8px 22px; }
+.pod { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+.pod.r1 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%); }
+.pod .who { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.pod .rank { font: 700 28px/1 var(--display); color: var(--accent-ink); width: 34px; flex: none; }
+.pod .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod .addr { font: 12px var(--mono); color: var(--muted); }
+.pod .nums { display: flex; justify-content: space-between; gap: 8px; }
+.pod .nums div { display: grid; }
+.pod .nums b { font: 600 18px var(--display); font-variant-numeric: tabular-nums; }
+.pod .nums span { font: 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+@media (max-width: 760px) { .podium { grid-template-columns: 1fr; } }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-block: 0 10px; }
+.toolbar h2 { font: 600 18px var(--display); margin: 0; letter-spacing: .02em; }
+input[type="search"], select { font: 14px var(--body); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+input[type="search"] { width: min(260px, 100%); }
+.small { font-size: 12px; color: var(--muted); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+th, td { padding: 11px 14px; text-align: left; white-space: nowrap; }
+th { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); border-bottom: 1px solid var(--line); background: var(--raised); }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr + tr td { border-top: 1px solid var(--line); }
+tbody tr:hover td { background: var(--accent-soft); }
+td.rank { font: 600 14px var(--display); color: var(--muted); width: 56px; }
+td .h { font-weight: 600; }
+td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
+.snr { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.bar { width: 54px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--real); }
+.pager { display: flex; gap: 6px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.pager button, .btn { font: 500 13px var(--body); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 6px 11px; cursor: pointer; }
+.pager button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pager button:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* registry */
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.panel h3 { font: 600 16px var(--display); margin: 0; letter-spacing: .02em; }
+.drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 22px 14px; text-align: center; color: var(--muted); cursor: pointer; display: grid; gap: 6px; place-items: center; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop strong { color: var(--ink); font-weight: 600; }
+.result { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.result img { max-width: 120px; max-height: 120px; border-radius: 6px; }
+.tile { image-rendering: pixelated; border-radius: 4px; border: 1px solid var(--line); flex: none; }
+.hash { font: 13px var(--mono); word-break: break-all; }
+.verdict { font: 600 15px var(--display); letter-spacing: .02em; }
+.verdict.ai { color: var(--ai); } .verdict.real { color: var(--real); } .verdict.none { color: var(--muted); }
+.feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.card { background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; min-width: 0; cursor: pointer; text-align: left; color: var(--ink); font: inherit; }
+.card:hover { border-color: var(--accent); }
+.card .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.card .meta { font: 11px var(--mono); color: var(--muted); }
+.chip { font: 600 11px var(--mono); padding: 2px 7px; border-radius: 99px; letter-spacing: .04em; }
+.chip.ai { color: var(--ai); background: color-mix(in srgb, var(--ai) 14%, transparent); }
+.chip.real { color: var(--real); background: color-mix(in srgb, var(--real) 14%, transparent); }
+.chip.split { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex; }
+.meter i { display: block; height: 100%; }
+
+/* how it works */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-block: 18px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.step .n { font: 600 12px var(--mono); color: var(--accent-ink); letter-spacing: .1em; }
+.step h3 { font: 600 17px var(--display); margin: 0; }
+.step p { margin: 0; color: var(--muted); font-size: 14px; }
+.prose { max-width: 70ch; display: grid; gap: 12px; }
+.prose h2 { font: 600 22px var(--display); margin: 18px 0 0; }
+.prose p, .prose li { color: var(--muted); }
+.prose strong { color: var(--ink); }
+.points { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.points div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; background: var(--surface); }
+.points div + div { border-top: 1px solid var(--line); }
+.points b { font: 600 15px var(--display); color: var(--accent-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+code { font: 13px var(--mono); background: var(--raised); padding: 1px 5px; border-radius: 4px; }
+footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+@media (prefers-reduced-motion: no-preference) { .fade { animation: fade .35s ease both; } @keyframes fade { from { opacity: .4; } to { opacity: 1; } } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><canvas id="logo" width="8" height="8" aria-hidden="true"></canvas>PixelProof</div>
+    <nav role="tablist" aria-label="Sections">
+      <button role="tab" id="tab-board" aria-selected="true" data-view="board">Leaderboard</button>
+      <button role="tab" id="tab-registry" aria-selected="false" data-view="registry">Registry</button>
+      <button role="tab" id="tab-how" aria-selected="false" data-view="how">How it works</button>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow"><span id="netLabel">Monad Testnet</span><span class="pill" id="modePill">loading</span></div>
+    <h1>Every scan is <em>proof</em> on Monad.</h1>
+    <p class="lede">Scanners run the PixelProof extension, which detects AI-generated images inside the browser. Each verdict lands on Monad as a 64-bit perceptual hash and a confidence score. The image never leaves the device.</p>
+  </section>
+
+  <div class="stats" aria-label="Network totals">
+    <div class="stat"><b id="sScans">–</b><span>Verdicts</span></div>
+    <div class="stat"><b id="sImages">–</b><span>Images</span></div>
+    <div class="stat"><b id="sFlagged">–</b><span>Flagged AI</span></div>
+    <div class="stat"><b id="sScanners">–</b><span>Scanners</span></div>
+  </div>
+
+  <div class="notice" id="demoNote" hidden><b>Example data.</b> No PixelProof contract is configured for this page, or the network could not be reached, so these rows are generated samples. Set <code>CONFIG.contract</code> (or open the hosted page with <code>?contract=0x…</code>) to read the live registry.</div>
+
+  <main>
+    <section id="view-board" class="fade">
+      <div class="podium" id="podium"></div>
+      <div class="toolbar">
+        <h2>Global rankings</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="sortBy" aria-label="Sort by">
+            <option value="points">Total points</option>
+            <option value="activeDays">Active days</option>
+            <option value="snr">Signal to noise</option>
+            <option value="scans">Scans</option>
+            <option value="firsts">First finds</option>
+          </select>
+          <input type="search" id="q" placeholder="Search handle or address" aria-label="Search scanners">
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Rank</th><th>Scanner</th><th class="num">Total points</th><th class="num">Active days</th>
+            <th class="num">Signal to noise</th><th class="num">Scans</th><th class="num">First finds</th><th class="num">Joined</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager"></div>
+      <p class="small" style="text-align:center" id="updated"></p>
+    </section>
+
+    <section id="view-registry" class="fade" hidden>
+      <div class="split">
+        <div class="panel">
+          <h3>Check an image</h3>
+          <label class="drop" id="drop" for="file">
+            <strong>Drop an image or choose a file</strong>
+            <span class="small">It is hashed here, in this tab. Only the 64-bit hash is looked up.</span>
+          </label>
+          <input type="file" id="file" accept="image/*" hidden>
+          <div id="checkOut" class="small">The registry is checked for the exact hash and its 36 nearest variants, so resized or recompressed copies still match.</div>
+        </div>
+        <div class="panel">
+          <div class="toolbar" style="margin:0"><h3>Recent first finds</h3><span class="small" id="feedNote"></span></div>
+          <div class="feed" id="feed"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-how" class="fade" hidden>
+      <div class="steps">
+        <div class="step"><span class="n">STEP 1</span><h3>Detect locally</h3><p>A ViT-S/16 model runs in the browser on WebGPU, with WASM as a fallback. Pixels are never uploaded.</p></div>
+        <div class="step"><span class="n">STEP 2</span><h3>Hash the pixels</h3><p>A 64-bit DCT perceptual hash summarizes the image. It survives resizing and recompression and cannot be turned back into the picture.</p></div>
+        <div class="step"><span class="n">STEP 3</span><h3>Batch to Monad</h3><p>Verdicts queue up and go out as one <code>attestBatch</code> transaction of up to 100, signed by a burner key that lives in the extension.</p></div>
+        <div class="step"><span class="n">STEP 4</span><h3>Everyone benefits</h3><p>The next person to meet that image sees the community count on its badge, on any site.</p></div>
+      </div>
+      <div class="prose">
+        <h2>How points work</h2>
+        <div class="points">
+          <div><span>Each verdict recorded</span><b>+10</b></div>
+          <div><span>First scanner to record an image</span><b>+25</b></div>
+          <div><span>Agreeing with an image's majority (2+ prior reports)</span><b>+15</b></div>
+          <div><span>Disagreeing with the majority</span><b>+0, counts as noise</b></div>
+          <div><span>Daily cap on point-earning verdicts</span><b>300 / UTC day</b></div>
+        </div>
+        <p><strong>Signal to noise</strong> is the share of a scanner's judged verdicts that agreed with the majority already on record. Verdicts on images with fewer than two prior reports, or on a tie, are not judged.</p>
+        <h2>Why Monad</h2>
+        <p>One transaction per handful of images only makes sense on a chain with low fees and roughly one-second confirmation. Attestations for different images touch different storage slots, which suits Monad's parallel execution. Monad charges for the gas limit you set, so the extension estimates each batch and adds only a 15% buffer.</p>
+        <h2>Credits</h2>
+        <p>Detection is <a href="https://github.com/Phineas1500/sieve-ai-image-detector" target="_blank" rel="noopener">Sieve</a> by sriramkiron (MIT), winner of the <a href="https://poidh.xyz/arbitrum/bounty/323" target="_blank" rel="noopener">poidh local-AI bounty</a>. PixelProof adds the perceptual hashing, the Monad registry, points and this leaderboard.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>PixelProof · MIT · contract <a id="contractLink" href="#" target="_blank" rel="noopener">–</a></span>
+    <span>Reads directly from Monad. No backend.</span>
+  </footer>
+</div>
+
+<script>
+// ------------------------------------------------------------------ config
+const CONFIG = {
+  network: "testnet",
+  contract: "0x0000000000000000000000000000000000000000", // set after deploying
+};
+const NETWORKS = {
+  testnet: { label: "Monad Testnet", rpc: "https://testnet-rpc.monad.xyz", explorer: "https://testnet.monadvision.com" },
+  mainnet: { label: "Monad Mainnet", rpc: "https://rpc.monad.xyz", explorer: "https://monadvision.com" },
+};
+try {
+  const p = new URLSearchParams(location.search);
+  if (/^0x[0-9a-fA-F]{40}$/.test(p.get("contract") || "")) CONFIG.contract = p.get("contract");
+  if (p.get("network") in NETWORKS) CONFIG.network = p.get("network");
+} catch {}
+const NET = NETWORKS[CONFIG.network];
+
+const ABI = [
+  "function stats() view returns (uint256 scans, uint256 images, uint256 scanners, uint256 flagged)",
+  "function getScanners(uint256 offset, uint256 limit) view returns (tuple(address account, string handle, uint64 points, uint32 scans, uint32 firsts, uint32 signal, uint32 noise, uint32 activeDays, uint40 joined)[])",
+  "function recentImages(uint256 limit) view returns (tuple(bytes32 pHash, uint32 reports, uint32 aiVotes, uint16 meanScore, address firstScanner, uint40 firstSeen, uint40 lastSeen)[])",
+  "function getImages(bytes32[] pHashes) view returns (tuple(bytes32 pHash, uint32 reports, uint32 aiVotes, uint16 meanScore, address firstScanner, uint40 firstSeen, uint40 lastSeen)[])",
+];
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const ago = (ts) => {
+  const d = Math.max(0, Math.floor((Date.now() / 1000 - ts) / 86400));
+  return d === 0 ? "today" : d === 1 ? "1 day ago" : `${d} days ago`;
+};
+
+// ------------------------------------------------------------ pHash (same as extension/src/phash.js)
+const PN = 32, PK = 8;
+const COS = (() => { const t = new Float64Array(PK * PN); for (let u = 0; u < PK; u++) for (let x = 0; x < PN; x++) t[u * PN + x] = Math.cos(((2 * x + 1) * u * Math.PI) / (2 * PN)); return t; })();
+function pHashDetail({ data, width, height }) {
+  const g = new Float64Array(PN * PN);
+  for (let gy = 0; gy < PN; gy++) {
+    const y0 = Math.floor(gy * height / PN), y1 = Math.max(y0 + 1, Math.floor((gy + 1) * height / PN));
+    for (let gx = 0; gx < PN; gx++) {
+      const x0 = Math.floor(gx * width / PN), x1 = Math.max(x0 + 1, Math.floor((gx + 1) * width / PN));
+      const sy = Math.max(1, Math.floor((y1 - y0) / 8)), sx = Math.max(1, Math.floor((x1 - x0) / 8));
+      let s = 0, n = 0;
+      for (let y = y0; y < y1; y += sy) for (let x = x0; x < x1; x += sx) { const i = (y * width + x) * 4; s += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]; n++; }
+      g[gy * PN + gx] = s / n;
+    }
+  }
+  const rows = new Float64Array(PN * PK);
+  for (let y = 0; y < PN; y++) for (let u = 0; u < PK; u++) { let s = 0; for (let x = 0; x < PN; x++) s += g[y * PN + x] * COS[u * PN + x]; rows[y * PK + u] = s; }
+  const coef = new Float64Array(PK * PK);
+  for (let v = 0; v < PK; v++) for (let u = 0; u < PK; u++) { let s = 0; for (let y = 0; y < PN; y++) s += rows[y * PK + u] * COS[v * PN + y]; coef[v * PK + u] = s; }
+  const ac = Array.from(coef.subarray(1)).sort((a, b) => a - b), med = (ac[31] + ac[32]) / 2;
+  let hex = "";
+  for (let nib = 0; nib < 16; nib++) { let v = 0; for (let b = 0; b < 4; b++) v = (v << 1) | (coef[nib * 4 + b] > med ? 1 : 0); hex += v.toString(16); }
+  const weak = [...Array(64).keys()].sort((a, b) => Math.abs(coef[a] - med) - Math.abs(coef[b] - med));
+  return { hex, weak };
+}
+function flipBit(hex, bit) { const nib = bit >> 2, m = 8 >> (bit & 3); return hex.slice(0, nib) + (parseInt(hex[nib], 16) ^ m).toString(16) + hex.slice(nib + 1); }
+function candidates({ hex, weak }, k = 8) {
+  const w = weak.slice(0, k), out = [hex];
+  for (let i = 0; i < k; i++) { const a = flipBit(hex, w[i]); out.push(a); for (let j = i + 1; j < k; j++) out.push(flipBit(a, w[j])); }
+  return out;
+}
+const toKey = (hex) => "0x" + hex.padStart(64, "0");
+
+// draw a 64-bit hash as its 8x8 bit tile
+function hashTile(hex, size = 40, onColor, offColor) {
+  const c = document.createElement("canvas");
+  c.width = 8; c.height = 8; c.className = "tile";
+  c.style.width = c.style.height = size + "px";
+  const ctx = c.getContext("2d");
+  const cs = getComputedStyle(document.documentElement);
+  ctx.fillStyle = offColor || cs.getPropertyValue("--raised"); ctx.fillRect(0, 0, 8, 8);
+  ctx.fillStyle = onColor || cs.getPropertyValue("--accent");
+  const h = hex.replace(/^0x/, "").slice(-16);
+  for (let i = 0; i < 64; i++) if ((parseInt(h[i >> 2], 16) >> (3 - (i & 3))) & 1) ctx.fillRect(i % 8, i >> 3, 1, 1);
+  c.setAttribute("aria-label", `hash ${h}`);
+  return c;
+}
+
+// ------------------------------------------------------------------ data
+function seeded(seed) { let s = seed >>> 0; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 2 ** 32); }
+function demoData() {
+  const r = seeded(20261011);
+  const names = ["lumen_hunter", "pixelnun", "darkroom_dev", "nadfinder", "grainwatch", "exif_witch", "monadeye", "", "falsecolor", "", "halftone", "moire_mo", "", "jpegghost", "", "chromakey", "", "bokeh_bandit", "", "dctdan", "", "", "noisefloor", "", "c2pa_kid", "", "lowpass", "", "", "aliasing", "", "gammaray", "", "", "sobel", "", "fft_frank", "", "", "histo"];
+  const now = Date.now() / 1000;
+  const hex = (n) => Array.from({ length: n }, () => Math.floor(r() * 16).toString(16)).join("");
+  const scanners = names.map((h, i) => {
+    const days = Math.max(1, Math.round(130 * Math.pow(r(), 1.6)));
+    const scans = Math.round(days * (25 + r() * 220));
+    const firsts = Math.round(scans * (0.15 + r() * 0.35));
+    const judged = Math.round(scans * (0.3 + r() * 0.4));
+    const signal = Math.round(judged * (0.62 + r() * 0.35));
+    return { account: "0x" + hex(40), handle: h, scans, firsts, signal, noise: judged - signal, activeDays: days,
+      points: scans * 10 + firsts * 25 + signal * 15, joined: Math.round(now - (days + r() * 40) * 86400) };
+  });
+  const images = Array.from({ length: 12 }, (_, i) => {
+    const reports = 1 + Math.floor(r() * 9);
+    const lean = r();
+    const aiVotes = Math.round(reports * (lean > 0.45 ? 0.75 + r() * 0.25 : r() * 0.3));
+    return { pHash: "0x" + "0".repeat(48) + hex(16), reports, aiVotes, meanScore: Math.round((aiVotes / reports) * 8000 + r() * 1500),
+      firstScanner: scanners[Math.floor(r() * scanners.length)].account, firstSeen: Math.round(now - i * 3600 * (2 + r() * 5)) };
+  });
+  const scans = scanners.reduce((a, s) => a + s.scans, 0);
+  return { live: false, scanners, images,
+    stats: { scans, images: Math.round(scans * 0.41), scanners: scanners.length, flagged: Math.round(scans * 0.41 * 0.37) } };
+}
+
+let contract = null;
+async function liveData() {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(CONFIG.contract) || /^0x0{40}$/.test(CONFIG.contract) || !window.ethers) return null;
+  const provider = new ethers.JsonRpcProvider(NET.rpc, undefined, { staticNetwork: true });
+  contract = new ethers.Contract(CONFIG.contract, ABI, provider);
+  const st = await contract.stats();
+  const total = Number(st.scanners);
+  const scanners = [];
+  for (let off = 0; off < total; off += 200) {
+    const page = await contract.getScanners(off, 200);
+    for (const s of page) scanners.push({ account: s.account, handle: s.handle, points: Number(s.points), scans: Number(s.scans),
+      firsts: Number(s.firsts), signal: Number(s.signal), noise: Number(s.noise), activeDays: Number(s.activeDays), joined: Number(s.joined) });
+  }
+  const imgs = (await contract.recentImages(12)).map(normImg);
+  return { live: true, scanners, images: imgs,
+    stats: { scans: Number(st.scans), images: Number(st.images), scanners: total, flagged: Number(st.flagged) } };
+}
+const normImg = (v) => ({ pHash: v.pHash, reports: Number(v.reports), aiVotes: Number(v.aiVotes), meanScore: Number(v.meanScore),
+  firstScanner: v.firstScanner, firstSeen: Number(v.firstSeen) });
+
+// ------------------------------------------------------------------ render
+let DATA = null, page = 0;
+const PER = 25;
+const snr = (s) => (s.signal + s.noise ? (100 * s.signal) / (s.signal + s.noise) : null);
+const label = (s) => s.handle ? `@${s.handle}` : short(s.account);
+const addrLink = (a) => `${NET.explorer}/address/${a}`;
+
+function ranked() {
+  const key = $("sortBy").value;
+  const val = (s) => key === "snr" ? (snr(s) ?? -1) : s[key];
+  const all = [...DATA.scanners].sort((a, b) => val(b) - val(a) || b.points - a.points).map((s, i) => ({ ...s, rank: i + 1 }));
+  const q = $("q").value.trim().toLowerCase().replace(/^@/, "");
+  return q ? all.filter((s) => s.handle.toLowerCase().includes(q) || s.account.toLowerCase().includes(q)) : all;
+}
+
+function renderBoard() {
+  const list = ranked();
+  const podium = $("podium");
+  podium.innerHTML = "";
+  if (!$("q").value) list.slice(0, 3).forEach((s, i) => {
+    const el = document.createElement("div");
+    el.className = `pod r${i + 1}`;
+    const tile = hashTile(s.account.slice(-16), 34);
+    el.innerHTML = `<div class="who"><span class="rank">${i + 1}</span><div style="min-width:0"><div class="name"></div><a class="addr" href="${addrLink(s.account)}" target="_blank" rel="noopener">${short(s.account)}</a></div></div>
+      <div class="nums"><div><b>${fmt(s.points)}</b><span>points</span></div><div><b>${fmt(s.scans)}</b><span>scans</span></div><div><b>${snr(s) == null ? "–" : snr(s).toFixed(1) + "%"}</b><span>SNR</span></div></div>`;
+    el.querySelector(".name").textContent = label(s);
+    el.querySelector(".who").append(tile);
+    tile.style.marginLeft = "auto";
+    podium.append(el);
+  });
+  const pages = Math.max(1, Math.ceil(list.length / PER));
+  page = Math.min(page, pages - 1);
+  const rows = $("rows");
+  rows.innerHTML = "";
+  for (const s of list.slice(page * PER, page * PER + PER)) {
+    const tr = document.createElement("tr");
+    const r = snr(s);
+    tr.innerHTML = `<td class="rank">#${s.rank}</td><td><span class="h"></span><a class="a" href="${addrLink(s.account)}" target="_blank" rel="noopener">${short(s.account)}</a></td>
+      <td class="num">${fmt(s.points)}</td><td class="num">${fmt(s.activeDays)}</td>
+      <td class="num"><span class="snr">${r == null ? "–" : r.toFixed(2)}<span class="bar"><i style="width:${r ?? 0}%"></i></span></span></td>
+      <td class="num">${fmt(s.scans)}</td><td class="num">${fmt(s.firsts)}</td><td class="num">${ago(s.joined)}</td>`;
+    tr.querySelector(".h").textContent = s.handle ? `@${s.handle}` : "";
+    rows.append(tr);
+  }
+  if (!list.length) rows.innerHTML = `<tr><td colspan="8" class="small" style="text-align:center;padding:28px">No scanners match that search.</td></tr>`;
+  const pager = $("pager");
+  pager.innerHTML = "";
+  const btn = (txt, p, opts = {}) => { const b = document.createElement("button"); b.textContent = txt; b.disabled = !!opts.disabled; if (opts.current) b.setAttribute("aria-current", "true"); b.onclick = () => { page = p; renderBoard(); }; pager.append(b); };
+  btn("Previous", page - 1, { disabled: page === 0 });
+  for (let p = 0; p < pages; p++) if (p < 2 || p >= pages - 2 || Math.abs(p - page) <= 1) btn(String(p + 1), p, { current: p === page });
+  btn("Next", page + 1, { disabled: page >= pages - 1 });
+}
+
+function verdictOf(v) {
+  if (!v.reports) return { cls: "none", text: "Not in the registry" };
+  const share = v.aiVotes / v.reports;
+  if (share * 2 === 1) return { cls: "split", text: "Split" };
+  return share > 0.5 ? { cls: "ai", text: "Likely AI" } : { cls: "real", text: "Likely real" };
+}
+
+function renderFeed() {
+  const feed = $("feed");
+  feed.innerHTML = "";
+  const cs = getComputedStyle(document.documentElement);
+  for (const v of DATA.images) {
+    const vd = verdictOf(v);
+    const card = document.createElement("button");
+    card.className = "card";
+    card.type = "button";
+    const pct = Math.round((v.aiVotes / v.reports) * 100);
+    card.innerHTML = `<div class="row"></div>
+      <div class="row"><span class="chip ${vd.cls}">${vd.text}</span><span class="meta">${v.aiVotes}/${v.reports} AI</span></div>
+      <div class="meter" title="${pct}% of scanners flagged AI"><i style="width:${pct}%;background:var(--ai)"></i><i style="width:${100 - pct}%;background:var(--real)"></i></div>
+      <span class="meta">found ${ago(v.firstSeen)}</span>`;
+    const top = card.querySelector(".row");
+    top.append(hashTile(v.pHash, 40, cs.getPropertyValue(vd.cls === "ai" ? "--ai" : vd.cls === "real" ? "--real" : "--warn")));
+    const h = document.createElement("span"); h.className = "meta"; h.textContent = v.pHash.slice(-16); top.append(h);
+    card.onclick = () => showResult(null, v.pHash.slice(-16), v, 0);
+    feed.append(card);
+  }
+  $("feedNote").textContent = DATA.live ? "live" : "examples";
+}
+
+function showResult(imgUrl, hex, v, nCandidates) {
+  const out = $("checkOut");
+  out.innerHTML = "";
+  const box = document.createElement("div");
+  box.className = "result fade";
+  const left = document.createElement("div");
+  if (imgUrl) { const im = new Image(); im.src = imgUrl; im.alt = "Checked image"; left.append(im); }
+  else left.append(hashTile(hex, 96));
+  const vd = verdictOf(v);
+  const right = document.createElement("div");
+  right.style.display = "grid"; right.style.gap = "6px"; right.style.minWidth = "0";
+  right.innerHTML = `<span class="verdict ${vd.cls === "split" ? "none" : vd.cls}"></span>
+    <span class="hash"></span>
+    <span class="small"></span>`;
+  right.children[0].textContent = vd.text;
+  right.children[1].textContent = `pHash ${hex}`;
+  right.children[2].textContent = v.reports
+    ? `${v.aiVotes} of ${v.reports} scanners flagged it as AI · mean confidence ${(v.meanScore / 100).toFixed(1)}%`
+    : nCandidates ? `Checked the hash and ${nCandidates - 1} near variants. Nobody has recorded this image yet.` : "";
+  if (imgUrl) right.prepend(hashTile(hex, 40));
+  box.append(left, right);
+  out.append(box);
+}
+
+async function checkFile(file) {
+  if (!file || !file.type.startsWith("image/")) { $("checkOut").textContent = "That file is not an image. Choose a JPEG, PNG, WebP or GIF."; return; }
+  const url = URL.createObjectURL(file);
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 4096 / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
+    const c = new OffscreenCanvas(w, h), ctx = c.getContext("2d");
+    ctx.drawImage(bmp, 0, 0, w, h);
+    const det = pHashDetail({ data: ctx.getImageData(0, 0, w, h).data, width: w, height: h });
+    const cands = candidates(det);
+    let merged = { reports: 0, aiVotes: 0, meanScore: 0 };
+    if (contract) {
+      const rows = (await contract.getImages(cands.map(toKey))).map(normImg);
+      let sum = 0;
+      for (const r of rows) { merged.reports += r.reports; merged.aiVotes += r.aiVotes; sum += r.meanScore * r.reports; }
+      merged.meanScore = merged.reports ? sum / merged.reports : 0;
+    } else {
+      const hit = DATA.images.find((v) => cands.includes(v.pHash.slice(-16)));
+      if (hit) merged = hit;
+    }
+    showResult(url, det.hex, merged, cands.length);
+  } catch (e) {
+    $("checkOut").textContent = `Could not read that image (${e.message || e}). Try a different file.`;
+  }
+}
+
+// ------------------------------------------------------------------ wiring
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  for (const v of ["board", "registry", "how"]) $(`view-${v}`).hidden = v !== b.dataset.view;
+  try { localStorage.setItem("pp-view", b.dataset.view); } catch {}
+}));
+$("sortBy").addEventListener("change", () => { page = 0; renderBoard(); });
+$("q").addEventListener("input", () => { page = 0; renderBoard(); });
+$("file").addEventListener("change", (e) => checkFile(e.target.files[0]));
+const drop = $("drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); checkFile(e.dataTransfer.files[0]); });
+
+(function logo() {
+  const ctx = $("logo").getContext("2d");
+  const cs = getComputedStyle(document.documentElement);
+  ctx.fillStyle = cs.getPropertyValue("--raised"); ctx.fillRect(0, 0, 8, 8);
+  ctx.fillStyle = cs.getPropertyValue("--accent");
+  const bits = "c3e7bd99819942ff"; // a P-ish 8x8 mark
+  for (let i = 0; i < 64; i++) if ((parseInt(bits[i >> 2], 16) >> (3 - (i & 3))) & 1) ctx.fillRect(i % 8, i >> 3, 1, 1);
+})();
+
+function renderAll() {
+  const s = DATA.stats;
+  $("sScans").textContent = fmt(s.scans);
+  $("sImages").textContent = fmt(s.images);
+  $("sFlagged").textContent = fmt(s.flagged);
+  $("sScanners").textContent = fmt(s.scanners);
+  $("netLabel").textContent = NET.label;
+  $("modePill").textContent = DATA.live ? "live" : "example data";
+  $("modePill").className = `pill ${DATA.live ? "live" : "demo"}`;
+  $("demoNote").hidden = DATA.live;
+  $("contractLink").textContent = /^0x0{40}$/.test(CONFIG.contract) ? "not set" : short(CONFIG.contract);
+  $("contractLink").href = addrLink(CONFIG.contract);
+  $("updated").textContent = DATA.live ? `Read from ${NET.label} at ${new Date().toLocaleTimeString()} · refreshes every minute` : "";
+  renderBoard();
+  renderFeed();
+}
+
+async function load() {
+  let d = null;
+  try { d = await liveData(); } catch (e) { console.warn("live read failed", e); contract = null; }
+  DATA = d || demoData();
+  renderAll();
+}
+DATA = demoData(); renderAll(); // complete first frame
+try { const v = localStorage.getItem("pp-view"); if (v && v !== "board") document.querySelector(`nav button[data-view="${v}"]`)?.click(); } catch {}
+load();
+setInterval(() => { if (DATA.live) load(); }, 60_000);
+</script>

@@ -1,0 +1,4 @@
+contracts/out/
+contracts/cache/
+web/dist/
+node_modules/

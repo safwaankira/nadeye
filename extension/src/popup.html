@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root { --ink: #1c2430; --muted: #64748b; --line: #e5e7eb; --mon: #836ef9; --mon-ink: #4c3fd1; }
+      body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+             width: 300px; margin: 0; padding: 14px; color: var(--ink); }
+      h1 { font-size: 15px; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; }
+      h1 .dot { width: 10px; height: 10px; border-radius: 3px; background: var(--mon); display: inline-block; }
+      .sub { color: var(--muted); font-size: 11px; margin: 0 0 10px; }
+      h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+           margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+      .row { display: flex; justify-content: space-between; align-items: center; margin: 7px 0; gap: 8px; }
+      .stat { font-weight: 700; font-variant-numeric: tabular-nums; }
+      .muted { color: var(--muted); font-size: 12px; }
+      input[type="range"] { width: 120px; }
+      a { color: var(--mon-ink); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; margin: 8px 0; }
+      .grid div { background: #f5f3ff; border-radius: 6px; padding: 5px 2px; }
+      .grid b { display: block; font-size: 14px; font-variant-numeric: tabular-nums; }
+      .grid span { font-size: 10px; color: var(--muted); }
+      .addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; cursor: pointer; }
+      .notice { background: #fff7ed; color: #9a3412; border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 6px 0; }
+      .handle { display: flex; gap: 4px; }
+      .handle input { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; font: inherit; }
+      button { font: inherit; border: 0; border-radius: 5px; padding: 4px 9px; background: var(--mon); color: #fff; cursor: pointer; }
+      button:disabled { opacity: .5; cursor: default; }
+      select { font: inherit; }
+      .links { display: flex; justify-content: space-between; margin-top: 10px; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <h1><span class="dot"></span>PixelProof</h1>
+    <p class="sub">Local AI-image detection · verdicts on Monad</p>
+
+    <div class="row"><span>Enabled</span><input type="checkbox" id="enabled" /></div>
+    <div class="row"><span>Blur flagged images</span><input type="checkbox" id="blur" /></div>
+    <div class="row">
+      <span>Threshold <span id="thval"></span></span>
+      <input type="range" id="threshold" min="0.5" max="0.95" step="0.01" />
+    </div>
+    <div class="row"><span>Analyzed on this page</span><span class="stat" id="analyzed">–</span></div>
+    <div class="row"><span>Flagged as AI</span><span class="stat" id="flagged">–</span></div>
+    <div class="row"><span>Model</span><span id="ep" class="muted">checking…</span></div>
+    <div class="row"><span>Installed weights</span><span id="modelver" class="muted">–</span></div>
+
+    <h2>Monad</h2>
+    <div class="row">
+      <span>Network</span>
+      <select id="network">
+        <option value="testnet">Testnet</option>
+        <option value="mainnet">Mainnet</option>
+      </select>
+    </div>
+    <div class="row">
+      <span title="Posts a 64-bit perceptual hash + your confidence score. Never the image.">Contribute verdicts</span>
+      <input type="checkbox" id="contribute" />
+    </div>
+    <div id="unconfigured" class="notice" hidden>No PixelProof contract set for this network yet — lookups and attestations are off.</div>
+    <div id="nogas" class="notice" hidden>Your scanner wallet needs a little MON for gas. <a href="#" id="faucet2">Get testnet MON</a></div>
+
+    <div class="row"><span>Scanner wallet</span><span class="addr" id="addr" title="Click to copy">–</span></div>
+    <div class="row"><span>Balance</span><span class="stat" id="balance">–</span></div>
+    <div class="row"><span>Queued verdicts</span><span><span class="stat" id="queued">–</span> <button id="flush" title="Send queued verdicts now">Send</button></span></div>
+
+    <div class="grid" id="mestats">
+      <div><b id="points">–</b><span>points</span></div>
+      <div><b id="scans">–</b><span>scans</span></div>
+      <div><b id="days">–</b><span>days</span></div>
+      <div><b id="snr">–</b><span>SNR</span></div>
+    </div>
+
+    <div class="handle">
+      <input id="handle" placeholder="X handle for the leaderboard" maxlength="33" />
+      <button id="savehandle">Save</button>
+    </div>
+    <div class="row"><span class="muted" id="lasttx"></span></div>
+
+    <div class="links">
+      <a href="#" id="board">Leaderboard</a>
+      <a href="#" id="faucet">Faucet</a>
+      <a href="#" id="setup">Model setup</a>
+      <a href="#" id="options">Options</a>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

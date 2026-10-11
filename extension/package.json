@@ -1,0 +1,18 @@
+{
+  "name": "pixelproof-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PixelProof: local AI image detection (Sieve) + onchain verdict registry on Monad",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "abi": "node -e \"const a=require('../contracts/out/PixelProof.sol/PixelProof.json').abi;require('fs').writeFileSync('src/chain/abi.js','// Generated from contracts/out/PixelProof.sol/PixelProof.json — run npm run abi after changing the contract\\nexport const pixelProofAbi = '+JSON.stringify(a,null,1)+';\\n')\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "onnxruntime-web": "^1.22.0",
+    "sharp": "^0.34.5",
+    "viem": "^2.57.4"
+  }
+}

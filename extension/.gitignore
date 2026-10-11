@@ -1,0 +1,4 @@
+node_modules/
+vendor/
+src/chain.bundle.js
+src/chain.bundle.js.LEGAL.txt

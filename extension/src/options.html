@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sieve Options</title>
+    <style>
+      body { font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+             max-width: 560px; margin: 40px auto; padding: 0 20px; color: #1c2430; }
+      .row { display: flex; justify-content: space-between; align-items: center; margin: 14px 0; }
+      .hint { color: #64748b; font-size: 12.5px; margin: -8px 0 14px; }
+    </style>
+  </head>
+  <body>
+    <h1>PixelProof Options</h1>
+    <div class="row"><label for="enabled">Enable detection</label><input type="checkbox" id="enabled" /></div>
+    <div class="row">
+      <label for="scanMode">Scanning</label>
+      <select id="scanMode">
+        <option value="auto">Automatic (scan as you browse)</option>
+        <option value="manual">Manual only (right-click an image)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="flaggedAction">When an image is flagged as AI</label>
+      <select id="flaggedAction">
+        <option value="badge">Badge only</option>
+        <option value="blur">Blur it (click badge to reveal)</option>
+        <option value="hide">Hide it entirely (slopblocker)</option>
+      </select>
+    </div>
+    <p class="hint">Hide mode removes flagged images without a trace — including the ~1 in 25 real images the model gets wrong. Blur keeps mistakes visible and reversible.</p>
+    <div class="row">
+      <label for="badgeDisplay">Badges</label>
+      <select id="badgeDisplay">
+        <option value="all">Show on every analyzed image</option>
+        <option value="flags">Show only on flagged images</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="threshold">Confidence threshold: <b id="thval"></b></label>
+      <input type="range" id="threshold" min="0.5" max="0.95" step="0.01" />
+    </div>
+    <p class="hint">Images scoring at or above this AI-confidence are flagged (bounty evaluation uses 65%).</p>
+    <div class="row">
+      <label for="minSize">Minimum image size to analyze (px)</label>
+      <input type="number" id="minSize" min="64" max="512" step="16" style="width: 70px" />
+    </div>
+    <p class="hint">Smaller images (icons, avatars) are skipped for speed.</p>
+    <div class="row">
+      <label for="minDisplaySize">Minimum on-screen size to badge (px)</label>
+      <input type="number" id="minDisplaySize" min="40" max="400" step="10" style="width: 70px" />
+    </div>
+    <p class="hint">
+      Images displayed smaller than this (profile pictures, thumbnails) are left alone —
+      right-click any image → “Sieve: check this image” to score one on demand.
+      They are analyzed automatically if expanded.
+    </p>
+    <script src="options.js"></script>
+    <h2>Scanner wallet (Monad)</h2>
+    <p>PixelProof signs attestations with a burner key generated and stored only in this browser profile. It pays gas, earns your leaderboard points, and holds nothing else — keep only a little MON in it.</p>
+    <p>
+      <button id="revealKey">Reveal private key</button>
+      <code id="keyOut" style="word-break:break-all"></code>
+    </p>
+    <p>
+      <input id="importKey" placeholder="0x… private key to restore a scanner" style="width:360px" />
+      <button id="doImport">Import</button>
+      <span id="importMsg"></span>
+    </p>
+    <h2>Network override (advanced)</h2>
+    <p>Point PixelProof at your own deployment or RPC without rebuilding. Leave blank to use the built-in defaults.</p>
+    <p>
+      <select id="ovNet"><option value="testnet">Testnet</option><option value="mainnet">Mainnet</option></select>
+      <input id="ovContract" placeholder="contract 0x…" style="width:330px" />
+      <input id="ovRpc" placeholder="RPC URL (optional)" style="width:240px" />
+      <button id="ovSave">Save</button> <span id="ovMsg"></span>
+    </p>
+  </body>
+</html>
