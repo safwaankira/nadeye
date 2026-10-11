@@ -1,6 +1,22 @@
 // Generated from contracts/out/PixelProof.sol/PixelProof.json — run npm run abi after changing the contract
 export const pixelProofAbi = [
  {
+  "type": "constructor",
+  "inputs": [
+   {
+    "name": "identity",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "reputation",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
   "type": "function",
   "name": "AI_THRESHOLD",
   "inputs": [],
@@ -100,6 +116,30 @@ export const pixelProofAbi = [
     "name": "",
     "type": "uint32",
     "internalType": "uint32"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "agentOf",
+  "inputs": [
+   {
+    "name": "scanner",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "linked",
+    "type": "bool",
+    "internalType": "bool"
+   },
+   {
+    "name": "agentId",
+    "type": "uint256",
+    "internalType": "uint256"
    }
   ],
   "stateMutability": "view"
@@ -328,6 +368,16 @@ export const pixelProofAbi = [
       "name": "joined",
       "type": "uint40",
       "internalType": "uint40"
+     },
+     {
+      "name": "hasAgent",
+      "type": "bool",
+      "internalType": "bool"
+     },
+     {
+      "name": "agentId",
+      "type": "uint256",
+      "internalType": "uint256"
      }
     ]
    }
@@ -399,6 +449,16 @@ export const pixelProofAbi = [
       "name": "joined",
       "type": "uint40",
       "internalType": "uint40"
+     },
+     {
+      "name": "hasAgent",
+      "type": "bool",
+      "internalType": "bool"
+     },
+     {
+      "name": "agentId",
+      "type": "uint256",
+      "internalType": "uint256"
      }
     ]
    }
@@ -450,6 +510,19 @@ export const pixelProofAbi = [
  },
  {
   "type": "function",
+  "name": "identityRegistry",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "contract IERC8004Identity"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
   "name": "imageCount",
   "inputs": [],
   "outputs": [
@@ -460,6 +533,19 @@ export const pixelProofAbi = [
    }
   ],
   "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "linkAgent",
+  "inputs": [
+   {
+    "name": "agentId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
  },
  {
   "type": "function",
@@ -513,6 +599,19 @@ export const pixelProofAbi = [
       "internalType": "uint40"
      }
     ]
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "reputationRegistry",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "contract IERC8004Reputation"
    }
   ],
   "stateMutability": "view"
@@ -598,6 +697,51 @@ export const pixelProofAbi = [
   "stateMutability": "view"
  },
  {
+  "type": "function",
+  "name": "unlinkAgent",
+  "inputs": [],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "event",
+  "name": "AgentLinked",
+  "inputs": [
+   {
+    "name": "scanner",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "agentId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "AgentUnlinked",
+  "inputs": [
+   {
+    "name": "scanner",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "agentId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
   "type": "event",
   "name": "Attested",
   "inputs": [
@@ -666,6 +810,31 @@ export const pixelProofAbi = [
   "anonymous": false
  },
  {
+  "type": "event",
+  "name": "ReputationSkipped",
+  "inputs": [
+   {
+    "name": "scanner",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "agentId",
+    "type": "uint256",
+    "indexed": true,
+    "internalType": "uint256"
+   },
+   {
+    "name": "pHash",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   }
+  ],
+  "anonymous": false
+ },
+ {
   "type": "error",
   "name": "AlreadyAttested",
   "inputs": []
@@ -693,6 +862,16 @@ export const pixelProofAbi = [
  {
   "type": "error",
   "name": "LengthMismatch",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NoIdentityRegistry",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotAgentController",
   "inputs": []
  }
 ];

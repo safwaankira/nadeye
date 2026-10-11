@@ -67,6 +67,9 @@
       <button id="doImport">Import</button>
       <span id="importMsg"></span>
     </p>
+    <h2>Trusted PixelProof sites</h2>
+    <p>Sites that may offer your passkey-derived scanner key to the extension (you still confirm each time). One origin per line, e.g. <code>https://pixelproof.vercel.app</code>.</p>
+    <p><textarea id="origins" rows="3" style="width:420px"></textarea> <button id="saveOrigins">Save</button> <span id="originsMsg"></span></p>
     <h2>Network override (advanced)</h2>
     <p>Point PixelProof at your own deployment or RPC without rebuilding. Leave blank to use the built-in defaults.</p>
     <p>

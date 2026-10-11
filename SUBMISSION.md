@@ -1,60 +1,103 @@
-# BuildAnything submission — PixelProof
+# Monad Metropolis submission — PixelProof
 
-Category: **Testnet** (switch to **Mainnet** once deployed there)
+**Track:** 04 · Trust, Identity & AI Infrastructure
+**Bounties to tag:** Monad Foundation "Mera: One Passkey, Many Keys" · Monad Foundation "Best Mera-Powered UX on Monad"
+**Deadline:** 13 Oct · **Network:** Monad mainnet (chain 143)
 
 ---
 
-**Project name**
+## Project name
 PixelProof
 
-**Tagline**
-Detect AI images in your browser. Share the verdict on Monad.
+## One-liner
+Provenance for generated media: people and AI agents verify images on-device, and Monad keeps the record and each verifier's ERC-8004 reputation.
 
-**Description**
-PixelProof is a Chrome extension that flags AI-generated images as you browse, with every image analyzed on your own device by a WebGPU/WASM model. Nothing is uploaded.
+## Write-up
 
-When you opt in, each verdict is recorded on Monad as a 64-bit perceptual hash plus a confidence score. The image itself never touches the chain. Every PixelProof user reads the same onchain registry, so the next person who meets that image on any site, even resized or recompressed, sees how many scanners flagged it right on the image's badge.
+AI-generated images are now part of everyday browsing. People can't easily tell them apart, and AI agents repost and act on them without checking.
 
-Scanners earn points for coverage, for being first to record an image and for agreeing with the existing consensus. A public leaderboard ranks them by points, active days and signal-to-noise, read directly from the contract with no backend.
+PixelProof makes "is this image AI-generated?" a question with a public, verifiable answer.
 
-**How it works**
-1. Local detection with Sieve's fine-tuned ViT-S/16 (ONNX Runtime Web, WebGPU with WASM fallback).
-2. A 64-bit DCT perceptual hash of the pixels becomes the registry key.
-3. Verdicts queue in the extension and go out as one `attestBatch` transaction of up to 100, signed by a burner key that lives in the extension.
-4. Lookups query the exact hash plus its 36 likeliest bit-flip variants in one `eth_call`, so re-encoded copies still match (94% vs 59% exact-only in our tests).
-5. The contract keeps per-image tallies and per-scanner points, active days and signal-to-noise, with paged views the leaderboard reads directly.
+**People** install the PixelProof Chrome extension. It runs a ViT detector entirely in the browser on WebGPU, so images are never uploaded. Users sign in with a passkey instead of a seed phrase. When they opt in, each verdict goes to Monad as a 64-bit perceptual hash plus a confidence score. Anyone who later meets the same picture on any site, even resized or recompressed, sees how many scanners flagged it, right on the image.
 
-**Why Monad**
-Attesting what you browse means a constant stream of tiny writes. That needs very low fees and fast confirmation. Writes for different images hit different storage slots, which fits Monad's parallel execution. Because Monad bills the gas limit, the client estimates each batch and pads it by only 15%.
+**Agents** call the PixelProof Verifier. It runs the same model on a laptop and offers three ways in:
+- an **MCP tool** (`verify_image`), for agents to check an image before they post or act on it;
+- an **HTTP API**;
+- the **ERC-8004 Validation Registry**: any agent can send a `validationRequest`, and the verifier answers onchain with an authenticity score from 0 to 100 and a hashed report.
 
-**Built with**
-Solidity + Foundry, viem (`monadTestnet` / `monad` chains), ONNX Runtime Web, Chrome MV3, ethers.js on the leaderboard page.
+**Trust accrues onchain.** Every scanner, human or agent, can link an **ERC-8004 identity**. When a verdict meets the consensus check, the PixelProof contract writes the outcome to the **ERC-8004 Reputation Registry**: 100 for agreement, 0 for disagreement. Each detector's accuracy becomes a portable, queryable track record. Points, active days and signal-to-noise rank scanners on a leaderboard that reads straight from the contract, with no backend.
 
-**Credits**
-Detection model and extension base: Sieve by Sriram Kiron (@Phineas1500), MIT licensed, winner of poidh bounty #323. PixelProof adds the perceptual hashing, Monad contract, chain client, batching, community badges, points system and leaderboard.
+**One passkey, many keys (Mera).** One passkey derives two keys:
+- an **identity key** that owns the ERC-8004 agent. It lives only in page memory, inside Mera signing sessions that are zeroed after each action.
+- a **scanner key** the extension uses to sign. It is registered as the agent's `agentWallet` with its own EIP-712 consent, so a leaked hot key can be rotated without losing reputation.
 
-**Links**
+The same passkey restores everything on a new device.
+
+## How it uses Monad
+
+- **Volume.** A browsing session produces many small attestations. Fast confirmation and low fees are what make one batch per minute practical.
+- **Parallel execution.** Writes for different images and different scanners hit disjoint storage, which suits Monad's parallel execution.
+- **ERC-8004.** It uses Monad's live Identity, Reputation and Validation registries.
+- **Gas billing.** Monad bills the gas limit, so every client estimates each transaction and pads it by only 15%.
+
+## What was built during Metropolis
+
+Everything in the repo except the detector:
+- the PixelProof contract with ERC-8004 integration;
+- perceptual hashing and near-match lookup;
+- the Monad chain client and batching in the extension;
+- the verifier agent: Node port of the detector, MCP, HTTP and the ERC-8004 validator;
+- Mera passkey identities;
+- the leaderboard and registry site;
+- all tests.
+
+The detector model and base extension are **Sieve** by Sriram Kiron (MIT, open source), credited in the README, NOTICE and the app.
+
+## Verification (for judges)
+
+- **Contract:** 21 Foundry tests, 7 of them against the real ERC-8004 reference registries.
+- **Agent end-to-end on a local chain:** register → validation request → onchain answer → attestation → HTTP and MCP.
+- **Extension:** the service worker is tested under a mocked Chrome API.
+- **Passkey flow:** tested with real Mera signing sessions.
+- **Model parity:** the Node detector matches Sieve's own reference scores (mean |Δ| 0.009).
+
+## Links
 - Repo: https://github.com/safwaanDK/pixelproof
-- Leaderboard: <your hosted web/dist URL>
-- Contract (testnet): <address> on https://testnet.monadvision.com
+- Live site: <your Vercel URL>
+- Contract (mainnet): <address> · https://monadvision.com/address/<address>
+- Verifier agent: ERC-8004 agent #<id> · wallet <address>
 - Demo video: <link>
 
 ---
 
-## 60-second demo script
+## Demo video (2:30)
 
-1. **0–10s** Open X or a news site with PixelProof loaded. Badges appear on images; one AI image is blurred with `AI 94%`.
-2. **10–20s** Open the popup: Monad Testnet, Contribute on, wallet funded, queue filling. Click **Send**, then click the "Last batch" link to show the transaction on the explorer.
-3. **20–35s** Open a second Chrome profile (a different scanner). Visit a page with a resized copy of the same image. The badge now reads `AI 91% · 👥 1/1`: the community verdict, found by perceptual hash.
-4. **35–50s** Open the leaderboard: both scanners ranked, points, active days and SNR updating. Drop the image into **Registry → Check an image** to show the lookup works from any browser.
-5. **50–60s** Close on the privacy line: the image never left either browser; only a 64-bit hash and a score are on Monad.
+| Time | Show |
+| --- | --- |
+| 0:00–0:15 | **Problem.** Scroll a feed with a few AI images and say: "Can you tell? Can your agent?" |
+| 0:15–0:45 | **Passkey.** On the live site, open My scanner, choose Create passkey (Touch ID) and show the two derived keys. Create the ERC-8004 agent; the progress steps tick by, about a second each on Monad. Click Use in extension and confirm. |
+| 0:45–1:15 | **Extension.** Browse. Badges appear and an AI image is blurred with `AI 97%`. Open the popup: mainnet, agent #id, queue sending. Open the last batch transaction on monadvision. |
+| 1:15–1:35 | **Community verdict.** In a second Chrome profile, a resized copy of the same image shows `AI 96% · 👥 1/1`. |
+| 1:35–2:05 | **Agents.** In Claude Desktop, ask "is this image AI-generated? <url>" and it calls `verify_image`. In a terminal, run `request <url>`; the validator log answers; show the `ValidationResponse` event on the explorer. |
+| 2:05–2:25 | **Reputation.** Leaderboard: agent chips, points, signal-to-noise. Read the ERC-8004 `getSummary` for your agent. |
+| 2:25–2:30 | **Close.** "Images never leave your device. Trust lives on Monad." |
 
 ## Launch post (X)
 
-> Built PixelProof for @buildanythingso 🟣
+> PixelProof is live on @monad mainnet for #MonadMetropolis 🟣
 >
-> A Chrome extension that spots AI-generated images on-device (no uploads), then records the verdict on @monad as a perceptual hash.
+> Detect AI-generated images on-device, then put the verdict onchain. No uploads, and no seed phrase thanks to passkeys via Mera.
 >
-> See an image someone already checked? Its badge shows how many scanners flagged it. Scan, earn points, climb the board.
+> Agents can ask too, through MCP or ERC-8004 validation. Every verifier earns an ERC-8004 reputation.
 >
-> Detection by Sieve (@sriramkiron's poidh-winning model). Repo + leaderboard ⬇️
+> Detector: Sieve by @sriramkiron · repo + demo ⬇️
+
+---
+
+## BuildAnything (same project)
+
+**Category:** Mainnet
+
+**Tagline:** Detect AI images in your browser. Share the verdict on Monad.
+
+Use the write-up above, trimmed to its first three paragraphs.

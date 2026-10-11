@@ -1,140 +1,223 @@
 # PixelProof
 
-**Detect AI-generated images in your browser. Share the verdict on Monad.**
+**Provenance for generated media, verified by people and agents on Monad.**
 
-PixelProof is a Chrome extension plus a Monad smart contract. The extension decides, on your own device, whether each image you scroll past was AI-generated. With your opt-in, it records that verdict on Monad as a 64-bit perceptual hash and a confidence score. The image itself never leaves your browser.
+PixelProof is a trust layer for images:
 
-Everyone running PixelProof reads the same registry, so the next person to meet that image (on any site, even resized or recompressed) sees how many scanners flagged it. Scanners earn points for coverage, first finds and agreeing with the consensus, ranked on a public leaderboard that reads straight from the chain.
+- **People** run a Chrome extension that detects AI-generated images on their own device. They sign in with a passkey (no seed phrase).
+- **AI agents** call the PixelProof Verifier over MCP, HTTP or the ERC-8004 Validation Registry. They use it to check an image before they repost it or act on it.
+- **Monad** holds the shared record. Each verdict is stored as a 64-bit perceptual hash plus a confidence score, never the image. Each scanner's accuracy against the consensus is written to its **ERC-8004** agent reputation.
 
 ```
- browser (all local)                                   Monad
- ┌───────────────────────────────────────────┐        ┌──────────────────────────┐
- │ page image ─▶ ViT-S/16 on WebGPU/WASM ─▶ score ───┐ │ PixelProof.sol           │
- │           └─▶ 64-bit DCT pHash ─────────▶ key  ───┼▶│  attestBatch(keys, scores)│
- │                                                   │ │  getImages(keys) ◀─ badge │
- │ burner key in chrome.storage signs batches ───────┘ │  getScanners() ◀─ board   │
- └───────────────────────────────────────────┘        └──────────────────────────┘
+  Chrome extension (people)                    PixelProof Verifier (agents, runs on a Mac)
+  Sieve model on WebGPU/WASM                   same model, onnxruntime-node
+  passkey -> scanner key (Mera)                MCP verify_image · HTTP /verify
+        │ attestBatch(pHash, score)                  │ attest + validationResponse
+        ▼                                            ▼
+ ┌────────────────────────────── Monad ──────────────────────────────┐
+ │ PixelProof.sol  verdicts by pHash · points · active days · SNR     │
+ │      │ consensus judgement (agree 100 / disagree 0)                │
+ │      ▼                                                             │
+ │ ERC-8004 Reputation Registry   ERC-8004 Identity   ERC-8004 Validation │
+ └────────────────────────────────────────────────────────────────────┘
+        ▲ reads (no backend)
+  Leaderboard + registry site · "My scanner" passkey profile
 ```
+
+Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**. The build touches all three of the track's example ideas: provenance for generated media, agent identity and reputation under ERC-8004, and passkey-native accounts.
 
 ## What's in the repo
 
 | Path | What it is |
 | --- | --- |
-| `contracts/` | `PixelProof.sol` (Foundry): verdict registry, points, active days, signal-to-noise, paged leaderboard views. 14 tests incl. fuzz. |
-| `extension/` | The Chrome extension (MV3). Detection is Sieve; PixelProof adds `phash.js`, `chain/` (viem client, burner wallet, batching), community badges, the Monad popup panel and wallet backup. |
-| `web/` | Leaderboard + registry lookup site. One HTML file, no backend: it calls the contract over the public RPC. |
+| `contracts/` | `PixelProof.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. 21 Foundry tests, including tests against the real ERC-8004 reference registries. |
+| `extension/` | Chrome MV3 extension. Detection is Sieve. PixelProof adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
+| `agent/` | **PixelProof Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
+| `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera). It has no backend and reads the chain directly. |
 
 ## Credits
 
-The detection model and the extension it ships in are **[Sieve](https://github.com/Phineas1500/sieve-ai-image-detector)** by **Sriram Kiron (@sriramkiron, GitHub @Phineas1500)**, MIT licensed, the winning claim of the [poidh local-AI bounty #323](https://poidh.xyz/arbitrum/bounty/323) (91.3% balanced accuracy on clean images, 87.3% on web-degraded ones, at a 65% threshold). Sieve itself builds on [Community Forensics](https://github.com/JeongsooP/Community-Forensics) (Park & Owens, CVPR 2025, MIT) and ONNX Runtime Web (MIT).
+The detection model and the extension it ships in are **[Sieve](https://github.com/Phineas1500/sieve-ai-image-detector)** by **Sriram Kiron (@sriramkiron, GitHub @Phineas1500)**. Sieve is MIT licensed and was the winning claim of [poidh bounty #323](https://poidh.xyz/arbitrum/bounty/323): 91.3% balanced accuracy on clean images and 87.3% on web-degraded ones, at a 65% threshold. Sieve builds on [Community Forensics](https://github.com/JeongsooP/Community-Forensics) (Park & Owens, CVPR 2025, MIT).
 
-New in PixelProof: the perceptual hashing and near-match lookup, the Monad contract, the chain client and burner wallet, batched attestations, community-verdict badges, the scanner points system and the leaderboard site. See `NOTICE`.
+Other third-party code:
+- [ERC-8004 reference registries](https://github.com/erc-8004/erc-8004-contracts) (MIT). These are vendored only for local tests; production uses the live Monad deployments.
+- [Mera](https://mera.category.xyz/) by Category Labs (MIT/Apache-2.0).
+- viem, ONNX Runtime, OpenZeppelin and the MCP SDK.
 
-Model misclassifications should still be reported upstream to Sieve (the right-click "report misclassification" menu goes there).
+Everything else in this repo was written during the Metropolis build window (see the git history and `NOTICE`).
 
-## Quick start
+---
 
-Requirements: Node ≥ 20, Chrome ≥ 124, [Foundry](https://book.getfoundry.sh/getting-started/installation).
+## Mainnet runbook (Mac, about an hour)
 
-### 1. Deploy the contract to Monad testnet
+You need Node ≥ 20, [Foundry](https://book.getfoundry.sh/getting-started/installation), Chrome, and about **3 MON on Monad mainnet**. That covers deploying, the agent's gas and your passkey identity.
+
+### 1. Wallets
+
+```bash
+cast wallet import deployer --interactive     # your deployer (or use --ledger)
+cast wallet new                               # a fresh, dedicated key for the verifier agent
+```
+
+Send about 1 MON to the agent address. Keep the deployer separate. Never paste a funded main wallet key anywhere.
+
+### 2. Deploy the contract
 
 ```bash
 cd contracts
-forge build
-forge test                                   # 14 passing
-cast wallet import deployer --interactive    # paste a funded testnet key once
-forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
+forge build && forge test                    # 21 passing
+forge script script/Deploy.s.sol --rpc-url monad_mainnet --account deployer --broadcast
 ```
 
-Get testnet MON from the [BuildAnything faucet](https://buildanything.so/faucet). Note the printed address. To verify the source on the explorer, follow Monad's [Foundry verification guide](https://docs.monad.xyz/guides/verify-smart-contract/foundry) (chain id `10143`).
+The script wires in Monad's live ERC-8004 registries: Identity `0x8004A169…a432` and Reputation `0x8004BAa1…9b63`. It refuses to deploy if they aren't there. Verify the source with Monad's [Foundry verification guide](https://docs.monad.xyz/guides/verify-smart-contract/foundry) (chain id 143).
 
-### 2. Build and load the extension
+### 3. Host the site
 
 ```bash
-cd extension
-# paste the address into src/chain/config.js -> NETWORKS.testnet.contract
-npm install
-npm run build        # vendors ONNX Runtime Web + bundles the chain client
-npm test             # pHash, chain e2e and service-worker tests (need anvil on PATH)
+cd web && npm install
+node build.mjs 0xYOUR_PIXELPROOF mainnet      # bundles the passkey module, writes web/dist/
+npx vercel deploy dist --prod                 # or Netlify / GitHub Pages
 ```
 
-Then open `chrome://extensions`, enable Developer mode, **Load unpacked** → select `extension/`. The setup tab opens. Press **Download model** (a one-time ~45 MB download of Sieve's pinned, checksummed weights).
+Passkeys are bound to the domain, so pick the final domain before anyone signs in.
 
-Already built it without the address? Open the extension's **Options → Network override** and paste the contract there. No rebuild needed.
-
-### 3. Turn on contributions
-
-Click the PixelProof icon:
-
-1. Switch on **Contribute verdicts**.
-2. Click the scanner wallet address to copy it, then fund it from the faucet. A fraction of a MON lasts a long time.
-3. Optionally save your X handle so you appear by name on the leaderboard.
-
-Browse normally. Verdicts queue up and go out in batches of up to 100, every minute or as soon as 25 are waiting (**Send** forces it). Badges gain a `👥 3/4` suffix when other scanners have recorded the same image.
-
-### 4. Host the leaderboard
+### 4. Build and load the extension
 
 ```bash
-node web/build.mjs 0xYourContract testnet    # writes web/dist/index.html
+cd extension && npm install && npm run build
 ```
 
-Deploy `web/dist/` to any static host (Vercel, Netlify, GitHub Pages). The page also accepts `?contract=0x…&network=testnet`. Put the hosted URL into `LEADERBOARD_URL` in `extension/src/chain/config.js` so the popup links to it.
+1. Open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and select `extension/`.
+2. Download the model when the setup tab opens.
+3. Open **Options**:
+   - Paste the contract under **Network override** (mainnet), or put it in `src/chain/config.js` and rebuild.
+   - Add your site's origin (e.g. `https://pixelproof.vercel.app`) under **Trusted PixelProof sites**.
 
-### 5. Mainnet
+### 5. Sign in with a passkey
 
-Repeat step 1 with `--rpc-url monad_mainnet` (use a hardware wallet or keystore for the deployer, never a raw key), set `NETWORKS.mainnet.contract`, rebuild, and switch the popup's network selector. Fund the scanner wallet with real MON.
+On the site, open **My scanner**:
 
-## How the registry works
+1. Choose **Create passkey**.
+2. Fund the identity address with about 0.3 MON.
+3. Choose **Create ERC-8004 agent** and enter your handle. This takes 4–5 transactions. The identity key registers the agent, your scanner key becomes its `agentWallet` with its own EIP-712 consent, and the scanner links it in PixelProof.
+4. Choose **Use in extension**, then confirm the dialog the extension shows.
 
-**Key.** A 64-bit DCT perceptual hash: luma, area-averaged to 32×32, 2-D DCT, the 8×8 lowest frequencies, each bit = coefficient above the median. Stored as `bytes32`.
+In the extension popup, turn on **Contribute verdicts** and browse.
 
-**Near matches.** Re-encoding flips a few hash bits, almost always the ones closest to the median. So a lookup asks the contract for the hash **plus every 1- and 2-bit flip among its 8 least-stable bits** (37 keys) in one `eth_call`, then merges the hits. On a test set of 30 images × 4 re-encodings (resize + JPEG q40–85, WebP q50), exact-hash matches found 59% of copies; the 37-key probe found 94%.
+### 6. Run the verifier agent
 
-**Points** (constants in the contract):
+```bash
+cd agent
+npm install                                   # macOS arm64 binaries for onnxruntime + sharp
+cp .env.example .env                          # set PIXELPROOF_CONTRACT and AGENT_PRIVATE_KEY
+npm run register -- --handle pixelproof_verifier   # ERC-8004 agent + link; prints AGENT_ID
+echo "AGENT_ID=<id>" >> .env
+npm run serve -- --validator                  # HTTP + MCP on 127.0.0.1:8787, validator loop
+```
+
+The first run downloads Sieve's pinned weights (~45 MB) and checks their sha256.
+
+**Use it from Claude Desktop or Claude Code.** Add this to the MCP config:
+
+```json
+{
+  "mcpServers": {
+    "pixelproof": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/pixelproof/agent/src/cli.js", "mcp"],
+      "env": { "PIXELPROOF_NETWORK": "mainnet", "PIXELPROOF_CONTRACT": "0xYOUR_PIXELPROOF" }
+    }
+  }
+}
+```
+
+The tools are `verify_image(url)`, `verify_image_file(path)` (stdio only) and `lookup_phash(pHash)`.
+
+**Ask it onchain**, as another agent would:
+
+```bash
+REQUESTER_PRIVATE_KEY=0x… node src/cli.js request https://example.com/image.jpg --validator <agent wallet>
+```
+
+The validator answers within seconds with `validationResponse(requestHash, authenticity 0–100, data: JSON report, keccak256(report), "pixelproof/ai-image")`.
+
+**Optional public endpoint.** Run `cloudflared tunnel --url http://127.0.0.1:8787`, then re-run `register --public-url https://…`. That puts the MCP and HTTP endpoints into the agent's ERC-8004 registration file.
+
+---
+
+## How it works
+
+### Perceptual hash
+
+Each image gets a 64-bit DCT pHash: luma, area-averaged to 32×32, a 2-D DCT, then the 8×8 lowest frequencies, with each bit set when the coefficient is above the median. The hash is stored as `bytes32`.
+
+Lookups query the hash plus every 1- and 2-bit flip among its 8 least-stable bits. That is 37 keys in one `eth_call`. On re-encoded copies (resize, JPEG q40–85, WebP q50), this found 94% of matches, versus 59% for an exact-hash lookup.
+
+### Points and signal-to-noise
 
 | Event | Points |
 | --- | --- |
 | Verdict recorded | +10 |
-| First scanner to record the image | +25 |
-| Agree with the existing majority (image has ≥2 prior reports, no tie) | +15 |
-| Disagree with the majority | 0, counted as noise |
+| First to record the image | +25 |
+| Agrees with the existing majority (≥2 prior reports, no tie) | +15 |
+| Disagrees | 0, counted as noise |
 | Point-earning verdicts per address per UTC day | 300 cap |
 
-**Signal-to-noise** = agreed ÷ (agreed + disagreed). **Active days** = distinct UTC days with at least one verdict.
+### ERC-8004
 
-**Verdict.** A report is an "AI" vote when its score is ≥ 65% (Sieve's threshold, stored as basis points ≥ 6500). Degraded inputs (heavy recompression or upscaling), which Sieve shows as "unsure", are never attested.
+- **Identity.** A scanner calls `linkAgent(agentId)` and must be the agent's owner or its `agentWallet`. That means nobody can attach someone else's scanner to their agent. The passkey flow uses a cold owner key and a hot `agentWallet` scanner key, so a leaked extension key can be rotated out by the owner.
+- **Reputation.** Every consensus judgement on a linked scanner's verdict calls `giveFeedback(agentId, 100 | 0, 0, "pixelproof", "consensus", "", "", pHash)`, with the PixelProof contract as the client. `getSummary(agentId, [PixelProof], "pixelproof", "consensus")` then equals the scanner's agreement rate. Feedback never blocks an attestation: a broken link or a registry failure just skips it.
+- **Validation.** The verifier answers `validationRequest`s addressed to its wallet. The response is an authenticity score: 100 means no sign of AI, 0 means AI-generated. The report is attached as a data URI with its keccak256 hash.
 
-## Why Monad
+### Passkeys (Mera)
 
-- Attesting what you browse means many small writes. That only works with very low fees and roughly one-second confirmation.
-- Each image's record and each scanner's record are separate storage slots, so attestations from different people rarely touch the same state. That is the workload Monad's parallel execution is built for.
-- Monad charges for the **gas limit** you set, not the gas used. The client estimates every batch and adds only a 15% buffer (`GAS_BUFFER`), instead of the usual 2× padding.
-- Full EVM compatibility: standard Solidity, Foundry and viem, using viem's built-in `monad` / `monadTestnet` chain definitions.
+The passkey's PRF output gives a 24-word mnemonic, from which BIP-44 derives:
+- `m/44'/60'/0'/0/0` — the **identity key**. It lives only in page memory, inside Mera signing sessions that are ended after every action.
+- `m/44'/60'/0'/0/1` — the **scanner key**. It is handed to the extension through a content-script bridge that only trusted origins can use, and the user confirms each time.
 
-Measured gas: about 110–140k per newly attested image inside a batch (higher for an address's first ever verdict, which creates its scanner record), ~35k for `setHandle`.
+The same passkey re-derives the same accounts on any device. The recovery phrase is available from the page in case the domain ever changes.
 
-## Privacy
+### The detector
 
-- Images are never uploaded. Detection runs locally, as in Sieve (see `extension/PRIVACY.sieve.md`).
-- Contributing is **off by default**. When on, each verdict publishes a 64-bit hash, a score, a model-version byte, your scanner address and the time. That is public and permanent. A hash cannot be turned back into the picture, but anyone holding the same image can compute its hash and see that your address recorded it. The scanner wallet is a fresh burner key, not your main wallet, which limits linkage. Setting an X handle links the two on purpose.
-- Community lookups send only hashes to the Monad RPC.
+The model is Sieve's ViT-S/16 fine-tune. Its preprocessing lives in `extension/src/pipeline.js`, which is shared by the extension and the agent.
+
+The Node agent matches Sieve's own Python/PIL reference scores on Sieve's 17 labelled sample images: mean |Δ| 0.009, worst 0.049. Sieve's own parity bar is a mean below 0.03 and a worst case below 0.2.
+
+### Why Monad
+
+- Attesting what you browse means a constant stream of small writes. That needs very low fees and roughly one-second confirmation.
+- Writes for different images and scanners touch different storage slots, which suits Monad's parallel execution.
+- The live ERC-8004 registries give identity and reputation without new infrastructure.
+- Monad bills the gas **limit**, so every client estimates and pads by only 15%.
+- The P256 precompile (`0x0100`) is an upgrade path to smart accounts with passkey signers.
+
+Measured gas: about 110–140k per newly attested image. A judged verdict from a linked agent costs more, because it also writes the ERC-8004 feedback. That is why the extension caps batches at 50.
+
+## Privacy and safety
+
+- Images never leave the device in the extension. The agent fetches images only when asked to.
+- The agent refuses URLs that resolve to private, loopback or link-local addresses, follows at most 3 redirects, caps size at 25 MB and time at 15 s, and binds to 127.0.0.1 by default.
+- Contributing verdicts is off by default. When it's on, the hash, score, model byte, scanner address and time are public and permanent.
 
 ## Known limits
 
-- Sybil resistance is basic: the daily cap and consensus scoring raise the cost of farming, but many burner wallets can still inflate points. A stake-weighted or attestation-gated mode (e.g. require a minimum MON balance or an NFT) is the natural next step.
-- Signal-to-noise judges each verdict against the majority at the moment it was recorded. It is not recomputed when the consensus later shifts.
-- Perceptual hashes don't survive heavy crops, rotations or mirroring.
-- One upstream Sieve unit test (`detects C2PA trainedAlgorithmicMedia URI anywhere in head`) fails on Sieve's own `main` as well. PixelProof does not modify `forensics.js`.
+- **Sybil resistance.** The daily cap and consensus scoring raise the cost of farming points, but they don't stop it. ERC-8004 reputation lets readers choose which scanners to trust; stake-weighted consensus is the next step.
+- **Signal-to-noise** judges each verdict against the majority at the time it was recorded. It is not recomputed later.
+- **pHash** doesn't survive heavy crops, rotation or mirroring.
+- **Mera's PRF requirement.** Desktop Chrome supports it only for passkeys saved in Google Password Manager.
+- **Upstream test.** One Sieve unit test (C2PA URI in head) also fails on Sieve's own `main`. PixelProof doesn't modify `forensics.js`.
 
 ## Tests
 
 ```bash
-cd contracts && forge test                 # 14 tests: points, quorum, ties, daily cap, batching, paging, fuzz
-cd extension && npm test                   # needs anvil on PATH and a prior forge build + npm run build
+cd contracts && forge test     # 21: points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
+cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
+cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF guard
+cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner
 ```
 
-`extension/test/background.harness.test.mjs` loads the real service worker under a mocked `chrome` API against anvil running with Monad testnet's chain id, and checks analyze → queue → batch → lookup → stats end to end.
+The chain tests run against anvil with the ERC-8004 reference registries deployed the same way as on Monad (proxy → MinimalUUPS → upgrade).
 
 ## License
 
-MIT. See `LICENSE` (PixelProof) and `LICENSE.sieve` (Sieve, Copyright its authors).
+MIT. See `LICENSE` (PixelProof) and `LICENSE.sieve` (Sieve).

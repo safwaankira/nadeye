@@ -8,9 +8,14 @@
 import { createPublicClient, createWalletClient, http, formatEther, isAddress, zeroAddress } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { pixelProofAbi } from "./abi.js";
-import { NETWORKS, MAX_BATCH, AUTO_FLUSH_AT, GAS_BUFFER, LEADERBOARD_URL } from "./config.js";
+import { parseAbi } from "viem";
 
-export { NETWORKS, AUTO_FLUSH_AT };
+const reputationAbi = parseAbi([
+  "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
+]);
+import { NETWORKS, MAX_BATCH, AUTO_FLUSH_AT, GAS_BUFFER, LEADERBOARD_URL, SITE_ORIGINS } from "./config.js";
+
+export { NETWORKS, AUTO_FLUSH_AT, SITE_ORIGINS };
 
 const SEEN_MAX = 5000;
 
@@ -121,7 +126,17 @@ export function createChain({ store, network = "testnet", override = null }) {
         base.me = {
           handle: me.handle, points: Number(me.points), scans: me.scans, firsts: me.firsts,
           activeDays: me.activeDays, snr: judged ? (100 * me.signal) / judged : null,
+          agentId: me.hasAgent ? me.agentId.toString() : null,
         };
+        if (me.hasAgent && net.reputation) {
+          try {
+            const [count, value, decimals] = await pub.readContract({
+              address: net.reputation, abi: reputationAbi, functionName: "getSummary",
+              args: [me.agentId, [contract], "pixelproof", "consensus"],
+            });
+            base.me.reputation = { count: Number(count), agreement: count ? Number(value) / 10 ** decimals : null };
+          } catch {}
+        }
       }
     } catch (e) {
       base.error = String(e?.shortMessage || e?.message || e);

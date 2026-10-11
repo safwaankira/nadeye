@@ -63,3 +63,13 @@ $("ovSave").addEventListener("click", async () => {
   $("ovMsg").textContent = "Saved.";
 });
 loadOverride();
+
+// PixelProof: trusted passkey-site origins
+chrome.runtime.sendMessage({ kind: "pp:site-origins" }).then((r) => { if (r && r.ok) $("origins").value = r.origins.join("\n"); });
+$("saveOrigins").addEventListener("click", async () => {
+  const list = $("origins").value.split(/\s+/).map((x) => x.trim().replace(/\/$/, "")).filter(Boolean);
+  const bad = list.filter((o) => { try { const u = new URL(o); return u.origin !== o || !(u.protocol === "https:" || u.hostname === "localhost"); } catch { return true; } });
+  if (bad.length) { $("originsMsg").textContent = `Not an https origin: ${bad.join(", ")}`; return; }
+  await chrome.storage.sync.set({ ppSiteOrigins: list });
+  $("originsMsg").textContent = "Saved.";
+});

@@ -67,10 +67,10 @@ function mockChrome(fakeInfer) {
     tabs: { create() {}, sendMessage() {} },
   };
   // what content scripts / the popup do: post a message, await the reply
-  return (msg) => new Promise((resolve) => {
+  return (msg, sender = {}) => new Promise((resolve) => {
     let handled = false;
     for (const l of msgListeners) {
-      const r = l(msg, {}, (v) => resolve(v));
+      const r = l(msg, sender, (v) => resolve(v));
       if (r === true) handled = true;
     }
     if (!handled) resolve(undefined);
@@ -86,7 +86,7 @@ test("background: analyze -> attest -> community verdict", { skip }, async (t) =
   }
   const { abi, bytecode } = JSON.parse(readFileSync(ARTIFACT, "utf8"));
   const funder = createWalletClient({ account: FUNDER, chain: local, transport: http(RPC) });
-  const { contractAddress } = await pub.waitForTransactionReceipt({ hash: await funder.deployContract({ abi, bytecode: bytecode.object }) });
+  const { contractAddress } = await pub.waitForTransactionReceipt({ hash: await funder.deployContract({ abi, bytecode: bytecode.object, args: ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"] }) });
 
   // stubbed model: deterministic score + hash per URL
   const hashes = { "https://a.example/1.jpg": "a1b2c3d4e5f60718", "https://a.example/2.jpg": "0f0f0f0f12345678", "https://a.example/3.jpg": "ffeeddccbbaa9988" };
@@ -105,6 +105,7 @@ test("background: analyze -> attest -> community verdict", { skip }, async (t) =
   assert.equal(st0.ok, true);
   assert.equal(st0.configured, true);
   assert.equal(st0.balance, "0");
+  const st0Key = (await send({ kind: "pp:export-key" })).key;
   await pub.waitForTransactionReceipt({ hash: await funder.sendTransaction({ to: st0.address, value: parseEther("1") }) });
 
   for (const url of Object.keys(hashes)) {
@@ -122,6 +123,18 @@ test("background: analyze -> attest -> community verdict", { skip }, async (t) =
   assert.equal(c1.aiVotes, 1);
   const c3 = await send({ kind: "pp:community", phash: hashes["https://a.example/3.jpg"] });
   assert.equal(c3, null);
+
+  // passkey-site bridge: only trusted origins may set the scanner key
+  const key = "0x" + "11".repeat(32);
+  const evil = await send({ kind: "pp:site-import-key", key }, { url: "https://evil.example/claim" });
+  assert.equal(evil.ok, false);
+  assert.equal((await send({ kind: "pp:site-scanner" }, { url: "https://evil.example/" })).ok, false);
+  const before = (await send({ kind: "pp:status" })).address;
+  const good = await send({ kind: "pp:site-import-key", key }, { url: "http://localhost:8080/#me" });
+  assert.equal(good.ok, true);
+  assert.notEqual(good.address, before);
+  assert.equal((await send({ kind: "pp:site-scanner" }, { url: "http://localhost:8080/" })).address, good.address);
+  await send({ kind: "pp:import-key", key: (await chrome.storage.local.get(["ppKeyBackup"])).ppKeyBackup || st0Key });
 
   const st = await send({ kind: "pp:status" });
   assert.equal(st.me.scans, 2);

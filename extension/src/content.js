@@ -382,3 +382,36 @@
     });
   }
 })();
+
+// ---------------------------------------------------------------- PixelProof
+// Passkey site bridge. On a trusted PixelProof site (options page list), the
+// page can hand the extension the scanner key it derived from the user's
+// passkey (Mera). The user confirms in a dialog before anything changes.
+(() => {
+  if (window.top !== window) return;
+  chrome.runtime.sendMessage({ kind: "pp:site-origins" }).then((r) => {
+    if (!r || !r.ok || !r.origins.includes(location.origin)) return;
+    document.documentElement.dataset.pixelproofExtension = chrome.runtime.getManifest().version;
+    const reply = (msg) => window.postMessage({ source: "pixelproof-extension", ...msg }, location.origin);
+    window.addEventListener("message", async (ev) => {
+      if (ev.source !== window || ev.origin !== location.origin) return;
+      const m = ev.data;
+      if (!m || m.source !== "pixelproof-site") return;
+      if (m.type === "get-scanner") {
+        const r = await chrome.runtime.sendMessage({ kind: "pp:site-scanner" }).catch(() => null);
+        return reply({ type: "scanner", id: m.id, ok: !!r?.ok, address: r?.address, network: r?.network });
+      }
+      if (m.type === "import-scanner-key") {
+        if (typeof m.key !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(m.key)) return reply({ type: "import-result", id: m.id, ok: false, error: "bad key" });
+        const yes = window.confirm(
+          `PixelProof: use the scanner wallet ${m.address || ""} from your passkey?\n\n` +
+          "The extension's current scanner key will be replaced. Back it up from Options first if it holds points you want to keep."
+        );
+        if (!yes) return reply({ type: "import-result", id: m.id, ok: false, error: "declined" });
+        const r = await chrome.runtime.sendMessage({ kind: "pp:site-import-key", key: m.key }).catch((e) => ({ ok: false, error: String(e) }));
+        return reply({ type: "import-result", id: m.id, ok: !!r?.ok, address: r?.address, error: r?.error });
+      }
+    });
+    reply({ type: "ready", version: chrome.runtime.getManifest().version });
+  }).catch(() => {});
+})();

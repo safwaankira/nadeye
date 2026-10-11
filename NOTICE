@@ -12,8 +12,16 @@ Community Forensics (Park & Owens, CVPR 2025), via Sieve — MIT
 ONNX Runtime Web (Microsoft) — MIT, vendored at build time
 viem (wevm) — MIT, bundled at build time
 forge-std (Foundry) — MIT/Apache-2.0, contracts/lib/forge-std
+OpenZeppelin Contracts + Contracts Upgradeable v5.4.0 — MIT, contracts/lib (test deps)
+ERC-8004 reference registries — MIT, contracts/test/erc8004 (local tests only;
+  production uses the live Monad deployments)
+Mera (@category-labs/mera) by Category Labs — MIT OR Apache-2.0, bundled into web/passkey.js
+@scure/bip32, @scure/bip39 — MIT, bundled into web/passkey.js
+onnxruntime-node, sharp, @modelcontextprotocol/sdk, zod — agent/ dependencies
 
 Added by PixelProof: contracts/, extension/src/phash.js, extension/src/chain/,
 the Monad integration in extension/src/background.js, content.js, popup.*,
-options.*, the extension tests under extension/test/ (except
-forensics.test.mjs), and web/.
+options.*, extension/src/pipeline.js (Sieve's preprocessing moved verbatim
+into a shared module), the extension tests under extension/test/ (except
+forensics.test.mjs), agent/, and web/. The test image
+extension/test/fixtures/fake_sample.png is a synthetic image from Sieve's eval set.

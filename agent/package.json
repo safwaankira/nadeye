@@ -1,0 +1,28 @@
+{
+  "name": "pixelproof-agent",
+  "version": "1.0.0",
+  "description": "PixelProof verifier agent: runs Sieve's AI-image detector locally (onnxruntime-node), answers ERC-8004 validation requests on Monad, and serves an HTTP API + MCP tool so other AI agents can check image provenance.",
+  "type": "module",
+  "bin": {
+    "pixelproof-agent": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "verify": "node src/cli.js verify",
+    "serve": "node src/cli.js serve",
+    "mcp": "node src/cli.js mcp",
+    "validator": "node src/cli.js validator",
+    "register": "node src/cli.js register"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "onnxruntime-node": "^1.22.0",
+    "sharp": "^0.34.5",
+    "viem": "^2.57.4",
+    "zod": "^3.25.76"
+  }
+}

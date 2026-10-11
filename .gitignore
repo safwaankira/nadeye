@@ -2,3 +2,5 @@ contracts/out/
 contracts/cache/
 web/dist/
 node_modules/
+.env
+web/passkey.js

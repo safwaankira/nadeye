@@ -85,6 +85,9 @@ async function refreshPP() {
   $("scans").textContent = me ? me.scans.toLocaleString() : "0";
   $("days").textContent = me ? me.activeDays : "0";
   $("snr").textContent = me && me.snr != null ? `${me.snr.toFixed(0)}%` : "–";
+  $("agent").textContent = me && me.agentId != null
+    ? `#${me.agentId}${me.reputation && me.reputation.count ? ` · ${me.reputation.agreement.toFixed(0)}% agree (${me.reputation.count})` : ""}`
+    : "not linked — sign in on the site";
   if (me && me.handle && document.activeElement !== $("handle")) $("handle").value = `@${me.handle}`;
   $("lasttx").innerHTML = "";
   if (st.lastTx) {

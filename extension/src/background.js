@@ -3,7 +3,7 @@
 // PixelProof adds the Monad layer: community-verdict lookups and (opt-in)
 // batched attestations of local verdicts, keyed by perceptual hash.
 
-import { createChain, AUTO_FLUSH_AT } from "./chain.bundle.js";
+import { createChain, AUTO_FLUSH_AT, SITE_ORIGINS, NETWORKS } from "./chain.bundle.js";
 
 const OFFSCREEN_URL = "src/offscreen.html";
 
@@ -118,7 +118,7 @@ async function analyze(url) {
 
 // ------------------------------------------------------------- PixelProof
 
-const PP_DEFAULTS = { ppContribute: false, ppNetwork: "testnet" };
+const PP_DEFAULTS = { ppContribute: false, ppNetwork: "mainnet" };
 let ppSettings = { ...PP_DEFAULTS };
 let chainInst = null;
 const chainStore = {
@@ -141,6 +141,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // Optional per-network override set on the options page (a fresh deployment,
 // a private RPC) — no rebuild needed: ppCustom = {testnet: {contract, rpcUrl}}
+async function siteOrigins() {
+  const { ppSiteOrigins } = await chrome.storage.sync.get(["ppSiteOrigins"]);
+  return Array.isArray(ppSiteOrigins) && ppSiteOrigins.length ? ppSiteOrigins : SITE_ORIGINS;
+}
+
 async function chain() {
   await ppReady;
   if (!chainInst) {
@@ -265,6 +270,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case "pp:import-key": {
           const c = await chain();
           return sendResponse({ ok: true, address: await c.importKey(msg.key) });
+        }
+        case "pp:site-origins":
+          return sendResponse({ ok: true, origins: await siteOrigins() });
+        case "pp:site-import-key": {
+          // from the passkey site, relayed by the content script after the
+          // user confirmed; only accepted from a trusted origin's tab
+          const origin = sender?.origin || (sender?.url ? new URL(sender.url).origin : null);
+          if (!origin || !(await siteOrigins()).includes(origin)) return sendResponse({ ok: false, error: "untrusted origin" });
+          const c = await chain();
+          const address = await c.importKey(msg.key);
+          return sendResponse({ ok: true, address });
+        }
+        case "pp:site-scanner": {
+          const origin = sender?.origin || (sender?.url ? new URL(sender.url).origin : null);
+          if (!origin || !(await siteOrigins()).includes(origin)) return sendResponse({ ok: false, error: "untrusted origin" });
+          const c = await chain();
+          return sendResponse({ ok: true, address: (await c.account()).address, network: ppSettings.ppNetwork });
         }
         default:
           return sendResponse({ ok: false, error: "unknown" });

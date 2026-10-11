@@ -1,6 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/// @dev the slices of the ERC-8004 registries PixelProof uses
+interface IERC8004Identity {
+    function ownerOf(uint256 agentId) external view returns (address);
+    function getAgentWallet(uint256 agentId) external view returns (address);
+}
+
+interface IERC8004Reputation {
+    function giveFeedback(
+        uint256 agentId,
+        int128 value,
+        uint8 valueDecimals,
+        string calldata tag1,
+        string calldata tag2,
+        string calldata endpoint,
+        string calldata feedbackURI,
+        bytes32 feedbackHash
+    ) external;
+}
+
 /// @title PixelProof — an onchain registry of AI-image verdicts on Monad
 /// @notice The PixelProof browser extension detects AI-generated images locally
 ///         (WebGPU/WASM, nothing uploaded) and attests its verdict here, keyed by
@@ -9,6 +28,13 @@ pragma solidity ^0.8.24;
 ///         and for agreeing with the existing consensus — the leaderboard
 ///         (points, active days, signal-to-noise) is read straight from this
 ///         contract, no backend required.
+///
+///         ERC-8004: a scanner (human-run extension or autonomous agent) can
+///         link its ERC-8004 agent identity. From then on every consensus
+///         judgement on its verdicts is written to the ERC-8004 Reputation
+///         Registry with this contract as the client (100 = agreed, 0 =
+///         disagreed, tag1 "pixelproof", tag2 "consensus"), so any app can read
+///         a detector's track record without trusting PixelProof's own UI.
 contract PixelProof {
     // ---------------------------------------------------------------- config
 
@@ -28,6 +54,11 @@ contract PixelProof {
     uint256 public constant MAX_BATCH = 100;
 
     // ----------------------------------------------------------------- state
+
+    IERC8004Identity public immutable identityRegistry;
+    IERC8004Reputation public immutable reputationRegistry;
+    /// scanner => agentId + 1 (0 = not linked; ERC-8004 agent ids start at 0)
+    mapping(address => uint256) internal _agentOf;
 
     struct Image {
         uint32 reports;      // attestations received
@@ -73,6 +104,9 @@ contract PixelProof {
         uint64 pointsAwarded
     );
     event HandleSet(address indexed scanner, string handle);
+    event AgentLinked(address indexed scanner, uint256 indexed agentId);
+    event AgentUnlinked(address indexed scanner, uint256 indexed agentId);
+    event ReputationSkipped(address indexed scanner, uint256 indexed agentId, bytes32 pHash);
 
     error InvalidScore();
     error AlreadyAttested();
@@ -80,6 +114,68 @@ contract PixelProof {
     error BatchTooLarge();
     error LengthMismatch();
     error HandleTooLong();
+    error NoIdentityRegistry();
+    error NotAgentController();
+
+    /// @param identity   ERC-8004 Identity Registry (0 disables agent linking)
+    /// @param reputation ERC-8004 Reputation Registry (0 disables feedback)
+    constructor(address identity, address reputation) {
+        identityRegistry = IERC8004Identity(identity);
+        reputationRegistry = IERC8004Reputation(reputation);
+    }
+
+    // ------------------------------------------------------------- ERC-8004
+
+    /// @notice link the caller's verdicts to an ERC-8004 agent. The caller must
+    ///         be the agent's owner or its registered agentWallet, so nobody can
+    ///         attach someone else's scanner (or reputation) to their agent.
+    function linkAgent(uint256 agentId) external {
+        if (address(identityRegistry) == address(0)) revert NoIdentityRegistry();
+        if (!_controls(msg.sender, agentId)) revert NotAgentController();
+        _agentOf[msg.sender] = agentId + 1;
+        emit AgentLinked(msg.sender, agentId);
+    }
+
+    function unlinkAgent() external {
+        uint256 a = _agentOf[msg.sender];
+        if (a == 0) return;
+        delete _agentOf[msg.sender];
+        emit AgentUnlinked(msg.sender, a - 1);
+    }
+
+    function agentOf(address scanner) public view returns (bool linked, uint256 agentId) {
+        uint256 a = _agentOf[scanner];
+        return (a != 0, a == 0 ? 0 : a - 1);
+    }
+
+    function _controls(address who, uint256 agentId) internal view returns (bool) {
+        try identityRegistry.ownerOf(agentId) returns (address owner) {
+            if (owner == who) return true;
+        } catch {
+            return false;
+        }
+        try identityRegistry.getAgentWallet(agentId) returns (address wallet) {
+            return wallet == who;
+        } catch {
+            return false;
+        }
+    }
+
+    /// consensus judgement -> ERC-8004 reputation. Never blocks an attestation:
+    /// a revoked link or a registry failure only skips the feedback.
+    function _reputation(address scanner, bool agreed, bytes32 pHash) internal {
+        uint256 a = _agentOf[scanner];
+        if (a == 0 || address(reputationRegistry) == address(0)) return;
+        uint256 agentId = a - 1;
+        if (!_controls(scanner, agentId)) {
+            emit ReputationSkipped(scanner, agentId, pHash);
+            return;
+        }
+        try reputationRegistry.giveFeedback(agentId, agreed ? int128(100) : int128(0), 0, "pixelproof", "consensus", "", "", pHash) {}
+        catch {
+            emit ReputationSkipped(scanner, agentId, pHash);
+        }
+    }
 
     // ------------------------------------------------------------ attesting
 
@@ -150,6 +246,7 @@ contract PixelProof {
                     consensus = -1;
                     ++s.noise;
                 }
+                _reputation(msg.sender, consensus == 1, pHash);
             }
         }
 
@@ -196,6 +293,8 @@ contract PixelProof {
         uint32 noise;
         uint32 activeDays;
         uint40 joined;
+        bool hasAgent;
+        uint256 agentId;
     }
 
     function getImage(bytes32 pHash) public view returns (ImageView memory v) {
@@ -226,6 +325,7 @@ contract PixelProof {
         v.noise = s.noise;
         v.activeDays = s.activeDays;
         v.joined = s.joined;
+        (v.hasAgent, v.agentId) = agentOf(account);
     }
 
     /// @notice page through every scanner (the leaderboard sorts client-side)

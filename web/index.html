@@ -26,6 +26,7 @@
   --ai: #d9402b; --real: #1f9a62; --warn: #b67a0c; color-scheme: light }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
 .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 0 64px; }
 a { color: var(--accent-ink); text-decoration: none; }
@@ -123,6 +124,21 @@ td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .chip.ai { color: var(--ai); background: color-mix(in srgb, var(--ai) 14%, transparent); }
 .chip.real { color: var(--real); background: color-mix(in srgb, var(--real) 14%, transparent); }
 .chip.split { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.chip.agent { color: var(--accent-ink); background: var(--accent-soft); }
+.me-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .me-grid { grid-template-columns: 1fr; } }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; align-items: baseline; }
+.kv dt { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row-actions input { flex: 1 1 180px; min-width: 0; font: 14px var(--body); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+.status { font-size: 13px; border-radius: 8px; padding: 9px 12px; }
+.status.busy { background: var(--accent-soft); color: var(--accent-ink); }
+.status.err { background: color-mix(in srgb, var(--ai) 12%, transparent); color: var(--ai); }
+.status.ok { background: color-mix(in srgb, var(--real) 12%, transparent); color: var(--real); }
+.phrase { font: 13px/1.8 var(--mono); background: var(--raised); border: 1px dashed var(--warn); border-radius: 8px; padding: 10px 12px; word-spacing: 6px; }
+.keyline { display: flex; gap: 10px; align-items: center; }
+.btn:disabled { opacity: .5; cursor: default; }
 .meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex; }
 .meter i { display: block; height: 100%; }
 
@@ -151,6 +167,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
     <nav role="tablist" aria-label="Sections">
       <button role="tab" id="tab-board" aria-selected="true" data-view="board">Leaderboard</button>
       <button role="tab" id="tab-registry" aria-selected="false" data-view="registry">Registry</button>
+      <button role="tab" id="tab-me" aria-selected="false" data-view="me">My scanner</button>
       <button role="tab" id="tab-how" aria-selected="false" data-view="how">How it works</button>
     </nav>
   </header>
@@ -158,7 +175,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
   <section class="hero">
     <div class="eyebrow"><span id="netLabel">Monad Testnet</span><span class="pill" id="modePill">loading</span></div>
     <h1>Every scan is <em>proof</em> on Monad.</h1>
-    <p class="lede">Scanners run the PixelProof extension, which detects AI-generated images inside the browser. Each verdict lands on Monad as a 64-bit perceptual hash and a confidence score. The image never leaves the device.</p>
+    <p class="lede">People and AI agents scan the web for AI-generated images. Detection runs on their own device; each verdict lands on Monad as a 64-bit perceptual hash and a confidence score, and every scanner's track record accrues to its ERC-8004 agent identity. The image never leaves the device.</p>
   </section>
 
   <div class="stats" aria-label="Network totals">
@@ -189,7 +206,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
       <div class="tablewrap">
         <table>
           <thead><tr>
-            <th>Rank</th><th>Scanner</th><th class="num">Total points</th><th class="num">Active days</th>
+            <th>Rank</th><th>Scanner</th><th>Agent</th><th class="num">Total points</th><th class="num">Active days</th>
             <th class="num">Signal to noise</th><th class="num">Scans</th><th class="num">First finds</th><th class="num">Joined</th>
           </tr></thead>
           <tbody id="rows"></tbody>
@@ -217,6 +234,66 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
       </div>
     </section>
 
+    <section id="view-me" class="fade" hidden>
+      <div class="panel" style="margin-bottom:14px">
+        <h3>One passkey, every key you need</h3>
+        <p class="small" style="margin:0;max-width:72ch">Sign in with a passkey instead of a seed phrase. Your passkey derives two Monad accounts on this device: an <strong>identity key</strong> that owns your ERC-8004 agent, where your reputation lives, and a <strong>scanner key</strong> the extension uses to sign verdicts. The same passkey gives you the same accounts on any device. Powered by Mera.</p>
+        <p class="small" id="ppExt" style="margin:0"></p>
+        <p class="status busy" id="ppNoContract" hidden>No PixelProof contract is configured for this page yet, so onchain actions are off.</p>
+      </div>
+      <div class="status busy" id="ppBusy" hidden></div>
+      <div class="status err" id="ppError" hidden></div>
+      <div class="status ok" id="ppToast" hidden></div>
+
+      <div class="panel" id="ppSignedOut">
+        <h3>Get started</h3>
+        <div class="row-actions">
+          <input id="ppName" placeholder="Name for this passkey, e.g. your X handle" aria-label="Passkey name">
+          <button class="btn primary" id="ppCreate">Create passkey</button>
+          <button class="btn" id="ppLogin">Sign in with passkey</button>
+        </div>
+        <p class="small" style="margin:0">Chrome on desktop: save the passkey to Google Password Manager. Safari: iCloud Keychain. Both support the PRF extension Mera needs.</p>
+      </div>
+
+      <div id="ppSignedIn" hidden style="display:grid;gap:14px">
+        <div class="me-grid">
+          <div class="panel">
+            <h3>Identity key · m/44'/60'/0'/0/0</h3>
+            <dl class="kv">
+              <dt>Address</dt><dd class="keyline"><span id="ppIdAddr"></span><button class="btn" id="ppCopyId" title="Copy address to fund it">Copy</button></dd>
+              <dt>Balance</dt><dd id="ppIdBal">–</dd>
+              <dt>ERC-8004</dt><dd id="ppAgent">–</dd>
+              <dt>Reputation</dt><dd id="ppRep">–</dd>
+            </dl>
+            <p class="small" style="margin:0">Fund this address with a little MON. It pays for creating your agent and tops up your scanner key.</p>
+          </div>
+          <div class="panel">
+            <h3>Scanner key · m/44'/60'/0'/0/1</h3>
+            <dl class="kv">
+              <dt>Address</dt><dd id="ppScAddr"></dd>
+              <dt>Balance</dt><dd id="ppScBal">–</dd>
+              <dt>Scanning</dt><dd id="ppPoints">–</dd>
+            </dl>
+            <div class="row-actions"><button class="btn primary" id="ppSend">Use in extension</button><span class="small" id="ppInExt"></span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Your agent identity</h3>
+          <div class="row-actions">
+            <input id="ppHandle" placeholder="@handle for the leaderboard" maxlength="33" aria-label="Leaderboard handle">
+            <button class="btn primary" id="ppSetup" data-needs="contract">Create ERC-8004 agent</button>
+            <button class="btn" id="ppSaveHandle" data-needs="contract">Save handle</button>
+          </div>
+          <p class="small" style="margin:0">Creating the agent registers it in Monad's ERC-8004 Identity Registry (owned by your identity key) and sets your scanner key as its agent wallet. From then on, every time your verdict agrees or disagrees with the consensus, the PixelProof contract writes it to the ERC-8004 Reputation Registry.</p>
+        </div>
+        <div class="row-actions">
+          <button class="btn" id="ppReveal">Show recovery phrase</button>
+          <button class="btn" id="ppSignOut">Sign out</button>
+        </div>
+        <div class="phrase" id="ppPhrase" hidden></div>
+      </div>
+    </section>
+
     <section id="view-how" class="fade" hidden>
       <div class="steps">
         <div class="step"><span class="n">STEP 1</span><h3>Detect locally</h3><p>A ViT-S/16 model runs in the browser on WebGPU, with WASM as a fallback. Pixels are never uploaded.</p></div>
@@ -234,6 +311,9 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
           <div><span>Daily cap on point-earning verdicts</span><b>300 / UTC day</b></div>
         </div>
         <p><strong>Signal to noise</strong> is the share of a scanner's judged verdicts that agreed with the majority already on record. Verdicts on images with fewer than two prior reports, or on a tie, are not judged.</p>
+        <h2>Agents and ERC-8004</h2>
+        <p>Every scanner can link an <strong>ERC-8004 agent identity</strong> on Monad. When a verdict meets the consensus check, the PixelProof contract records the result in the ERC-8004 Reputation Registry: 100 for agreement, 0 for disagreement. That builds a portable track record any app can read.</p>
+        <p>The <strong>PixelProof Verifier</strong> is an autonomous agent that runs the same detector on a laptop. Other agents can ask it to check an image through the ERC-8004 Validation Registry, and it answers onchain with an authenticity score from 0 to 100. Agents can also call it directly through MCP (<code>verify_image</code>) or HTTP, so they can check an image before they repost or act on it.</p>
         <h2>Why Monad</h2>
         <p>One transaction per handful of images only makes sense on a chain with low fees and roughly one-second confirmation. Attestations for different images touch different storage slots, which suits Monad's parallel execution. Monad charges for the gas limit you set, so the extension estimates each batch and adds only a 15% buffer.</p>
         <h2>Credits</h2>
@@ -251,7 +331,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
 <script>
 // ------------------------------------------------------------------ config
 const CONFIG = {
-  network: "testnet",
+  network: "mainnet",
   contract: "0x0000000000000000000000000000000000000000", // set after deploying
 };
 const NETWORKS = {
@@ -264,10 +344,11 @@ try {
   if (p.get("network") in NETWORKS) CONFIG.network = p.get("network");
 } catch {}
 const NET = NETWORKS[CONFIG.network];
+window.PIXELPROOF = { CONFIG, NET }; // shared with the passkey module (passkey.js)
 
 const ABI = [
   "function stats() view returns (uint256 scans, uint256 images, uint256 scanners, uint256 flagged)",
-  "function getScanners(uint256 offset, uint256 limit) view returns (tuple(address account, string handle, uint64 points, uint32 scans, uint32 firsts, uint32 signal, uint32 noise, uint32 activeDays, uint40 joined)[])",
+  "function getScanners(uint256 offset, uint256 limit) view returns (tuple(address account, string handle, uint64 points, uint32 scans, uint32 firsts, uint32 signal, uint32 noise, uint32 activeDays, uint40 joined, bool hasAgent, uint256 agentId)[])",
   "function recentImages(uint256 limit) view returns (tuple(bytes32 pHash, uint32 reports, uint32 aiVotes, uint16 meanScore, address firstScanner, uint40 firstSeen, uint40 lastSeen)[])",
   "function getImages(bytes32[] pHashes) view returns (tuple(bytes32 pHash, uint32 reports, uint32 aiVotes, uint16 meanScore, address firstScanner, uint40 firstSeen, uint40 lastSeen)[])",
 ];
@@ -333,6 +414,7 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (Math.imul(s, 166
 function demoData() {
   const r = seeded(20261011);
   const names = ["lumen_hunter", "pixelnun", "darkroom_dev", "nadfinder", "grainwatch", "exif_witch", "monadeye", "", "falsecolor", "", "halftone", "moire_mo", "", "jpegghost", "", "chromakey", "", "bokeh_bandit", "", "dctdan", "", "", "noisefloor", "", "c2pa_kid", "", "lowpass", "", "", "aliasing", "", "gammaray", "", "", "sobel", "", "fft_frank", "", "", "histo"];
+  names[5] = "pixelproof_verifier"; // the autonomous verifier agent scans too
   const now = Date.now() / 1000;
   const hex = (n) => Array.from({ length: n }, () => Math.floor(r() * 16).toString(16)).join("");
   const scanners = names.map((h, i) => {
@@ -342,7 +424,8 @@ function demoData() {
     const judged = Math.round(scans * (0.3 + r() * 0.4));
     const signal = Math.round(judged * (0.62 + r() * 0.35));
     return { account: "0x" + hex(40), handle: h, scans, firsts, signal, noise: judged - signal, activeDays: days,
-      points: scans * 10 + firsts * 25 + signal * 15, joined: Math.round(now - (days + r() * 40) * 86400) };
+      points: scans * 10 + firsts * 25 + signal * 15, joined: Math.round(now - (days + r() * 40) * 86400),
+      hasAgent: h !== "" && r() > 0.3, agentId: String(40 + Math.floor(r() * 900)) };
   });
   const images = Array.from({ length: 12 }, (_, i) => {
     const reports = 1 + Math.floor(r() * 9);
@@ -367,7 +450,8 @@ async function liveData() {
   for (let off = 0; off < total; off += 200) {
     const page = await contract.getScanners(off, 200);
     for (const s of page) scanners.push({ account: s.account, handle: s.handle, points: Number(s.points), scans: Number(s.scans),
-      firsts: Number(s.firsts), signal: Number(s.signal), noise: Number(s.noise), activeDays: Number(s.activeDays), joined: Number(s.joined) });
+      firsts: Number(s.firsts), signal: Number(s.signal), noise: Number(s.noise), activeDays: Number(s.activeDays), joined: Number(s.joined),
+      hasAgent: s.hasAgent, agentId: s.agentId.toString() });
   }
   const imgs = (await contract.recentImages(12)).map(normImg);
   return { live: true, scanners, images: imgs,
@@ -414,13 +498,14 @@ function renderBoard() {
     const tr = document.createElement("tr");
     const r = snr(s);
     tr.innerHTML = `<td class="rank">#${s.rank}</td><td><span class="h"></span><a class="a" href="${addrLink(s.account)}" target="_blank" rel="noopener">${short(s.account)}</a></td>
+      <td>${s.hasAgent ? `<span class="chip agent" title="ERC-8004 agent; reputation written by the PixelProof contract">#${s.agentId}</span>` : '<span class="small">–</span>'}</td>
       <td class="num">${fmt(s.points)}</td><td class="num">${fmt(s.activeDays)}</td>
       <td class="num"><span class="snr">${r == null ? "–" : r.toFixed(2)}<span class="bar"><i style="width:${r ?? 0}%"></i></span></span></td>
       <td class="num">${fmt(s.scans)}</td><td class="num">${fmt(s.firsts)}</td><td class="num">${ago(s.joined)}</td>`;
     tr.querySelector(".h").textContent = s.handle ? `@${s.handle}` : "";
     rows.append(tr);
   }
-  if (!list.length) rows.innerHTML = `<tr><td colspan="8" class="small" style="text-align:center;padding:28px">No scanners match that search.</td></tr>`;
+  if (!list.length) rows.innerHTML = `<tr><td colspan="9" class="small" style="text-align:center;padding:28px">No scanners match that search.</td></tr>`;
   const pager = $("pager");
   pager.innerHTML = "";
   const btn = (txt, p, opts = {}) => { const b = document.createElement("button"); b.textContent = txt; b.disabled = !!opts.disabled; if (opts.current) b.setAttribute("aria-current", "true"); b.onclick = () => { page = p; renderBoard(); }; pager.append(b); };
@@ -513,7 +598,7 @@ async function checkFile(file) {
 // ------------------------------------------------------------------ wiring
 document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
-  for (const v of ["board", "registry", "how"]) $(`view-${v}`).hidden = v !== b.dataset.view;
+  for (const v of ["board", "registry", "me", "how"]) $(`view-${v}`).hidden = v !== b.dataset.view;
   try { localStorage.setItem("pp-view", b.dataset.view); } catch {}
 }));
 $("sortBy").addEventListener("change", () => { page = 0; renderBoard(); });
@@ -561,3 +646,4 @@ try { const v = localStorage.getItem("pp-view"); if (v && v !== "board") documen
 load();
 setInterval(() => { if (DATA.live) load(); }, 60_000);
 </script>
+<script type="module" src="passkey.js"></script>

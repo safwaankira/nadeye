@@ -38,7 +38,7 @@ test("attest, look up and score through the chain client", { skip }, async (t) =
 
   const { abi, bytecode } = JSON.parse(readFileSync(ARTIFACT, "utf8"));
   const funder = createWalletClient({ account: FUNDER, chain: foundry, transport: http(RPC) });
-  const deployHash = await funder.deployContract({ abi, bytecode: bytecode.object });
+  const deployHash = await funder.deployContract({ abi, bytecode: bytecode.object, args: ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"] });
   const { contractAddress } = await pub.waitForTransactionReceipt({ hash: deployHash });
 
   const override = { chain: foundry, rpcUrl: RPC, contract: contractAddress, label: "anvil" };

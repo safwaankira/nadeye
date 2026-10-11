@@ -15,7 +15,7 @@ contract PixelProofTest is Test {
 
     function setUp() public {
         vm.warp(1_760_000_000);
-        pp = new PixelProof();
+        pp = new PixelProof(address(0), address(0));
     }
 
     function test_firstScanEarnsScanPlusFirstBonus() public {
