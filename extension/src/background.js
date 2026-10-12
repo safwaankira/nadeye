@@ -118,7 +118,7 @@ async function analyze(url) {
 
 // Nadeye additions below; the code above is Sieve's.
 
-const PP_DEFAULTS = { ppContribute: false, ppNetwork: "mainnet" };
+const PP_DEFAULTS = { ppContribute: false, ppNetwork: "testnet" };
 let ppSettings = { ...PP_DEFAULTS };
 let chainInst = null;
 const chainStore = {

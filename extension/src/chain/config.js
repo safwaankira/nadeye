@@ -1,5 +1,6 @@
 // Monad network + contract configuration.
-// After deploying (see contracts/README), paste the address into `contract`.
+// Set at build time: NADEYE_TESTNET_CONTRACT=0x… NADEYE_SITE=https://… npm run build
+// (NADEYE_MAINNET_CONTRACT for mainnet), or paste the addresses here.
 import { monad, monadTestnet } from "viem/chains";
 
 export const NETWORKS = {
@@ -7,26 +8,26 @@ export const NETWORKS = {
     label: "Monad Testnet",
     chain: monadTestnet, // chain id 10143
     rpcUrl: "https://testnet-rpc.monad.xyz",
-    contract: "0x0000000000000000000000000000000000000000",
+    contract: process.env.NADEYE_TESTNET_CONTRACT || "0x0000000000000000000000000000000000000000",
     reputation: "0x8004B663056A597Dffe9eCcC1965A193B7388713", // ERC-8004
     explorer: "https://testnet.monadvision.com",
-    faucet: "https://buildanything.so/faucet",
+    faucet: "https://faucet.monad.xyz",
   },
   mainnet: {
     label: "Monad Mainnet",
     chain: monad, // chain id 143
     rpcUrl: "https://rpc.monad.xyz",
-    contract: "0x0000000000000000000000000000000000000000",
+    contract: process.env.NADEYE_MAINNET_CONTRACT || "0x0000000000000000000000000000000000000000",
     reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63", // ERC-8004
     explorer: "https://monadvision.com",
     faucet: null,
   },
 };
 
-export const LEADERBOARD_URL = "https://nadeye.example/"; // set to your hosted web/ page
+export const LEADERBOARD_URL = process.env.NADEYE_SITE || "https://nadeye.example/"; // your hosted web/ page
 // Pages allowed to hand the extension a passkey-derived scanner key
 // (editable on the options page). Add your hosted site's origin.
-export const SITE_ORIGINS = ["http://localhost:8080", "http://localhost:5173"];
+export const SITE_ORIGINS = ["http://localhost:8080", "http://localhost:5173", ...(process.env.NADEYE_SITE ? [new URL(process.env.NADEYE_SITE).origin] : [])];
 
 // Onchain vote bands, same as Nadeye.sol; scores in between are never sent.
 export const AI_THRESHOLD_BPS = 8000;

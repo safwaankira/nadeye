@@ -3,9 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Nadeye} from "../src/Nadeye.sol";
+import {PasskeyRegistry} from "../src/PasskeyRegistry.sol";
 
-/// Deploys Nadeye wired to the live ERC-8004 registries.
-///   forge script script/Deploy.s.sol --rpc-url monad_mainnet --account deployer --broadcast
+/// Deploys Nadeye wired to the live ERC-8004 registries, plus the PasskeyRegistry.
+///   forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
 /// Other chains: set ERC8004_IDENTITY / ERC8004_REPUTATION (or 0x0 to disable).
 contract Deploy is Script {
     // CREATE2-deterministic ERC-8004 registries (erc-8004.quicknode.com/docs/contracts)
@@ -14,7 +15,7 @@ contract Deploy is Script {
     address constant TESTNET_IDENTITY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
     address constant TESTNET_REPUTATION = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
 
-    function run() external returns (Nadeye pp) {
+    function run() external returns (Nadeye pp, PasskeyRegistry passkeys) {
         address identity;
         address reputation;
         if (block.chainid == 143) {
@@ -30,8 +31,10 @@ contract Deploy is Script {
 
         vm.startBroadcast();
         pp = new Nadeye(identity, reputation);
+        passkeys = new PasskeyRegistry();
         vm.stopBroadcast();
         console.log("Nadeye deployed at", address(pp));
+        console.log("PasskeyRegistry deployed at", address(passkeys));
         console.log("chain id", block.chainid);
         console.log("ERC-8004 identity", identity);
         console.log("ERC-8004 reputation", reputation);

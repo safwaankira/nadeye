@@ -6,6 +6,7 @@ import { toViemAccount } from "@category-labs/mera/viem";
 import { formatEther } from "viem";
 import { monad, monadTestnet } from "viem/chains";
 import { deriveEvmKey, recoveryPhrase, keyHex, createProfileClient, IDENTITY_INDEX, SCANNER_INDEX } from "./profile-core.js";
+import { readAssertion, candidateKeys, pickKey, toWebAuthnAuth, keyToArgs, b64urlToBytes, hexToBytes, passkeyRegistryAbi } from "./webauthn-proof.js";
 
 const ERC8004 = {
   mainnet: { chain: monad, identity: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432", reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" },
@@ -19,6 +20,7 @@ const { CONFIG, NET } = window.NADEYE;
 const net = ERC8004[CONFIG.network];
 const configured = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.contract) && !/^0x0{40}$/.test(CONFIG.contract);
 const client = configured ? createProfileClient({ chain: net.chain, rpcUrl: NET.rpc, contract: CONFIG.contract, identity: net.identity, reputation: net.reputation }) : null;
+const passkeys = configured && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.passkeys || "") && !/^0x0{40}$/.test(CONFIG.passkeys) ? CONFIG.passkeys : null;
 
 let prf = null;      // passkey PRF output, memory only
 let addrs = null;    // { identity, scanner }
@@ -117,6 +119,47 @@ async function setupAgent() {
   await refresh();
 }
 
+// One WebAuthn assertion with this site's passkey over `challenge` (raw bytes).
+async function assertWith(challenge) {
+  const known = readCred();
+  const cred = await navigator.credentials.get({
+    publicKey: {
+      challenge, rpId: location.hostname, userVerification: "required", timeout: 60_000,
+      allowCredentials: known?.credentialId ? [{ type: "public-key", id: b64urlToBytes(known.credentialId), transports: known.transports }] : undefined,
+    },
+  });
+  return readAssertion(cred);
+}
+
+// Prove onchain that this scanner is backed by the passkey: tap 1 narrows the passkey's
+// P256 public key to two candidates, tap 2 signs the registry's challenge and picks the
+// candidate that verifies; the scanner key then sends PasskeyRegistry.register.
+async function provePasskey() {
+  try {
+    setBusy("Passkey prompt 1 of 2: reading your passkey's public key…");
+    const candidates = candidateKeys(await assertWith(crypto.getRandomValues(new Uint8Array(32))));
+    const challenge = await client.pub.readContract({ address: passkeys, abi: passkeyRegistryAbi, functionName: "registrationChallenge", args: [addrs.scanner] });
+    setBusy("Passkey prompt 2 of 2: signing the proof…");
+    const proof = await assertWith(hexToBytes(challenge));
+    const key = pickKey(candidates, proof);
+    if (!key) throw new Error("This passkey doesn't use a P256 key, so Monad's P256 precompile can't check it. Create a new passkey on this device and try again.");
+    await withAccounts(async (identity, scanner) => {
+      const st = await client.status(identity.address, scanner.address);
+      if (st.scannerBalance < 20_000_000_000_000_000n) { // < 0.02 MON
+        setBusy("Sending your scanner key a little MON for gas…");
+        await client.fundScanner(identity, scanner.address, "0.05");
+      }
+      setBusy("Recording the proof onchain…");
+      await client.send(scanner, passkeys, passkeyRegistryAbi, "register", [...keyToArgs(key), toWebAuthnAuth(proof)]);
+    });
+    setBusy(null);
+    toast("Passkey proof recorded onchain");
+  } catch (e) {
+    setBusy(null, /KeyInUse/.test(String(e?.message || e)) ? "This passkey already backs another scanner. Each passkey can prove one scanner." : explain(e));
+  }
+  await refresh();
+}
+
 async function saveHandle() {
   const h = $("ppHandle").value.trim();
   if (!h) return;
@@ -130,6 +173,12 @@ let last = null, extScanner = null;
 async function refresh() {
   if (!addrs) return render();
   try { last = client ? await client.status(addrs.identity, addrs.scanner) : null; } catch (e) { last = { error: explain(e) }; }
+  try {
+    if (last && passkeys) {
+      const [registered, , , at] = await client.pub.readContract({ address: passkeys, abi: passkeyRegistryAbi, functionName: "passkeyOf", args: [addrs.scanner] });
+      last.passkey = { registered, at: Number(at) };
+    }
+  } catch { /* the status line says "–" */ }
   if (extReady) {
     const r = await askExtension({ type: "get-scanner" }, 4000);
     extScanner = r.ok ? r.address : null;
@@ -145,7 +194,7 @@ function setBusy(msg, error = null) {
   $("ppError").textContent = error || "";
   document.querySelectorAll("#view-me button").forEach((b) => {
     if (b.id === "ppToastClose") return;
-    const off = !!msg || (b.dataset.needs === "contract" && !configured);
+    const off = !!msg || (b.dataset.needs === "contract" && !configured) || (b.dataset.needs === "passkeys" && !passkeys);
     if (off) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled");
   });
 }
@@ -178,6 +227,10 @@ function render() {
   $("ppInExt").textContent = inExt ? "✓ the extension is using this scanner key" : extScanner ? `extension currently uses ${short(extScanner)}` : "";
   $("ppSend").hidden = !extReady || inExt;
   $("ppSetup").hidden = !!sc?.hasAgent;
+  const pk = last?.passkey;
+  $("ppPkStatus").textContent = !passkeys ? "No PasskeyRegistry is configured for this page"
+    : pk?.registered ? `Proved onchain on ${new Date(pk.at * 1000).toLocaleDateString()}` : pk ? "Not proved yet" : "–";
+  $("ppProve").textContent = pk?.registered ? "Prove again" : "Prove with passkey";
   if (last?.error) setBusy(null, last.error);
 }
 
@@ -186,6 +239,7 @@ $("ppLogin").addEventListener("click", () => signIn(false));
 $("ppSend").addEventListener("click", sendToExtension);
 $("ppSetup").addEventListener("click", setupAgent);
 $("ppSaveHandle").addEventListener("click", saveHandle);
+$("ppProve").addEventListener("click", provePasskey);
 $("ppSignOut").addEventListener("click", () => { prf = null; addrs = null; last = null; $("ppPhrase").hidden = true; render(); });
 $("ppReveal").addEventListener("click", () => {
   const box = $("ppPhrase");

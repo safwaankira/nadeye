@@ -33,7 +33,7 @@ export const NETWORKS = {
 };
 
 export function loadConfig(env = process.env) {
-  const network = env.NADEYE_NETWORK || "mainnet";
+  const network = env.NADEYE_NETWORK || "testnet";
   const base = NETWORKS[network];
   if (!base) throw new Error(`NADEYE_NETWORK must be mainnet or testnet, got ${network}`);
   const chain = env.NADEYE_CHAIN_ID

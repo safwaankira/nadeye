@@ -1,5 +1,5 @@
 // Builds the Nadeye site.
-//   node web/build.mjs [contractAddress] [mainnet|testnet]
+//   node web/build.mjs [nadeyeAddress] [testnet|mainnet] [passkeyRegistryAddress]
 // 1. bundles src/passkey.js (Mera + viem, pinned in package.json) -> web/passkey.js
 // 2. writes web/dist/ (index.html, passkey.js, ethers.umd.min.js) for static hosting
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
@@ -15,12 +15,19 @@ await build({
 });
 
 let src = readFileSync(join(here, "index.html"), "utf8");
-const [contract, network] = process.argv.slice(2);
+const [contract, network, passkeys] = process.argv.slice(2);
 if (contract) {
   if (!/^0x[0-9a-fA-F]{40}$/.test(contract)) throw new Error("contract must be 0x + 40 hex chars");
   src = src.replace(/contract: "0x[0-9a-fA-F]{40}"/, `contract: "${contract}"`);
 }
-if (network) src = src.replace(/network: "(testnet|mainnet)"/, `network: "${network}"`);
+if (network) {
+  if (!/^(testnet|mainnet)$/.test(network)) throw new Error("network must be testnet or mainnet");
+  src = src.replace(/network: "(testnet|mainnet)"/, `network: "${network}"`);
+}
+if (passkeys) {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(passkeys)) throw new Error("PasskeyRegistry must be 0x + 40 hex chars");
+  src = src.replace(/passkeys: "0x[0-9a-fA-F]{40}"/, `passkeys: "${passkeys}"`);
+}
 mkdirSync(join(here, "dist"), { recursive: true });
 writeFileSync(join(here, "dist", "index.html"), `<!doctype html>
 <html lang="en">

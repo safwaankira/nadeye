@@ -400,6 +400,7 @@ Corners:
   - Degraded inputs get a dashed night inner outline and the words "· low quality".
   - The badge is a keyboard button (`role="button"`, `tabindex="0"`; Enter or Space toggles blur). Its `aria-label` is the full sentence ("Nadeye verdict: likely AI-generated, AI confidence 94 percent. Community: 3 of 4 scanners flagged it as AI. Press to toggle blur.").
   - It brings its own near-opaque night ground and a lavender edge, so contrast never depends on the photo. Don't animate it over images.
+- **Identity chips (leaderboard):** an ERC-8004 agent chip ("#578", a filled `primary` pixel) and a passkey chip ("passkey", a hollow pixel outlined in the accent ink) sit side by side in the Identity column. Both have `line-strong` borders on `surface`. The word, not the pixel, carries the meaning; the title says the passkey was verified onchain by the P256 precompile.
 - **Verdict chip:** the registry verdict inside the app, each with its shape: "◆ Likely AI", "● Likely real", "◐ Split", "○ Not in the registry" (`chip-none`). Chips are static; don't style them as buttons.
   - More than half AI votes is AI; exactly half is Split. An AI vote is a scanner's score of 80% or more; a real vote is below 50%. Scores in between are never recorded.
 - **Hash tile:** a 40px default, 96px in lookup results, 28–34px on the podium. Pixel cells (`hash-tile-cell`) in the verdict fill or `primary` on a `surface-sunken` ground, framed with `line-strong`. As graphics the cells need 3:1, and `primary` gives 3.4:1 on night and 4.1:1 on day.

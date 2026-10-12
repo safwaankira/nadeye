@@ -143,5 +143,5 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
 
   const setHandle = (scannerAccount, h) => send(scannerAccount, contract, nadeyeAbi, "setHandle", [h.replace(/^@/, "").slice(0, 32)]);
 
-  return { pub, status, fundScanner, setupAgent, setHandle };
+  return { pub, send, status, fundScanner, setupAgent, setHandle };
 }

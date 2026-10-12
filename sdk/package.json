@@ -1,0 +1,11 @@
+{
+  "name": "nadeye-sdk",
+  "version": "0.1.0",
+  "description": "Read Nadeye's onchain image-provenance registry on Monad: hash an image, look up the community verdict, check scanners' passkey proofs and ERC-8004 reputation, or ask a Nadeye verifier agent.",
+  "type": "module",
+  "exports": { ".": "./src/index.js", "./phash": "./src/phash.js" },
+  "files": ["src"],
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dependencies": { "viem": "2.56.8" },
+  "license": "MIT"
+}

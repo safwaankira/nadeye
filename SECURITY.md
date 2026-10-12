@@ -181,3 +181,35 @@ cd /path/to/nadeye/contracts && $UF init --project .
 $UF doctor --project . && $UF references sync --project .
 $UF run --project . --audit-profile low-cost   # first run prints the data-governance route to acknowledge
 ```
+
+## PasskeyRegistry review (WebAuthn / P256)
+
+Scope: `contracts/src/PasskeyRegistry.sol`, the browser side in `web/src/webauthn-proof.js` and `web/src/passkey.js`, and the SDK's read paths.
+
+**What `verify` checks.**
+1. `authenticatorData` is at least 37 bytes long, with the user-present (UP) and user-verified (UV) flags set.
+2. `clientDataJSON` has `"type":"webauthn.get"` at the given index, so a registration ceremony's signature is refused.
+3. `clientDataJSON` has `"challenge":"<base64url(challenge)>"` at the given index. That is unpadded base64url, the encoding browsers use; the end-to-end test checks it against browser-shaped data.
+4. The P256 signature over `sha256(authenticatorData ‖ sha256(clientDataJSON))` is valid, checked through OpenZeppelin `P256.verify`. That uses the RIP-7212 / EIP-7951 precompile at `0x100` when present (Monad) and falls back to Solidity otherwise. Out-of-range r and s, and high-s, are rejected.
+
+The indexes are only trusted inside bytes the signature covers. A browser builds `clientDataJSON` itself, and the signature binds it.
+
+**Registration.**
+- The challenge is `keccak256("nadeye.passkey.register", chainid, registry, account, nonce)`, so a proof is bound to one chain, one registry and one account.
+- Proofs are not replayable: the nonce moves on every register and unregister.
+- A proof cannot be front-run, because a different sender produces a different challenge.
+- Squatting someone's key needs their signature over your challenge.
+- `isValidPublicKey` rejects off-curve keys.
+- One key maps to one account; re-registering frees the old key.
+
+**Accepted / by design.**
+- **Domain binding.** The relying-party ID hash, origin and `crossOrigin` are not checked onchain. A passkey only signs for its own relying party, so the binding comes from the authenticator. The consequence is a usage rule, not a hole: approvals for `verifyFor` are signed on the passkey's own domain, or on its WebAuthn Related Origins (documented in `docs/INTEGRATE.md`).
+- **Sign counter.** Not enforced. Synced passkeys report 0.
+- **Sybil resistance.** One passkey per account is friction, not personhood: a person can create several passkeys. Readers can combine it with ERC-8004 reputation.
+- **Slither.** It flags `registeredAt == 0` as a timestamp comparison. That is the "has a key" sentinel, and a block timestamp is never 0.
+
+**Tests.**
+- `test/PasskeyRegistry.t.sol` (9). It covers proof of possession, binding to the account, replay after unregister, one key per account, rotation, and rejection of `webauthn.create`, a missing UV flag, a wrong challenge, a wrong key, tampered `clientDataJSON`, a malleated high-s twin, out-of-range indexes and short `authenticatorData`. It also covers `verifyFor` and `hasPasskeys`, plus 1,000 fuzz runs (a signed challenge verifies; any one-bit change fails).
+- The suite passes both on the Solidity fallback and with `--evm-version osaka`, which has the native precompile. A verify costs about 283k gas on the fallback and about 35k on the precompile.
+- `web/test/passkey-proof.test.mjs` simulates a browser authenticator (browser-shaped JSON, forced high-s). It recovers the key from two assertions and registers it on anvil with `--hardfork osaka`, through the precompile (175k gas). A replay is refused.
+- The real site was also driven in Chrome with a virtual P256 + PRF authenticator. Mera created the passkey, the two prompts produced the proof, and the precompile accepted it onchain. There were no page errors.

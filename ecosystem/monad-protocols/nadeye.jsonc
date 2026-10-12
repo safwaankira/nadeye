@@ -1,14 +1,17 @@
 {
     "name": "Nadeye",
-    "description": "Detects AI-generated images on the user's own device and records each confident verdict on Monad as a 64-bit perceptual hash. A Chrome extension shows the community count on any image, and a verifier agent answers other agents through MCP, HTTP and the ERC-8004 Validation Registry, building ERC-8004 reputation.",
+    "description": "An open provenance registry for AI-generated images: confident verdicts are recorded on Monad by perceptual hash, so resized or recompressed copies still match, and each detector builds ERC-8004 reputation. Detection runs on the user's device (Chrome extension) or in a verifier agent reachable over MCP, HTTP and the ERC-8004 Validation Registry. A PasskeyRegistry binds accounts to WebAuthn passkeys verified with the P256 precompile.",
     "live": true,
     "categories": [
-        "AI::Consumer AI",
-        "AI::Infrastructure"
+        "AI::Infrastructure",
+        "Infra::Identity",
+        "AI::Consumer AI"
     ],
     "addresses": {
         // verdict registry: attestations by perceptual hash, points, ERC-8004 agent links and consensus feedback
-        "Nadeye": "0xYOUR_NADEYE_ADDRESS"
+        "Nadeye": "0xYOUR_NADEYE_ADDRESS",
+        // binds accounts to WebAuthn passkeys, verified with the P256 precompile; verifyFor() for passkey approval
+        "PasskeyRegistry": "0xYOUR_PASSKEYS_ADDRESS"
     },
     "links": {
         "project": "https://YOUR_SITE_URL",

@@ -182,6 +182,10 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .chip.split { background: var(--fill-unsure); }
 .chip.agent { color: var(--accent-ink); background: var(--surface); border: 1px solid var(--line-strong); padding: 1px 8px 1px 4px; }
 .chip.agent::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--brand); }
+.ids { display: inline-flex; gap: 6px; align-items: center; }
+/* passkey-proved scanners: an outlined chip with a hollow pixel (the key behind the scanner) */
+.chip.passkey { color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); padding: 1px 8px 1px 4px; }
+.chip.passkey::before { content: ""; width: 8px; height: 8px; border-radius: 2px; border: 1.5px solid var(--accent-ink); }
 .chip.none { background: var(--raised); color: var(--muted); }
 .me-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 760px) { .me-grid { grid-template-columns: 1fr; } }
@@ -271,7 +275,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
         <table>
           <caption class="vh" id="tableCaption">Scanner leaderboard, sorted by total points, descending</caption>
           <thead><tr>
-            <th scope="col">Rank</th><th scope="col">Scanner</th><th scope="col">Agent</th>
+            <th scope="col">Rank</th><th scope="col">Scanner</th><th scope="col">Identity</th>
             <th scope="col" class="num" data-key="points"><button type="button" class="sort">Total points<span class="arrow" aria-hidden="true"></span></button></th>
             <th scope="col" class="num" data-key="activeDays"><button type="button" class="sort">Active days<span class="arrow" aria-hidden="true"></span></button></th>
             <th scope="col" class="num" data-key="snr"><button type="button" class="sort">Signal to noise<span class="arrow" aria-hidden="true"></span></button></th>
@@ -356,6 +360,14 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
           </div>
           <p class="small" style="margin:0">Creating the agent registers it in Monad's ERC-8004 Identity Registry (owned by your identity key) and sets your scanner key as its agent wallet. From then on, every time your verdict agrees or disagrees with the consensus, the Nadeye contract writes it to the ERC-8004 Reputation Registry.</p>
         </div>
+        <div class="panel">
+          <h3>Passkey proof</h3>
+          <dl class="kv"><dt>Status</dt><dd id="ppPkStatus">–</dd></dl>
+          <div class="row-actions">
+            <button class="btn primary" id="ppProve" data-needs="passkeys">Prove with passkey</button>
+          </div>
+          <p class="small" style="margin:0">Binds your scanner to this passkey onchain. Your passkey signs a challenge, and Monad's P256 precompile checks the signature, so anyone can see that a passkey stands behind this scanner. One passkey can back only one scanner. It takes two passkey prompts: the first reads the passkey's public key, the second signs the proof.</p>
+        </div>
         <div class="row-actions">
           <button class="btn" id="ppReveal">Show recovery phrase</button>
           <button class="btn" id="ppSignOut">Sign out</button>
@@ -386,6 +398,10 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
         <h2>Agents and ERC-8004</h2>
         <p>Every scanner can link an <strong>ERC-8004 agent identity</strong> on Monad. When a verdict meets the consensus check, the Nadeye contract records the result in the ERC-8004 Reputation Registry: 100 for agreement, 0 for disagreement. That builds a portable track record any app can read.</p>
         <p>The <strong>Nadeye Verifier</strong> is an autonomous agent that runs the same detector on a laptop. Other agents can ask it to check an image through the ERC-8004 Validation Registry, and it answers onchain with an authenticity score from 0 to 100. Agents can also call it directly through MCP (<code>verify_image</code>) or HTTP, so they can check an image before they repost or act on it.</p>
+        <h2>Passkeys, checked onchain</h2>
+        <p>Your account is a passkey: no seed phrase, nothing to install. <strong>Prove with passkey</strong> on My scanner records onchain that a passkey stands behind your scanner. Monad's P256 precompile checks the passkey's signature, and one passkey can back only one scanner. Scanners that did this show a <span class="chip passkey">passkey</span> chip on the leaderboard.</p>
+        <h2>Build on it</h2>
+        <p>The registry is open. Apps read it with <code>nadeye-sdk</code>, contracts with one <code>INadeye.getImage</code> call, and agents over MCP or ERC-8004 validation. Any contract can require a person's passkey to approve an action with <code>PasskeyRegistry.verifyFor</code>. The integration guide is <code>docs/INTEGRATE.md</code> in the repository.</p>
         <h2>Why Monad</h2>
         <p>One transaction per handful of images only makes sense on a chain with low fees and roughly one-second confirmation. Attestations for different images touch different storage slots, which suits Monad's parallel execution. Monad charges for the gas limit you set, so the extension estimates each batch and adds only a 15% buffer.</p>
         <h2>Credits</h2>
@@ -402,8 +418,9 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
 
 <script>
 const CONFIG = {
-  network: "mainnet",
+  network: "testnet",
   contract: "0x0000000000000000000000000000000000000000", // set after deploying
+  passkeys: "0x0000000000000000000000000000000000000000", // PasskeyRegistry, set after deploying
 };
 const NETWORKS = {
   testnet: { label: "Monad Testnet", rpc: "https://testnet-rpc.monad.xyz", explorer: "https://testnet.monadvision.com" },
@@ -412,8 +429,10 @@ const NETWORKS = {
 try {
   const p = new URLSearchParams(location.search);
   if (/^0x[0-9a-fA-F]{40}$/.test(p.get("contract") || "")) CONFIG.contract = p.get("contract");
+  if (/^0x[0-9a-fA-F]{40}$/.test(p.get("passkeys") || "")) CONFIG.passkeys = p.get("passkeys");
   if (p.get("network") in NETWORKS) CONFIG.network = p.get("network");
 } catch {}
+const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(a || "") && !/^0x0{40}$/.test(a);
 const NET = NETWORKS[CONFIG.network];
 window.NADEYE = { CONFIG, NET }; // shared with the passkey module (passkey.js)
 
@@ -496,7 +515,7 @@ function demoData() {
     const signal = Math.round(judged * (0.62 + r() * 0.35));
     return { account: "0x" + hex(40), handle: h, scans, firsts, signal, noise: judged - signal, activeDays: days,
       points: scans * 10 + firsts * 25 + signal * 15, joined: Math.round(now - (days + r() * 40) * 86400),
-      hasAgent: h !== "" && r() > 0.3, agentId: String(40 + Math.floor(r() * 900)) };
+      hasAgent: h !== "" && r() > 0.3, agentId: String(40 + Math.floor(r() * 900)), passkey: i % 3 !== 2 };
   });
   const images = Array.from({ length: 12 }, (_, i) => {
     const reports = 1 + Math.floor(r() * 9);
@@ -522,7 +541,14 @@ async function liveData() {
     const page = await contract.getScanners(off, 200);
     for (const s of page) scanners.push({ account: s.account, handle: s.handle, points: Number(s.points), scans: Number(s.scans),
       firsts: Number(s.firsts), signal: Number(s.signal), noise: Number(s.noise), activeDays: Number(s.activeDays), joined: Number(s.joined),
-      hasAgent: s.hasAgent, agentId: s.agentId.toString() });
+      hasAgent: s.hasAgent, agentId: s.agentId.toString(), passkey: false });
+  }
+  if (isAddr(CONFIG.passkeys)) { // which scanners proved a passkey onchain (PasskeyRegistry)
+    const reg = new ethers.Contract(CONFIG.passkeys, ["function hasPasskeys(address[] accounts) view returns (bool[])"], provider);
+    for (let i = 0; i < scanners.length; i += 200) {
+      const flags = await reg.hasPasskeys(scanners.slice(i, i + 200).map((s) => s.account));
+      flags.forEach((f, j) => { scanners[i + j].passkey = f; });
+    }
   }
   const imgs = (await contract.recentImages(12)).map(normImg);
   return { live: true, scanners, images: imgs,
@@ -569,7 +595,7 @@ function renderBoard() {
     const tr = document.createElement("tr");
     const r = snr(s);
     tr.innerHTML = `<td class="rank">#${s.rank}</td><th scope="row"><span class="h"></span><a class="a" href="${addrLink(s.account)}" target="_blank" rel="noopener" aria-label="${short(s.account)} on the Monad explorer (opens in a new tab)">${short(s.account)}</a></th>
-      <td>${s.hasAgent ? `<span class="chip agent" title="ERC-8004 agent; reputation written by the Nadeye contract">#${s.agentId}<span class="vh"> (ERC-8004 agent)</span></span>` : '<span class="small"><span aria-hidden="true">–</span><span class="vh">No agent</span></span>'}</td>
+      <td><span class="ids">${s.hasAgent ? `<span class="chip agent" title="ERC-8004 agent; reputation written by the Nadeye contract">#${s.agentId}<span class="vh"> (ERC-8004 agent)</span></span>` : ""}${s.passkey ? '<span class="chip passkey" title="Proved a passkey onchain (P256, verified by the Monad precompile)">passkey</span>' : ""}${!s.hasAgent && !s.passkey ? '<span class="small"><span aria-hidden="true">–</span><span class="vh">No agent or passkey</span></span>' : ""}</span></td>
       <td class="num">${fmt(s.points)}</td><td class="num">${fmt(s.activeDays)}</td>
       <td class="num"><span class="snr">${r == null ? "–" : r.toFixed(2)}<span class="bar"><i style="width:${r ?? 0}%"></i></span></span></td>
       <td class="num">${fmt(s.scans)}</td><td class="num">${fmt(s.firsts)}</td><td class="num">${ago(s.joined)}</td>`;

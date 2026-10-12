@@ -42,5 +42,12 @@ await build({
   legalComments: "linked",
   outfile: join(here, "src", "chain.bundle.js"),
   logLevel: "warning",
+  // deployment settings baked in at build time (empty means "use the placeholder in config.js")
+  define: Object.fromEntries(["NADEYE_TESTNET_CONTRACT", "NADEYE_MAINNET_CONTRACT", "NADEYE_SITE"].map((k) => {
+    const v = process.env[k] || "";
+    if (k.endsWith("CONTRACT") && v && !/^0x[0-9a-fA-F]{40}$/.test(v)) throw new Error(`${k} must be 0x + 40 hex chars`);
+    if (k === "NADEYE_SITE" && v && !/^https?:\/\//.test(v)) throw new Error("NADEYE_SITE must be an http(s) URL");
+    return [`process.env.${k}`, JSON.stringify(v)];
+  })),
 });
 console.log(`bundled chain client -> src/chain.bundle.js (${(statSync(join(here, "src", "chain.bundle.js")).size / 1e3).toFixed(0)}KB)`);

@@ -4,11 +4,14 @@
 
 *Nadeye* (say "nad-eye") is a play on "naked eye" plus Monad's "nads": everyone who scans adds another pair of eyes.
 
-Nadeye is a trust layer for images:
+Nadeye is an open provenance protocol for images: three onchain primitives, plus reference clients and a developer kit.
 
-- **People** run a Chrome extension that detects AI-generated images on their own device. They sign in with a passkey (no seed phrase).
-- **AI agents** call the Nadeye Verifier over MCP, HTTP or the ERC-8004 Validation Registry. They use it to check an image before they repost it or act on it.
-- **Monad** holds the shared record. Each verdict is stored as a 64-bit perceptual hash plus a confidence score, never the image. Each scanner's accuracy against the consensus is written to its **ERC-8004** agent reputation.
+- **Registry.** Each verdict is stored as a 64-bit perceptual hash plus a confidence score, never the image, so resized and recompressed copies still match.
+- **Reputation.** Each scanner's accuracy against the consensus is written to its **ERC-8004** agent reputation.
+- **Passkey proof.** `PasskeyRegistry` binds a scanner to a WebAuthn passkey, verified by Monad's **P256 precompile**, and any contract can require a passkey's approval through `verifyFor`.
+- **People** run a Chrome extension that detects AI-generated images on their own device, and sign in with a passkey (Mera, no seed phrase).
+- **AI agents** call the Nadeye Verifier over MCP, HTTP or the ERC-8004 Validation Registry, to check an image before they repost it or act on it.
+- **Developers** read it with `nadeye-sdk` or one `INadeye` call. See [docs/INTEGRATE.md](docs/INTEGRATE.md).
 
 ```
   Chrome extension (people)                    Nadeye Verifier (agents, runs on a Mac)
@@ -26,16 +29,18 @@ Nadeye is a trust layer for images:
   Leaderboard + registry site · "My scanner" passkey profile
 ```
 
-Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**. The build touches all three of the track's example ideas: provenance for generated media, agent identity and reputation under ERC-8004, and passkey-native accounts.
+Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**, on Monad testnet. It uses the track's named building blocks: the P256 precompile for WebAuthn verification, and ERC-8004 for agent identity, reputation and validation.
 
 ## What's in the repo
 
 | Path | What it is |
 | --- | --- |
-| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. 34 Foundry tests, including tests against the real ERC-8004 reference registries. |
+| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. `PasskeyRegistry.sol`: WebAuthn/P256 passkey proofs on the precompile. `interfaces/INadeye.sol` and `examples/ProvenanceGallery.sol` for integrators. 46 Foundry tests, including tests against the real ERC-8004 reference registries. |
 | `extension/` | Chrome MV3 extension. Detection is Sieve. Nadeye adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
 | `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
-| `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera). It has no backend and reads the chain directly. |
+| `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera), including the onchain passkey proof. It has no backend and reads the chain directly. |
+| `sdk/` | `nadeye-sdk`: hash an image, look up its community verdict, read scanners' reputation and passkey status, or ask a verifier agent. |
+| `docs/` | `INTEGRATE.md`: paste-ready integrations for apps, contracts and agents. |
 | `brand/` | The Nadeye eye mark (SVG and PNG): `nadeye-avatar` on night, with the verdict-colour pupil, and `nadeye-mark` on a transparent ground. |
 | `ecosystem/` | Nadeye's entry for Monad's protocol registry and the steps to submit it. |
 
@@ -52,9 +57,9 @@ Everything else in this repo was written during the Metropolis build window (see
 
 ---
 
-## Mainnet runbook (Mac, about an hour)
+## Runbook: Monad testnet (Mac, about an hour)
 
-You need Node ≥ 20, [Foundry](https://book.getfoundry.sh/getting-started/installation), Chrome, and about **3 MON on Monad mainnet**. That covers deploying, the agent's gas and your passkey identity.
+You need Node ≥ 20, [Foundry](https://book.getfoundry.sh/getting-started/installation), Chrome, and about **1 testnet MON** from the [Monad faucet](https://faucet.monad.xyz). Deploying both contracts takes about 4.0M gas, which is about 0.4 MON at Monad's 100-gwei minimum base fee. The rest covers the verifier agent and your passkey profile. For mainnet, use `monad_mainnet` and `mainnet` wherever `testnet` appears below; the scripts pick the matching ERC-8004 registries by chain ID.
 
 ### 0. Publish the code with its history
 
@@ -66,31 +71,33 @@ git remote set-url origin https://github.com/safwaanDK/nadeye.git   # an empty p
 git push -u origin main
 ```
 
+Make the repository public; judges must be able to read it (metropolis@hackathon.monad.xyz).
+
 ### 1. Wallets
 
 ```bash
-cast wallet import deployer --interactive     # your deployer (or use --ledger)
+cast wallet import deployer --interactive     # a deployer key (or use --ledger)
 cast wallet new                               # a fresh, dedicated key for the verifier agent
 ```
 
-Send about 1 MON to the agent address. Keep the deployer separate. Never paste a funded main wallet key anywhere.
+Get testnet MON from the faucet for the deployer, and send about 0.3 MON to the agent address. Never paste a key that holds real funds anywhere.
 
-### 2. Deploy the contract
+### 2. Deploy the contracts
 
 ```bash
 cd contracts
-forge build && forge test                    # 34 passing
-forge script script/Deploy.s.sol --rpc-url monad_mainnet --account deployer --broadcast
+forge build && forge test                    # 46 passing
+forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
 ```
 
-The script wires in Monad's live ERC-8004 registries: Identity `0x8004A169…a432` and Reputation `0x8004BAa1…9b63`. It refuses to deploy if they aren't there. Verify the source with Monad's [Foundry verification guide](https://docs.monad.xyz/guides/verify-smart-contract/foundry) (chain id 143).
+The script deploys **Nadeye** and the **PasskeyRegistry**, and prints both addresses. Nadeye is wired to Monad testnet's ERC-8004 registries: Identity `0x8004A818…D9e` and Reputation `0x8004B663…713`. The script refuses to deploy if they aren't there. Verify both sources with Monad's [Foundry verification guide](https://docs.monad.xyz/guides/verify-smart-contract/foundry) (chain id 10143).
 
 ### 3. Host the site
 
 ```bash
 cd web && npm install
-node build.mjs 0xYOUR_NADEYE mainnet      # bundles the passkey module, writes web/dist/
-npx vercel deploy dist --prod                 # or Netlify / GitHub Pages
+node build.mjs 0xNADEYE testnet 0xPASSKEYS   # writes web/dist/ (index.html, passkey.js, ethers.umd.min.js)
+npx vercel deploy dist --prod                # or Netlify / GitHub Pages: upload the whole dist/ folder
 ```
 
 Passkeys are bound to the domain, so pick the final domain before anyone signs in.
@@ -98,23 +105,26 @@ Passkeys are bound to the domain, so pick the final domain before anyone signs i
 ### 4. Build and load the extension
 
 ```bash
-cd extension && npm install && npm run build
+cd extension && npm install
+NADEYE_TESTNET_CONTRACT=0xNADEYE NADEYE_SITE=https://your-site.vercel.app npm run build
 ```
 
+The build bakes in the contract and trusts your site for the passkey hand-off, so nobody has to edit settings.
+
 1. Open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and select `extension/`.
-2. Download the model when the setup tab opens.
-3. Open **Options**:
-   - Paste the contract under **Network override** (mainnet), or put it in `src/chain/config.js` and rebuild.
-   - Add your site's origin (e.g. `https://nadeye.vercel.app`) under **Trusted Nadeye sites**.
+2. Download the model when the setup tab opens (about 45 MB, once).
+
+To share the extension with judges, zip the built `extension/` folder (without `node_modules`) and attach it to a GitHub release.
 
 ### 5. Sign in with a passkey
 
 On the site, open **My scanner**:
 
 1. Choose **Create passkey**.
-2. Fund the identity address with about 0.3 MON.
+2. Send the identity address about 0.2 testnet MON.
 3. Choose **Create ERC-8004 agent** and enter your handle. This takes 4–5 transactions. The identity key registers the agent, your scanner key becomes its `agentWallet` with its own EIP-712 consent, and the scanner links it in Nadeye.
-4. Choose **Use in extension**, then confirm the dialog the extension shows.
+4. Choose **Prove with passkey** and answer two passkey prompts. Monad's P256 precompile verifies the proof, and your scanner gets the passkey chip on the leaderboard.
+5. Choose **Use in extension**, then confirm the dialog the extension shows.
 
 In the extension popup, turn on **Contribute verdicts** and browse.
 
@@ -123,7 +133,7 @@ In the extension popup, turn on **Contribute verdicts** and browse.
 ```bash
 cd agent
 npm install                                   # macOS arm64 binaries for onnxruntime + sharp
-cp .env.example .env                          # set NADEYE_CONTRACT and AGENT_PRIVATE_KEY
+cp .env.example .env                          # set NADEYE_CONTRACT and AGENT_PRIVATE_KEY (network: testnet)
 npm run register -- --handle nadeye_verifier   # ERC-8004 agent + link; prints AGENT_ID
 echo "AGENT_ID=<id>" >> .env
 npm run serve -- --validator                  # HTTP + MCP on 127.0.0.1:8787, validator loop
@@ -139,7 +149,7 @@ The first run downloads Sieve's pinned weights (~45 MB) and checks their sha256.
     "nadeye": {
       "command": "node",
       "args": ["/ABSOLUTE/PATH/nadeye/agent/src/cli.js", "mcp"],
-      "env": { "NADEYE_NETWORK": "mainnet", "NADEYE_CONTRACT": "0xYOUR_NADEYE" }
+      "env": { "NADEYE_NETWORK": "testnet", "NADEYE_CONTRACT": "0xNADEYE" }
     }
   }
 }
@@ -155,11 +165,11 @@ REQUESTER_PRIVATE_KEY=0x… node src/cli.js request https://example.com/image.jp
 
 The validator answers within seconds with `validationResponse(requestHash, authenticity 0–100, data: JSON report, keccak256(report), "nadeye/ai-image")`.
 
-**Optional public endpoint.** Run `cloudflared tunnel --url http://127.0.0.1:8787`, then re-run `register --public-url https://…`. That puts the MCP and HTTP endpoints into the agent's ERC-8004 registration file.
+**Optional public endpoint.** Run `cloudflared tunnel --url http://127.0.0.1:8787`, then re-run `register --public-url https://…`. That puts the MCP and HTTP endpoints into the agent's ERC-8004 registration file, and the server accepts the tunnel's host name automatically.
 
-### 7. List Nadeye in Monad's protocol registry
+### 7. List Nadeye in Monad's protocol registry (optional)
 
-Fill in the contract address and site URL in `ecosystem/monad-protocols/nadeye.jsonc`, then open a pull request to [monad-crypto/protocols](https://github.com/monad-crypto/protocols). The steps are in `ecosystem/monad-protocols/README.md`.
+Fill in the addresses and site URL in `ecosystem/monad-protocols/nadeye.jsonc`, then open a pull request to [monad-crypto/protocols](https://github.com/monad-crypto/protocols) under `testnet/` (or `mainnet/` once it's on mainnet). The steps are in `ecosystem/monad-protocols/README.md`.
 
 ---
 
@@ -207,6 +217,25 @@ The passkey's PRF output gives a 24-word mnemonic, from which BIP-44 derives:
 - `m/44'/60'/0'/0/1`: the **scanner key**. It is handed to the extension through a content-script bridge that only trusted origins can use, and the user confirms each time.
 
 The same passkey re-derives the same accounts on any device. The recovery phrase is available from the page in case the domain ever changes.
+
+### Passkey proof (P256 precompile)
+
+`PasskeyRegistry` turns the same passkey into an onchain fact.
+
+**Registering.** WebAuthn only reveals a passkey's public key when the passkey is created, so **Prove with passkey** takes two prompts:
+1. The first signature narrows the P256 key to two candidates.
+2. The second signs `registrationChallenge(scanner)` and picks the right one.
+
+The scanner key then calls `register(x, y, assertion)`. The contract checks:
+- the user-presence and user-verification flags;
+- that `clientDataJSON` is a `webauthn.get` carrying exactly that challenge;
+- the signature over `sha256(authenticatorData ‖ sha256(clientDataJSON))`, through the precompile at `0x100`, with high-s signatures rejected.
+
+**What a registration guarantees.** The challenge includes the chain, the registry, the account and a nonce, so a proof can't be replayed for another account or after a reset. One passkey can back only one account. That is friction against sybils, not proof of personhood.
+
+**Cost.** A verify costs about 35k gas on the precompile, against about 283k in Solidity.
+
+**For other apps.** `verifyFor(account, challenge, assertion)` lets any contract require that account's passkey to approve an action. See [docs/INTEGRATE.md](docs/INTEGRATE.md#4-passkey-approval).
 
 ### The detector
 
@@ -266,10 +295,12 @@ See [SECURITY.md](SECURITY.md).
 ## Tests
 
 ```bash
-cd contracts && forge test     # 34 incl. 6 invariants (30,720 calls each; FOUNDRY_PROFILE=deep for ~205,000) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
+cd contracts && forge test     # 46 incl. 6 invariants (30,720 calls each; FOUNDRY_PROFILE=deep for ~205,000) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation; passkey proofs (replay, UV, challenge, high-s, one key per account)
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
 cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF + DNS-rebinding guard, Host/Origin allow-lists, validator spend limits
-cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner
+cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner + WebAuthn proof registered on the P256 precompile (anvil, osaka)
+cd sdk && npm test             # lookupImage finds a resized copy of an attested image; pHash parity with the extension
+cd contracts && forge test --evm-version osaka   # the same contracts on the native P256 precompile
 ```
 
 The chain tests run against anvil with the ERC-8004 reference registries deployed the same way as on Monad (proxy → MinimalUUPS → upgrade).
