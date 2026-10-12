@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {Nadeye} from "../../src/Nadeye.sol";
 
@@ -150,10 +151,24 @@ contract Handler is Test {
             return;
         }
         uint256 repBefore = rep.feedbackCount();
-        (bool judged,) = _modelAttest(who, hash, score);
+        _modelAttest(who, hash, score);
+        vm.recordLogs();
         vm.prank(who);
         nadeye.attest{gas: 5_000_000}(hash, score, 1);
-        _afterRep(who, judged, repBefore);
+        _afterRep(who, _judgedByContract(who) > 0, repBefore);
+    }
+
+    // "judged" comes from the contract's own Attested events, not the ghost model:
+    // the model drifts after registry re-entry, the events never do
+    function _judgedByContract(address who) internal returns (uint256 n) {
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 sig = keccak256("Attested(bytes32,address,uint16,uint8,bool,int8,uint64)");
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter != address(nadeye) || logs[i].topics[0] != sig) continue;
+            if (address(uint160(uint256(logs[i].topics[2]))) != who) continue;
+            (,,, int8 consensus,) = abi.decode(logs[i].data, (uint16, uint8, bool, int8, uint64));
+            if (consensus != 0) ++n;
+        }
     }
 
     function attestBatch(uint256 a, uint256 seed, uint8 n) public {
@@ -168,19 +183,18 @@ contract Handler is Test {
             ss[i] = uint16(seed % 10_001);
         }
         uint256 expected;
-        uint256 judgedCount;
         uint256 repBefore = rep.feedbackCount();
         for (uint256 i; i < n; ++i) {
             if (gAttested[hs[i]][who]) continue;
             if (ss[i] >= nadeye.REAL_CEILING() && ss[i] < nadeye.AI_THRESHOLD()) continue;
-            (bool judged,) = _modelAttest(who, hs[i], ss[i]);
-            if (judged) ++judgedCount;
+            _modelAttest(who, hs[i], ss[i]);
             ++expected;
         }
+        vm.recordLogs();
         vm.prank(who);
         uint256 rec = nadeye.attestBatch{gas: 25_000_000}(hs, ss, 1);
         assertEq(rec, expected, "batch recorded count");
-        if (judgedCount > 0) _afterRep(who, true, repBefore);
+        _afterRep(who, _judgedByContract(who) > 0, repBefore);
     }
 
     function _afterRep(address who, bool judged, uint256 repBefore) internal {

@@ -1,7 +1,7 @@
 // Builds the Nadeye site.
 //   node web/build.mjs [contractAddress] [mainnet|testnet]
 // 1. bundles src/passkey.js (Mera + viem, pinned in package.json) -> web/passkey.js
-// 2. writes web/dist/ for static hosting (Vercel, Netlify, GitHub Pages)
+// 2. writes web/dist/ (index.html, passkey.js, ethers.umd.min.js) for static hosting
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,4 +30,6 @@ writeFileSync(join(here, "dist", "index.html"), `<!doctype html>
 ${src}
 `);
 copyFileSync(join(here, "passkey.js"), join(here, "dist", "passkey.js"));
+// ethers ships with the site (version pinned in package.json) instead of loading from a CDN
+copyFileSync(join(here, "node_modules", "ethers", "dist", "ethers.umd.min.js"), join(here, "dist", "ethers.umd.min.js"));
 console.log(`web/dist ready${contract ? ` for ${contract} on ${network || "the page's network"}` : " (example data until a contract is set)"}`);

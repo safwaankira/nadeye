@@ -225,7 +225,17 @@ For coding agents, [`DESIGN.md`](DESIGN.md) holds the whole system in Google's [
 
 ## Security review
 
-The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. The live ERC-8004 registries on Monad mainnet were audited too. They match the source Nadeye is tested against, and REA confirms the function selectors from bytecode. Nadeye's feedback call fits its 300k gas stipend at Monad prices, with a worst case of 264k. A single key can upgrade all three registries, and Nadeye contains the damage if one is upgraded. See [SECURITY.md](SECURITY.md).
+The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. The live ERC-8004 registries on Monad mainnet were audited too. They match the source Nadeye is tested against, and REA confirms the function selectors from bytecode. Nadeye's feedback call fits its 300k gas stipend at Monad prices, with a worst case of 264k. A single key can upgrade all three registries, and Nadeye contains the damage if one is upgraded.
+
+A final pass hardened everything else that handles untrusted input:
+- **URL fetcher:** the agent's fetcher checks the address it actually connects to, so DNS rebinding can't reach your network.
+- **Local API:** the agent's HTTP API refuses unknown `Host` headers and unlisted browser origins.
+- **Validator spending:** answers are capped per requesting agent, and pause when the wallet runs low.
+- **Site scripts:** the site serves ethers itself instead of loading it from a CDN.
+- **Image decoding:** sharp is upgraded past its image-decoder CVEs.
+- **Deeper fuzzing:** a heavier invariant campaign (about 205,000 calls per invariant) passes.
+
+See [SECURITY.md](SECURITY.md).
 
 ## Privacy and safety
 
@@ -244,9 +254,9 @@ The contract passed a stateful invariant fuzz campaign: 6 invariants, each held 
 ## Tests
 
 ```bash
-cd contracts && forge test     # 34 incl. 6 invariants (30,720 calls each) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
+cd contracts && forge test     # 34 incl. 6 invariants (30,720 calls each; FOUNDRY_PROFILE=deep for ~205,000) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
-cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF guard
+cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF + DNS-rebinding guard, Host/Origin allow-lists, validator spend limits
 cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner
 ```
 

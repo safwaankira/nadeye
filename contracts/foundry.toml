@@ -20,3 +20,14 @@ call_override = false
 
 [fuzz]
 runs = 1000
+
+# FOUNDRY_PROFILE=deep forge test: the final-pass campaign (about 205,000 calls per invariant)
+[profile.deep]
+
+[profile.deep.invariant]
+runs = 1024
+depth = 200
+fail_on_revert = true
+
+[profile.deep.fuzz]
+runs = 5000

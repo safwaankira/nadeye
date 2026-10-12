@@ -94,9 +94,74 @@ The handler drives the contract with:
 | I4 points bounded | Points ≤ scans × max-per-verdict, and ≤ active days × daily cap × max |
 | I5 agent links | A link only exists for an agent the scanner controlled when linking |
 
-Batch return values and "linked controller's judged verdict reaches the registry" are asserted inline on every call.
+Batch return values and "linked controller's judged verdict reaches the registry" are asserted inline on every call. "Judged" is read from the contract's own `Attested` events, not the ghost model (see T1).
 
-Run: `cd contracts && forge test` (34 tests). Settings are in `foundry.toml`.
+Run: `cd contracts && forge test` (34 tests). Settings are in `foundry.toml`. The final pass also ran the deep campaign, `FOUNDRY_PROFILE=deep forge test`: 1,024 runs × 200 calls, about 205,000 calls per invariant, all passing.
+
+## Final pass (2026-10-12): agent, site and dependencies
+
+Scope: everything that changed since the contract review (vote bands, site states, sort menu), plus the parts that handle untrusted input: the agent's HTTP API and URL fetcher, the site's rendering of chain data, and every dependency.
+
+### A1 (Medium): The agent's URL fetcher could be steered into the operator's network (fixed)
+
+**Problem.** `safefetch` checked a hostname's DNS answer and then let `fetch` resolve it again. A hostile DNS server can answer with a public address for the check and a private one for the connection (DNS rebinding), and reach the home router or local services. The private-range list also missed hex-written IPv4-mapped IPv6 (`::ffff:7f00:1`), IPv4-compatible IPv6, NAT64 (`64:ff9b::/96`), 6to4, site-local and several reserved IPv4 blocks.
+
+**Fix.** Fetches go through undici with a connect-time `lookup` that refuses private answers, so the address checked is the address dialled. The ranges are a `net.BlockList` covering all of the above, with embedded IPv4 extracted from mapped and compatible IPv6.
+
+**Tests.** `safefetch.test.mjs`. One test checks every listed form. Another starts a server on 127.0.0.1 and fetches `localhost` with the precheck skipped (the rebinding case), proving the connection itself refuses. The same server is reachable with the test-only escape hatch, so the refusal is the guard's.
+
+### A2 (Medium): Any web page could drive the local agent (fixed)
+
+**Problem.** The HTTP API answered every origin with `access-control-allow-origin: *` and accepted any `Host`. A page open in the operator's browser could use the agent as a fetch proxy, and combined with A1 reach their network. DNS rebinding against the server itself needed no CORS at all.
+
+**Fix.**
+- Requests must carry a known `Host`: loopback, the configured host, the tunnel's host from `--public-url`, or `NADEYE_ALLOWED_HOSTS`. Anything else gets 421.
+- Browser requests with an `Origin` not in `NADEYE_CORS_ORIGINS` get 403 on `/verify` and `/mcp`. Agents calling server-to-server send no `Origin` and are unaffected.
+- Allowed origins are echoed back, never `*`. Only `/health` and the agent card stay public.
+
+**Tests.** `server.test.mjs` covers each case.
+
+### A3 (Low): Validation requests could drain the validator's wallet (fixed)
+
+**Problem.** Anyone can address ERC-8004 validation requests to the verifier, and each answer costs it gas. A spammer pays roughly as much as the verifier does, but a low-balance wallet could still be emptied.
+
+**Fix.**
+- `NADEYE_VALIDATOR_MAX_PER_HOUR` (default 30) caps answers per requesting agent per hour; excess requests are skipped and logged.
+- Below `NADEYE_VALIDATOR_MIN_BALANCE` (default 0.05 MON), requests are deferred, not dropped, and answered after a top-up.
+
+**Tests.** `validator-limits.test.mjs`.
+
+### W1 (Low): The site ran a script from a CDN without an integrity check (fixed)
+
+The leaderboard loaded ethers from cdnjs on a page that also derives passkey keys, so a tampered CDN file would have run there. ethers is now a pinned dev dependency (6.17.0), copied into `dist/` by the build and served from the site's own origin.
+
+### D4 (High in a dependency): sharp's bundled image decoders (fixed)
+
+sharp ≤ 0.35.5-rc.1 ships libvips, libheif and librsvg with published CVEs, and the agent decodes images fetched from arbitrary URLs with it. It is upgraded to 0.35.5 in the agent and the extension's dev tooling.
+
+### T1 (test harness): A model-based assertion drifted after re-entry (fixed, no contract change)
+
+The deep campaign failed "linked controller judged verdict must reach reputation". The shrunk sequence put the registry in re-entry mode, then later made a single attestation. The handler took "judged" from its ghost model, which is already known to drift after re-entry (I2 is limited for that reason). The assertion now reads "judged" from the contract's `Attested` events. It passes on the replayed sequence and across the full deep campaign, so the contract sent feedback every time it judged a linked controller's verdict.
+
+### Checked, no change needed
+
+| Area | Result |
+| --- | --- |
+| Slither 0.11.5 | The same 10 informational and low results as the first review; nothing new from the vote bands. |
+| `npm audit` | Extension 0, site 0. The agent's two remaining items, adm-zip and sprintf-js, sit inside onnxruntime-node's install script, which unpacks Microsoft's own GPU packages at install time and never sees attacker input. Accepted. |
+| Secrets | No keys, mnemonics or `.env` files in the tree or in git history. Only `agent/.env.example` with placeholders. `.env` is ignored at every level. |
+| Site rendering of chain data | Every `innerHTML` template takes numbers, fixed strings or ABI-decoded addresses only. The free-text handle goes through `textContent`. Live-tested: a handle of `<img src=x onerror=alert(1)>` rendered as text, with no element and no dialog. |
+| Extension | Badges use `textContent` and `setAttribute`. The CSP is `script-src 'self' 'wasm-unsafe-eval'`. There are no web-accessible resources. The passkey bridge only answers trusted origins and asks the user each time (tested). |
+| MCP | Reading local files (`verify_image_file`) exists only on stdio, never on the HTTP endpoint. Tool inputs are validated with zod. |
+
+### Site against a real chain
+
+Nadeye was deployed to a local anvil on chain 143, and the page's Monad RPC calls were routed to it:
+
+- **Loading:** a slow RPC shows "Reading the leaderboard from Monad…" first, never example rows.
+- **Live:** it shows the real counts (6 verdicts, 3 scanners, 1 flagged), the feed shows both seeded images with the right verdicts, and there are no page errors.
+- **Empty:** a fresh registry shows "No scanners yet" and "No images recorded yet".
+- **RPC down:** it shows the error state with a working Try again button.
 
 ## Full Ultrafuzz campaign (optional)
 

@@ -17,7 +17,13 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
   const me = chain.account.address;
   const statePath = join(cfg.cacheDir, `validator-${cfg.network}-${me.toLowerCase()}.json`);
   const state = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : { cursor: null, done: {}, failures: {} };
+  state.deferred ||= {};
   const save = () => { mkdirSync(cfg.cacheDir, { recursive: true }); writeFileSync(statePath, JSON.stringify(state)); };
+  // spend limits: anyone can address requests to this wallet, and each answer costs gas
+  const maxPerHour = cfg.validatorMaxPerHour ?? 30;
+  const minBalance = cfg.validatorMinBalanceWei ?? 0n;
+  const recent = new Map(); // requesting agentId -> answer timestamps in the last hour
+  let warnedLow = false;
 
   async function pending(requestHash) {
     const [validator, , , responseHash, tag] = await chain.pub.readContract({
@@ -28,7 +34,22 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
 
   async function handle({ requestHash, requestURI, agentId }) {
     if (state.done[requestHash]) return;
-    if (!(await pending(requestHash))) { state.done[requestHash] = "answered"; save(); return; }
+    if (!(await pending(requestHash))) { state.done[requestHash] = "answered"; delete state.deferred[requestHash]; save(); return; }
+    const key = String(agentId), now = Date.now();
+    const times = (recent.get(key) || []).filter((t) => now - t < 3_600_000);
+    if (times.length >= maxPerHour) {
+      state.done[requestHash] = `skipped: agent ${key} over ${maxPerHour} requests per hour`;
+      log(`  skipped ${requestHash.slice(0, 10)}…: agent ${key} is over ${maxPerHour} requests per hour`);
+      save(); return;
+    }
+    if (minBalance > 0n && (await chain.pub.getBalance({ address: me })) < minBalance) {
+      state.deferred[requestHash] = { requestHash, requestURI, agentId: key }; // answered once the wallet is topped up
+      if (!warnedLow) log(`  wallet ${me} is below the ${Number(minBalance) / 1e18} MON floor; deferring answers until it is topped up`);
+      warnedLow = true; save(); return;
+    }
+    warnedLow = false;
+    times.push(now); recent.set(key, times);
+    delete state.deferred[requestHash];
     log(`validation request ${requestHash.slice(0, 10)}… from agent ${agentId}: ${requestURI.slice(0, 120)}`);
     let report;
     try {
@@ -56,6 +77,9 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
   }
 
   async function scan(from, to) {
+    for (const d of Object.values(state.deferred)) {
+      try { await handle({ ...d, agentId: BigInt(d.agentId) }); } catch (e) { log(`  failed to answer ${d.requestHash}: ${e.shortMessage || e.message}`); }
+    }
     for (let a = from; a <= to; a += CHUNK) {
       const b = a + CHUNK - 1n > to ? to : a + CHUNK - 1n;
       const logs = await chain.pub.getContractEvents({

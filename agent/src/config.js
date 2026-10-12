@@ -56,5 +56,11 @@ export function loadConfig(env = process.env) {
     cacheDir: env.NADEYE_CACHE || join(homedir(), ".nadeye"),
     modelPath: env.NADEYE_MODEL || null,
     allowPrivate: env.ALLOW_PRIVATE_URLS === "1", // tests only
+    // HTTP API: extra Host names to accept (e.g. a tunnel's), and browser origins allowed to call it
+    allowedHosts: (env.NADEYE_ALLOWED_HOSTS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+    corsOrigins: (env.NADEYE_CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean),
+    // validator spend limits: answers per requesting agent per hour, and a wallet floor in wei
+    validatorMaxPerHour: Number(env.NADEYE_VALIDATOR_MAX_PER_HOUR || 30),
+    validatorMinBalanceWei: BigInt(Math.round(Number(env.NADEYE_VALIDATOR_MIN_BALANCE || "0.05") * 1e6)) * 10n ** 12n,
   };
 }

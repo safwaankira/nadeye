@@ -23,7 +23,20 @@ function readBody(req) {
   });
 }
 
+// Host names this server answers to: loopback, the tunnel's (publicUrl) and any configured.
+// Anything else is a DNS-rebinding attempt and is refused.
+function hostAllowList(cfg, publicUrl) {
+  const hosts = new Set(["127.0.0.1", "localhost", "::1", ...(cfg.allowedHosts || [])]);
+  if (cfg.host && !["0.0.0.0", "::"].includes(cfg.host)) hosts.add(cfg.host.toLowerCase());
+  if (publicUrl) { try { hosts.add(new URL(publicUrl).hostname.toLowerCase()); } catch {} }
+  return hosts;
+}
+const hostOf = (h = "") => h.toLowerCase().replace(/^\[([^\]]+)\](:\d+)?$/, "$1").replace(/:\d+$/, "");
+const PUBLIC_PATHS = new Set(["/health", "/.well-known/agent-registration.json", "/agent-card.json"]);
+
 export function createApi({ verifier, cfg, mcpHandler = null, publicUrl = null }) {
+  const hosts = hostAllowList(cfg, publicUrl);
+  const origins = new Set(cfg.corsOrigins || []);
   const hits = new Map(); // ip -> [timestamps], 60 requests/minute
   const limited = (ip) => {
     const now = Date.now();
@@ -34,12 +47,22 @@ export function createApi({ verifier, cfg, mcpHandler = null, publicUrl = null }
   };
 
   return createServer(async (req, res) => {
+    const origin = req.headers.origin;
+    let cors = {};
     const send = (code, obj) => {
-      res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, mcp-session-id, mcp-protocol-version", "access-control-allow-methods": "GET, POST, OPTIONS" });
+      res.writeHead(code, { "content-type": "application/json", ...cors });
       res.end(JSON.stringify(obj, (k, v) => (typeof v === "bigint" ? v.toString() : v), 2));
     };
     try {
       const url = new URL(req.url, "http://local");
+      if (!hosts.has(hostOf(req.headers.host))) return send(421, { error: "unknown Host; add it to NADEYE_ALLOWED_HOSTS" });
+      if (PUBLIC_PATHS.has(url.pathname)) {
+        cors = { "access-control-allow-origin": "*" };
+      } else if (origin) {
+        // a web page in someone's browser: only allow-listed origins may drive the agent
+        if (!origins.has(origin)) return send(403, { error: "origin not allowed; add it to NADEYE_CORS_ORIGINS" });
+        cors = { "access-control-allow-origin": origin, vary: "origin", "access-control-allow-headers": "content-type, mcp-session-id, mcp-protocol-version", "access-control-allow-methods": "GET, POST, OPTIONS" };
+      }
       if (req.method === "OPTIONS") return send(204, {});
       if (url.pathname === "/health") return send(200, { ok: true, model: verifier && cfg ? cfg.modelVersion : undefined, network: cfg.network, contract: cfg.contract });
       if (url.pathname === "/.well-known/agent-registration.json" || url.pathname === "/agent-card.json") {
