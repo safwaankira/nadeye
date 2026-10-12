@@ -204,6 +204,8 @@ Nadeye's design system builds on Monad's brand kit:
 
 Tokens and component styles are in `design/`, and the brand book is `design/README.md`.
 
+For coding agents, [`DESIGN.md`](DESIGN.md) holds the whole system in Google's [DESIGN.md](https://github.com/google-labs-code/design.md) format: exact tokens plus the rules for using them. It passes the format's linter with no warnings, including WCAG contrast on every component pair. `design/lint.sh` re-checks it and refreshes the Tailwind v3/v4 and DTCG exports in `design/`.
+
 ## Security review
 
 The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. See [SECURITY.md](SECURITY.md).
