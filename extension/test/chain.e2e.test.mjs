@@ -11,7 +11,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 import { createChain } from "../src/chain/index.js";
 
-const ARTIFACT = new URL("../../contracts/out/PixelProof.sol/PixelProof.json", import.meta.url);
+const ARTIFACT = new URL("../../contracts/out/Nadeye.sol/Nadeye.json", import.meta.url);
 const hasAnvil = spawnSync("anvil", ["--version"]).status === 0;
 const skip = !hasAnvil || !existsSync(ARTIFACT) ? "anvil or compiled contract missing" : false;
 

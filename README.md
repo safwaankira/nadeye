@@ -1,21 +1,23 @@
-# PixelProof
+# Nadeye
 
-**Provenance for generated media, verified by people and agents on Monad.**
+**See what the naked eye can't.** Provenance for generated media, verified by people and agents on Monad.
 
-PixelProof is a trust layer for images:
+*Nadeye* (say "nad-eye") is a play on "naked eye" plus Monad's "nads": everyone who scans adds another pair of eyes.
+
+Nadeye is a trust layer for images:
 
 - **People** run a Chrome extension that detects AI-generated images on their own device. They sign in with a passkey (no seed phrase).
-- **AI agents** call the PixelProof Verifier over MCP, HTTP or the ERC-8004 Validation Registry. They use it to check an image before they repost it or act on it.
+- **AI agents** call the Nadeye Verifier over MCP, HTTP or the ERC-8004 Validation Registry. They use it to check an image before they repost it or act on it.
 - **Monad** holds the shared record. Each verdict is stored as a 64-bit perceptual hash plus a confidence score, never the image. Each scanner's accuracy against the consensus is written to its **ERC-8004** agent reputation.
 
 ```
-  Chrome extension (people)                    PixelProof Verifier (agents, runs on a Mac)
+  Chrome extension (people)                    Nadeye Verifier (agents, runs on a Mac)
   Sieve model on WebGPU/WASM                   same model, onnxruntime-node
   passkey -> scanner key (Mera)                MCP verify_image · HTTP /verify
         │ attestBatch(pHash, score)                  │ attest + validationResponse
         ▼                                            ▼
  ┌────────────────────────────── Monad ──────────────────────────────┐
- │ PixelProof.sol  verdicts by pHash · points · active days · SNR     │
+ │ Nadeye.sol  verdicts by pHash · points · active days · SNR     │
  │      │ consensus judgement (agree 100 / disagree 0)                │
  │      ▼                                                             │
  │ ERC-8004 Reputation Registry   ERC-8004 Identity   ERC-8004 Validation │
@@ -30,9 +32,9 @@ Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**. Th
 
 | Path | What it is |
 | --- | --- |
-| `contracts/` | `PixelProof.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. 21 Foundry tests, including tests against the real ERC-8004 reference registries. |
-| `extension/` | Chrome MV3 extension. Detection is Sieve. PixelProof adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
-| `agent/` | **PixelProof Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
+| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. 21 Foundry tests, including tests against the real ERC-8004 reference registries. |
+| `extension/` | Chrome MV3 extension. Detection is Sieve. Nadeye adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
+| `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
 | `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera). It has no backend and reads the chain directly. |
 
 ## Credits
@@ -75,7 +77,7 @@ The script wires in Monad's live ERC-8004 registries: Identity `0x8004A169…a43
 
 ```bash
 cd web && npm install
-node build.mjs 0xYOUR_PIXELPROOF mainnet      # bundles the passkey module, writes web/dist/
+node build.mjs 0xYOUR_NADEYE mainnet      # bundles the passkey module, writes web/dist/
 npx vercel deploy dist --prod                 # or Netlify / GitHub Pages
 ```
 
@@ -91,7 +93,7 @@ cd extension && npm install && npm run build
 2. Download the model when the setup tab opens.
 3. Open **Options**:
    - Paste the contract under **Network override** (mainnet), or put it in `src/chain/config.js` and rebuild.
-   - Add your site's origin (e.g. `https://pixelproof.vercel.app`) under **Trusted PixelProof sites**.
+   - Add your site's origin (e.g. `https://nadeye.vercel.app`) under **Trusted Nadeye sites**.
 
 ### 5. Sign in with a passkey
 
@@ -99,7 +101,7 @@ On the site, open **My scanner**:
 
 1. Choose **Create passkey**.
 2. Fund the identity address with about 0.3 MON.
-3. Choose **Create ERC-8004 agent** and enter your handle. This takes 4–5 transactions. The identity key registers the agent, your scanner key becomes its `agentWallet` with its own EIP-712 consent, and the scanner links it in PixelProof.
+3. Choose **Create ERC-8004 agent** and enter your handle. This takes 4–5 transactions. The identity key registers the agent, your scanner key becomes its `agentWallet` with its own EIP-712 consent, and the scanner links it in Nadeye.
 4. Choose **Use in extension**, then confirm the dialog the extension shows.
 
 In the extension popup, turn on **Contribute verdicts** and browse.
@@ -109,8 +111,8 @@ In the extension popup, turn on **Contribute verdicts** and browse.
 ```bash
 cd agent
 npm install                                   # macOS arm64 binaries for onnxruntime + sharp
-cp .env.example .env                          # set PIXELPROOF_CONTRACT and AGENT_PRIVATE_KEY
-npm run register -- --handle pixelproof_verifier   # ERC-8004 agent + link; prints AGENT_ID
+cp .env.example .env                          # set NADEYE_CONTRACT and AGENT_PRIVATE_KEY
+npm run register -- --handle nadeye_verifier   # ERC-8004 agent + link; prints AGENT_ID
 echo "AGENT_ID=<id>" >> .env
 npm run serve -- --validator                  # HTTP + MCP on 127.0.0.1:8787, validator loop
 ```
@@ -122,10 +124,10 @@ The first run downloads Sieve's pinned weights (~45 MB) and checks their sha256.
 ```json
 {
   "mcpServers": {
-    "pixelproof": {
+    "nadeye": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/pixelproof/agent/src/cli.js", "mcp"],
-      "env": { "PIXELPROOF_NETWORK": "mainnet", "PIXELPROOF_CONTRACT": "0xYOUR_PIXELPROOF" }
+      "args": ["/ABSOLUTE/PATH/nadeye/agent/src/cli.js", "mcp"],
+      "env": { "NADEYE_NETWORK": "mainnet", "NADEYE_CONTRACT": "0xYOUR_NADEYE" }
     }
   }
 }
@@ -139,7 +141,7 @@ The tools are `verify_image(url)`, `verify_image_file(path)` (stdio only) and `l
 REQUESTER_PRIVATE_KEY=0x… node src/cli.js request https://example.com/image.jpg --validator <agent wallet>
 ```
 
-The validator answers within seconds with `validationResponse(requestHash, authenticity 0–100, data: JSON report, keccak256(report), "pixelproof/ai-image")`.
+The validator answers within seconds with `validationResponse(requestHash, authenticity 0–100, data: JSON report, keccak256(report), "nadeye/ai-image")`.
 
 **Optional public endpoint.** Run `cloudflared tunnel --url http://127.0.0.1:8787`, then re-run `register --public-url https://…`. That puts the MCP and HTTP endpoints into the agent's ERC-8004 registration file.
 
@@ -166,7 +168,7 @@ Lookups query the hash plus every 1- and 2-bit flip among its 8 least-stable bit
 ### ERC-8004
 
 - **Identity.** A scanner calls `linkAgent(agentId)` and must be the agent's owner or its `agentWallet`. That means nobody can attach someone else's scanner to their agent. The passkey flow uses a cold owner key and a hot `agentWallet` scanner key, so a leaked extension key can be rotated out by the owner.
-- **Reputation.** Every consensus judgement on a linked scanner's verdict calls `giveFeedback(agentId, 100 | 0, 0, "pixelproof", "consensus", "", "", pHash)`, with the PixelProof contract as the client. `getSummary(agentId, [PixelProof], "pixelproof", "consensus")` then equals the scanner's agreement rate. Feedback never blocks an attestation: a broken link or a registry failure just skips it.
+- **Reputation.** Every consensus judgement on a linked scanner's verdict calls `giveFeedback(agentId, 100 | 0, 0, "nadeye", "consensus", "", "", pHash)`, with the Nadeye contract as the client. `getSummary(agentId, [Nadeye], "nadeye", "consensus")` then equals the scanner's agreement rate. Feedback never blocks an attestation: a broken link or a registry failure just skips it.
 - **Validation.** The verifier answers `validationRequest`s addressed to its wallet. The response is an authenticity score: 100 means no sign of AI, 0 means AI-generated. The report is attached as a data URI with its keccak256 hash.
 
 ### Passkeys (Mera)
@@ -205,7 +207,7 @@ Measured gas: about 110–140k per newly attested image. A judged verdict from a
 - **Signal-to-noise** judges each verdict against the majority at the time it was recorded. It is not recomputed later.
 - **pHash** doesn't survive heavy crops, rotation or mirroring.
 - **Mera's PRF requirement.** Desktop Chrome supports it only for passkeys saved in Google Password Manager.
-- **Upstream test.** One Sieve unit test (C2PA URI in head) also fails on Sieve's own `main`. PixelProof doesn't modify `forensics.js`.
+- **Upstream test.** One Sieve unit test (C2PA URI in head) also fails on Sieve's own `main`. Nadeye doesn't modify `forensics.js`.
 
 ## Tests
 
@@ -220,4 +222,4 @@ The chain tests run against anvil with the ERC-8004 reference registries deploye
 
 ## License
 
-MIT. See `LICENSE` (PixelProof) and `LICENSE.sieve` (Sieve).
+MIT. See `LICENSE` (Nadeye) and `LICENSE.sieve` (Sieve).

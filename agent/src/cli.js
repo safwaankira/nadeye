@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// pixelproof-agent <command>
+// nadeye-agent <command>
 //   verify <url|file> [--attest]   score one image, print JSON
 //   serve [--public-url URL] [--validator]   HTTP API + MCP at /mcp (+ validator loop)
 //   mcp                            MCP over stdio (Claude Desktop / Claude Code)
 //   validator [--once]             answer ERC-8004 validation requests onchain
-//   register [--public-url URL] [--handle NAME]   ERC-8004 identity + link to PixelProof
+//   register [--public-url URL] [--handle NAME]   ERC-8004 identity + link to Nadeye
 //   request <imageUrl> [--validator 0x…]   demo: ask a validator (needs REQUESTER_PRIVATE_KEY)
 //   status                         wallet, agent, reputation, scanner stats
 import { existsSync, readFileSync } from "node:fs";
@@ -51,7 +51,7 @@ async function main() {
       const { verifier } = await boot();
       const publicUrl = opt("public-url");
       const api = createApi({ verifier, cfg, publicUrl, mcpHandler: httpMcpHandler({ verifier, chain }) });
-      api.listen(cfg.port, cfg.host, () => err(`PixelProof agent API on http://${cfg.host}:${cfg.port}  (GET /verify?url=…, POST /mcp)`));
+      api.listen(cfg.port, cfg.host, () => err(`Nadeye agent API on http://${cfg.host}:${cfg.port}  (GET /verify?url=…, POST /mcp)`));
       if (flag("validator")) createValidator({ cfg, chain, verifier }).run().catch((e) => err("validator stopped:", e));
       return;
     }
@@ -65,7 +65,7 @@ async function main() {
       return v.run({ once: flag("once") });
     }
     case "register": {
-      if (!cfg.contract) throw new Error("set PIXELPROOF_CONTRACT first");
+      if (!cfg.contract) throw new Error("set NADEYE_CONTRACT first");
       const publicUrl = opt("public-url");
       let agentId = cfg.agentId;
       if (agentId == null) {
@@ -77,7 +77,7 @@ async function main() {
       await chain.send(cfg.identity, identityAbi, "setAgentURI", [agentId, toDataUri(agentCard(cfg, { agentId, publicUrl }))]);
       await chain.linkAgent(agentId);
       if (opt("handle")) await chain.setHandle(opt("handle"));
-      err(`linked agent #${agentId} to PixelProof ${cfg.contract}. Add AGENT_ID=${agentId} to agent/.env`);
+      err(`linked agent #${agentId} to Nadeye ${cfg.contract}. Add AGENT_ID=${agentId} to agent/.env`);
       return out({ agentId, wallet: chain.account.address, agentRegistry: `eip155:${cfg.chain.id}:${cfg.identity}` });
     }
     case "request": {
@@ -88,7 +88,7 @@ async function main() {
       const requester = createChainClient({ ...cfg, privateKey: key });
       let requesterAgent = process.env.REQUESTER_AGENT_ID ? BigInt(process.env.REQUESTER_AGENT_ID) : null;
       if (requesterAgent == null) {
-        const r = await requester.register(toDataUri({ type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1", name: "PixelProof demo requester", description: "Asks validators whether images are AI-generated.", services: [], active: true, registrations: [] }));
+        const r = await requester.register(toDataUri({ type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1", name: "Nadeye demo requester", description: "Asks validators whether images are AI-generated.", services: [], active: true, registrations: [] }));
         requesterAgent = r.agentId;
         err(`registered requester agent #${requesterAgent} — set REQUESTER_AGENT_ID=${requesterAgent} to reuse it`);
       }
@@ -101,8 +101,8 @@ async function main() {
       const res = { network: cfg.network, contract: cfg.contract, wallet: chain.account?.address ?? null, agentId: cfg.agentId };
       if (chain.account) res.balance = formatEther(await chain.pub.getBalance({ address: chain.account.address })) + " MON";
       if (cfg.contract && chain.account) {
-        const { pixelProofAbi } = await import("./chain.js");
-        res.scanner = await chain.pub.readContract({ address: cfg.contract, abi: pixelProofAbi, functionName: "getScanner", args: [chain.account.address] });
+        const { nadeyeAbi } = await import("./chain.js");
+        res.scanner = await chain.pub.readContract({ address: cfg.contract, abi: nadeyeAbi, functionName: "getScanner", args: [chain.account.address] });
         if (res.scanner.hasAgent) res.reputation = await chain.reputation(res.scanner.agentId);
       }
       return out(res);

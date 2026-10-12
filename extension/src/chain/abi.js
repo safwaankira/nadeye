@@ -1,5 +1,5 @@
-// Generated from contracts/out/PixelProof.sol/PixelProof.json — run npm run abi after changing the contract
-export const pixelProofAbi = [
+// Generated from contracts/out/Nadeye.sol/Nadeye.json — run npm run abi after changing the contract
+export const nadeyeAbi = [
  {
   "type": "constructor",
   "inputs": [
@@ -210,7 +210,7 @@ export const pixelProofAbi = [
    {
     "name": "v",
     "type": "tuple",
-    "internalType": "struct PixelProof.ImageView",
+    "internalType": "struct Nadeye.ImageView",
     "components": [
      {
       "name": "pHash",
@@ -266,7 +266,7 @@ export const pixelProofAbi = [
    {
     "name": "out",
     "type": "tuple[]",
-    "internalType": "struct PixelProof.ImageView[]",
+    "internalType": "struct Nadeye.ImageView[]",
     "components": [
      {
       "name": "pHash",
@@ -322,7 +322,7 @@ export const pixelProofAbi = [
    {
     "name": "v",
     "type": "tuple",
-    "internalType": "struct PixelProof.ScannerView",
+    "internalType": "struct Nadeye.ScannerView",
     "components": [
      {
       "name": "account",
@@ -403,7 +403,7 @@ export const pixelProofAbi = [
    {
     "name": "out",
     "type": "tuple[]",
-    "internalType": "struct PixelProof.ScannerView[]",
+    "internalType": "struct Nadeye.ScannerView[]",
     "components": [
      {
       "name": "account",
@@ -561,7 +561,7 @@ export const pixelProofAbi = [
    {
     "name": "out",
     "type": "tuple[]",
-    "internalType": "struct PixelProof.ImageView[]",
+    "internalType": "struct Nadeye.ImageView[]",
     "components": [
      {
       "name": "pHash",

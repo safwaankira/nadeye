@@ -1,4 +1,4 @@
-// Builds the PixelProof site.
+// Builds the Nadeye site.
 //   node web/build.mjs [contractAddress] [mainnet|testnet]
 // 1. bundles src/passkey.js (Mera + viem, pinned in package.json) -> web/passkey.js
 // 2. writes web/dist/ for static hosting (Vercel, Netlify, GitHub Pages)

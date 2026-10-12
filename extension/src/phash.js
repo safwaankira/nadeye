@@ -1,6 +1,6 @@
 // 64-bit DCT perceptual hash (pHash) of decoded RGBA pixels.
 //
-// This is the only thing about an image PixelProof ever puts onchain. It is a
+// This is the only thing about an image Nadeye ever puts onchain. It is a
 // one-way 64-bit summary of coarse brightness structure: enough to recognise
 // the same picture after resizing or JPEG recompression, far too little to
 // reconstruct it.
@@ -106,7 +106,7 @@ export function lookupCandidates({ hex, weak }, k = 8) {
   return out;
 }
 
-/** pHash hex -> bytes32 key used by the PixelProof contract */
+/** pHash hex -> bytes32 key used by the Nadeye contract */
 export function toKey(hex) {
   return "0x" + hex.padStart(64, "0");
 }

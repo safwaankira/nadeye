@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @dev the slices of the ERC-8004 registries PixelProof uses
+/// @dev the slices of the ERC-8004 registries Nadeye uses
 interface IERC8004Identity {
     function ownerOf(uint256 agentId) external view returns (address);
     function getAgentWallet(uint256 agentId) external view returns (address);
@@ -20,8 +20,8 @@ interface IERC8004Reputation {
     ) external;
 }
 
-/// @title PixelProof — an onchain registry of AI-image verdicts on Monad
-/// @notice The PixelProof browser extension detects AI-generated images locally
+/// @title Nadeye — an onchain registry of AI-image verdicts on Monad
+/// @notice The Nadeye browser extension detects AI-generated images locally
 ///         (WebGPU/WASM, nothing uploaded) and attests its verdict here, keyed by
 ///         the image's 64-bit perceptual hash. The image itself never touches
 ///         the chain. Scanners earn points for coverage, for first discoveries
@@ -33,9 +33,9 @@ interface IERC8004Reputation {
 ///         link its ERC-8004 agent identity. From then on every consensus
 ///         judgement on its verdicts is written to the ERC-8004 Reputation
 ///         Registry with this contract as the client (100 = agreed, 0 =
-///         disagreed, tag1 "pixelproof", tag2 "consensus"), so any app can read
-///         a detector's track record without trusting PixelProof's own UI.
-contract PixelProof {
+///         disagreed, tag1 "nadeye", tag2 "consensus"), so any app can read
+///         a detector's track record without trusting Nadeye's own UI.
+contract Nadeye {
     // ---------------------------------------------------------------- config
 
     /// score is basis points of AI confidence (0 = surely real, 10000 = surely AI)
@@ -171,7 +171,7 @@ contract PixelProof {
             emit ReputationSkipped(scanner, agentId, pHash);
             return;
         }
-        try reputationRegistry.giveFeedback(agentId, agreed ? int128(100) : int128(0), 0, "pixelproof", "consensus", "", "", pHash) {}
+        try reputationRegistry.giveFeedback(agentId, agreed ? int128(100) : int128(0), 0, "nadeye", "consensus", "", "", pHash) {}
         catch {
             emit ReputationSkipped(scanner, agentId, pHash);
         }

@@ -1,4 +1,4 @@
-PixelProof includes and builds on the following MIT-licensed work:
+Nadeye includes and builds on the following MIT-licensed work:
 
 Sieve — Local AI Image Detector for Chrome
   https://github.com/Phineas1500/sieve-ai-image-detector
@@ -19,7 +19,7 @@ Mera (@category-labs/mera) by Category Labs — MIT OR Apache-2.0, bundled into 
 @scure/bip32, @scure/bip39 — MIT, bundled into web/passkey.js
 onnxruntime-node, sharp, @modelcontextprotocol/sdk, zod — agent/ dependencies
 
-Added by PixelProof: contracts/, extension/src/phash.js, extension/src/chain/,
+Added by Nadeye: contracts/, extension/src/phash.js, extension/src/chain/,
 the Monad integration in extension/src/background.js, content.js, popup.*,
 options.*, extension/src/pipeline.js (Sieve's preprocessing moved verbatim
 into a shared module), the extension tests under extension/test/ (except

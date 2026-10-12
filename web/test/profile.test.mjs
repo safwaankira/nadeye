@@ -1,6 +1,6 @@
 // The passkey profile flow minus the WebAuthn prompt: fixed PRF output ->
 // Mera signing sessions -> ERC-8004 agent owned by the identity key with the
-// scanner key as agentWallet -> linked in PixelProof. Real ERC-8004 reference
+// scanner key as agentWallet -> linked in Nadeye. Real ERC-8004 reference
 // registries on anvil (compiled by forge in ../contracts).
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -15,7 +15,7 @@ import { deriveEvmKey, recoveryPhrase, createProfileClient, identityAbi, IDENTIT
 
 const OUT = new URL("../../contracts/out/", import.meta.url);
 const art = (file, name) => JSON.parse(readFileSync(new URL(`${file}/${name}.json`, OUT)));
-const skip = spawnSync("anvil", ["--version"]).status !== 0 || !existsSync(new URL("PixelProof.sol", OUT)) ? "anvil or compiled contracts missing" : false;
+const skip = spawnSync("anvil", ["--version"]).status !== 0 || !existsSync(new URL("Nadeye.sol", OUT)) ? "anvil or compiled contracts missing" : false;
 
 test("derivation is deterministic and matches the documented BIP-44 path", () => {
   const prf = new Uint8Array(32).fill(7);
@@ -27,7 +27,7 @@ test("derivation is deterministic and matches the documented BIP-44 path", () =>
   assert.notEqual(a.address, c.address);
 });
 
-test("one passkey -> ERC-8004 identity + PixelProof scanner", { skip, timeout: 120_000 }, async (t) => {
+test("one passkey -> ERC-8004 identity + Nadeye scanner", { skip, timeout: 120_000 }, async (t) => {
   const PORT = 8561, RPC = `http://127.0.0.1:${PORT}`;
   const anvil = spawn("anvil", ["--port", String(PORT), "--silent"], { stdio: "ignore" });
   t.after(() => anvil.kill());
@@ -45,7 +45,7 @@ test("one passkey -> ERC-8004 identity + PixelProof scanner", { skip, timeout: 1
   }
   const identity = await registry("IdentityRegistryUpgradeable", "0x0000000000000000000000000000000000000000");
   const reputation = await registry("ReputationRegistryUpgradeable", identity);
-  const contract = await deploy(art("PixelProof.sol", "PixelProof"), [identity, reputation]);
+  const contract = await deploy(art("Nadeye.sol", "Nadeye"), [identity, reputation]);
 
   // what the page does after getPasskeyPrfOutput(): Mera signing sessions
   const prf = crypto.getRandomValues(new Uint8Array(32));

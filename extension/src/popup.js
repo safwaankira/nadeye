@@ -58,7 +58,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   });
 });
 
-// ------------------------------------------------------------- PixelProof
+// ------------------------------------------------------------- Nadeye
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "–");
 let pp = null;

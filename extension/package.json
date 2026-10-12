@@ -1,13 +1,13 @@
 {
-  "name": "pixelproof-extension",
+  "name": "nadeye-extension",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "PixelProof: local AI image detection (Sieve) + onchain verdict registry on Monad",
+  "description": "Nadeye: local AI image detection (Sieve) + onchain verdict registry on Monad",
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test test/*.test.mjs",
-    "abi": "node -e \"const a=require('../contracts/out/PixelProof.sol/PixelProof.json').abi;require('fs').writeFileSync('src/chain/abi.js','// Generated from contracts/out/PixelProof.sol/PixelProof.json — run npm run abi after changing the contract\\nexport const pixelProofAbi = '+JSON.stringify(a,null,1)+';\\n')\""
+    "abi": "node -e \"const a=require('../contracts/out/Nadeye.sol/Nadeye.json').abi;require('fs').writeFileSync('src/chain/abi.js','// Generated from contracts/out/Nadeye.sol/Nadeye.json — run npm run abi after changing the contract\\nexport const nadeyeAbi = '+JSON.stringify(a,null,1)+';\\n')\""
   },
   "devDependencies": {
     "esbuild": "^0.25.12",

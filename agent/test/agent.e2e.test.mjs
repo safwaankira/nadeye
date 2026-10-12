@@ -1,8 +1,8 @@
 // End-to-end on a local anvil chain with the real ERC-8004 reference registries
-// (compiled by `forge build` in ../contracts) and PixelProof:
+// (compiled by `forge build` in ../contracts) and Nadeye:
 //   register agent -> requester asks for validation -> validator answers onchain
-//   -> verdict attested in PixelProof -> HTTP API + MCP report the community verdict.
-// Needs anvil on PATH, compiled contracts, and the model (PIXELPROOF_MODEL or ~/.pixelproof cache).
+//   -> verdict attested in Nadeye -> HTTP API + MCP report the community verdict.
+// Needs anvil on PATH, compiled contracts, and the model (NADEYE_MODEL or ~/.nadeye cache).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, execFile } from "node:child_process";
@@ -14,7 +14,7 @@ import { promisify } from "node:util";
 import { createPublicClient, createWalletClient, http, encodeFunctionData, parseEther } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { foundry } from "viem/chains";
-import { validationAbi, pixelProofAbi } from "../src/chain.js";
+import { validationAbi, nadeyeAbi } from "../src/chain.js";
 
 const run = promisify(execFile);
 const OUT = new URL("../../contracts/out/", import.meta.url);
@@ -55,7 +55,7 @@ test("agent: ERC-8004 validation round trip + HTTP + MCP", { skip, timeout: 240_
   const identity = await registry("IdentityRegistryUpgradeable", "0x0000000000000000000000000000000000000000");
   const reputation = await registry("ReputationRegistryUpgradeable", identity);
   const validation = await registry("ValidationRegistryUpgradeable", identity);
-  const pixelproof = await deploy(art("PixelProof.sol", "PixelProof"), [identity, reputation]);
+  const nadeye = await deploy(art("Nadeye.sol", "Nadeye"), [identity, reputation]);
   await pub.waitForTransactionReceipt({ hash: await w.sendTransaction({ to: privateKeyToAccount(KEYS[2]).address, value: parseEther("1") }) });
 
   // serve a known AI-generated sample image locally
@@ -66,9 +66,9 @@ test("agent: ERC-8004 validation round trip + HTTP + MCP", { skip, timeout: 240_
 
   const cache = mkdtempSync(join(tmpdir(), "ppagent-"));
   const env = {
-    ...process.env, PIXELPROOF_NETWORK: "testnet", PIXELPROOF_RPC: RPC, PIXELPROOF_CHAIN_ID: "31337", PIXELPROOF_CONTRACT: pixelproof,
+    ...process.env, NADEYE_NETWORK: "testnet", NADEYE_RPC: RPC, NADEYE_CHAIN_ID: "31337", NADEYE_CONTRACT: nadeye,
     ERC8004_IDENTITY: identity, ERC8004_REPUTATION: reputation, ERC8004_VALIDATION: validation,
-    AGENT_PRIVATE_KEY: KEYS[1], REQUESTER_PRIVATE_KEY: KEYS[2], PIXELPROOF_CACHE: cache, ALLOW_PRIVATE_URLS: "1",
+    AGENT_PRIVATE_KEY: KEYS[1], REQUESTER_PRIVATE_KEY: KEYS[2], NADEYE_CACHE: cache, ALLOW_PRIVATE_URLS: "1",
   };
   const cli = async (...args) => {
     try {
@@ -78,7 +78,7 @@ test("agent: ERC-8004 validation round trip + HTTP + MCP", { skip, timeout: 240_
     }
   };
 
-  const reg = JSON.parse((await cli("register", "--handle", "pixelproof_verifier")).stdout);
+  const reg = JSON.parse((await cli("register", "--handle", "nadeye_verifier")).stdout);
   assert.equal(reg.wallet, privateKeyToAccount(KEYS[1]).address);
   env.AGENT_ID = String(reg.agentId);
 
@@ -89,15 +89,15 @@ test("agent: ERC-8004 validation round trip + HTTP + MCP", { skip, timeout: 240_
   assert.equal(validator, reg.wallet);
   assert.equal(agentId, BigInt(req.requesterAgent));
   assert.ok(response <= 10, `AI image should score low authenticity, got ${response}`);
-  assert.equal(tag, "pixelproof/ai-image");
+  assert.equal(tag, "nadeye/ai-image");
   assert.notEqual(responseHash, "0x" + "0".repeat(64));
 
-  // the verdict was also recorded in PixelProof by the agent-scanner, linked to its agent id
-  const scanner = await pub.readContract({ address: pixelproof, abi: pixelProofAbi, functionName: "getScanner", args: [reg.wallet] });
+  // the verdict was also recorded in Nadeye by the agent-scanner, linked to its agent id
+  const scanner = await pub.readContract({ address: nadeye, abi: nadeyeAbi, functionName: "getScanner", args: [reg.wallet] });
   assert.equal(scanner.scans, 1);
   assert.equal(scanner.hasAgent, true);
   assert.equal(scanner.agentId, BigInt(reg.agentId));
-  assert.equal(scanner.handle, "pixelproof_verifier");
+  assert.equal(scanner.handle, "nadeye_verifier");
 
   // re-running the validator does not answer twice
   await cli("validator", "--once");

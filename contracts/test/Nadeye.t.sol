@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {PixelProof} from "../src/PixelProof.sol";
+import {Nadeye} from "../src/Nadeye.sol";
 
-contract PixelProofTest is Test {
-    PixelProof pp;
+contract NadeyeTest is Test {
+    Nadeye pp;
     address alice = address(0xA11CE);
     address bob = address(0xB0B);
     address carol = address(0xCA201);
@@ -15,18 +15,18 @@ contract PixelProofTest is Test {
 
     function setUp() public {
         vm.warp(1_760_000_000);
-        pp = new PixelProof(address(0), address(0));
+        pp = new Nadeye(address(0), address(0));
     }
 
     function test_firstScanEarnsScanPlusFirstBonus() public {
         vm.prank(alice);
         pp.attest(IMG, 9_000, 14);
-        PixelProof.ScannerView memory a = pp.getScanner(alice);
+        Nadeye.ScannerView memory a = pp.getScanner(alice);
         assertEq(a.points, 35);
         assertEq(a.scans, 1);
         assertEq(a.firsts, 1);
         assertEq(a.activeDays, 1);
-        PixelProof.ImageView memory v = pp.getImage(IMG);
+        Nadeye.ImageView memory v = pp.getImage(IMG);
         assertEq(v.reports, 1);
         assertEq(v.aiVotes, 1);
         assertEq(v.meanScore, 9_000);
@@ -38,35 +38,35 @@ contract PixelProofTest is Test {
     function test_duplicateReverts() public {
         vm.startPrank(alice);
         pp.attest(IMG, 9_000, 14);
-        vm.expectRevert(PixelProof.AlreadyAttested.selector);
+        vm.expectRevert(Nadeye.AlreadyAttested.selector);
         pp.attest(IMG, 1_000, 14);
     }
 
     function test_rejectsBadInput() public {
-        vm.expectRevert(PixelProof.InvalidScore.selector);
+        vm.expectRevert(Nadeye.InvalidScore.selector);
         pp.attest(IMG, 10_001, 14);
-        vm.expectRevert(PixelProof.EmptyHash.selector);
+        vm.expectRevert(Nadeye.EmptyHash.selector);
         pp.attest(bytes32(0), 5_000, 14);
     }
 
     function test_consensusJudgedOnlyAfterQuorum() public {
         vm.prank(alice); pp.attest(IMG, 9_000, 14);  // first
         vm.prank(bob);   pp.attest(IMG, 8_000, 14);  // 1 prior report: not judged
-        PixelProof.ScannerView memory b = pp.getScanner(bob);
+        Nadeye.ScannerView memory b = pp.getScanner(bob);
         assertEq(b.points, 10);
         assertEq(b.signal + b.noise, 0);
 
         vm.prank(carol); pp.attest(IMG, 7_000, 14);  // majority AI, agrees
-        PixelProof.ScannerView memory c = pp.getScanner(carol);
+        Nadeye.ScannerView memory c = pp.getScanner(carol);
         assertEq(c.signal, 1);
         assertEq(c.points, 25);
 
         vm.prank(dave); pp.attest(IMG, 1_000, 14);   // disagrees
-        PixelProof.ScannerView memory d = pp.getScanner(dave);
+        Nadeye.ScannerView memory d = pp.getScanner(dave);
         assertEq(d.noise, 1);
         assertEq(d.points, 10);
 
-        PixelProof.ImageView memory v = pp.getImage(IMG);
+        Nadeye.ImageView memory v = pp.getImage(IMG);
         assertEq(v.reports, 4);
         assertEq(v.aiVotes, 3);
         assertEq(v.meanScore, (9_000 + 8_000 + 7_000 + 1_000) / 4);
@@ -76,7 +76,7 @@ contract PixelProofTest is Test {
         vm.prank(alice); pp.attest(IMG, 9_000, 14);
         vm.prank(bob);   pp.attest(IMG, 1_000, 14);
         vm.prank(carol); pp.attest(IMG, 9_000, 14); // 1 AI vs 1 real before her
-        PixelProof.ScannerView memory c = pp.getScanner(carol);
+        Nadeye.ScannerView memory c = pp.getScanner(carol);
         assertEq(c.signal + c.noise, 0);
     }
 
@@ -115,9 +115,9 @@ contract PixelProofTest is Test {
     }
 
     function test_batchLengthAndSize() public {
-        vm.expectRevert(PixelProof.LengthMismatch.selector);
+        vm.expectRevert(Nadeye.LengthMismatch.selector);
         pp.attestBatch(new bytes32[](2), new uint16[](1), 14);
-        vm.expectRevert(PixelProof.BatchTooLarge.selector);
+        vm.expectRevert(Nadeye.BatchTooLarge.selector);
         pp.attestBatch(new bytes32[](101), new uint16[](101), 14);
     }
 
@@ -125,7 +125,7 @@ contract PixelProofTest is Test {
         uint256 cap = pp.DAILY_POINT_CAP();
         vm.startPrank(alice);
         for (uint256 i = 1; i <= cap + 5; ++i) pp.attest(bytes32(i), 2_000, 14);
-        PixelProof.ScannerView memory a = pp.getScanner(alice);
+        Nadeye.ScannerView memory a = pp.getScanner(alice);
         assertEq(a.scans, cap + 5);
         assertEq(a.points, uint64(cap) * 35); // the 5 extra scans earn nothing
         vm.warp(block.timestamp + 1 days);
@@ -137,19 +137,19 @@ contract PixelProofTest is Test {
         vm.prank(alice); pp.attest(IMG, 9_000, 14);
         vm.prank(bob); pp.attest(IMG2, 9_000, 14);
         vm.prank(alice); pp.setHandle("safwaan_uddin");
-        PixelProof.ScannerView[] memory page = pp.getScanners(0, 10);
+        Nadeye.ScannerView[] memory page = pp.getScanners(0, 10);
         assertEq(page.length, 2);
         assertEq(page[0].handle, "safwaan_uddin");
         assertEq(pp.getScanners(1, 10).length, 1);
         assertEq(pp.getScanners(5, 10).length, 0);
-        vm.expectRevert(PixelProof.HandleTooLong.selector);
+        vm.expectRevert(Nadeye.HandleTooLong.selector);
         pp.setHandle("this-handle-is-way-too-long-for-the-board");
     }
 
     function test_recentImagesNewestFirst() public {
         vm.prank(alice); pp.attest(IMG, 9_000, 14);
         vm.prank(alice); pp.attest(IMG2, 1_000, 14);
-        PixelProof.ImageView[] memory r = pp.recentImages(5);
+        Nadeye.ImageView[] memory r = pp.recentImages(5);
         assertEq(r.length, 2);
         assertEq(r[0].pHash, IMG2);
         assertEq(r[1].pHash, IMG);
@@ -159,7 +159,7 @@ contract PixelProofTest is Test {
         vm.prank(alice); pp.attest(IMG, 9_000, 14);
         bytes32[] memory q = new bytes32[](2);
         q[0] = IMG; q[1] = IMG2;
-        PixelProof.ImageView[] memory r = pp.getImages(q);
+        Nadeye.ImageView[] memory r = pp.getImages(q);
         assertEq(r[0].reports, 1);
         assertEq(r[1].reports, 0);
     }
@@ -169,7 +169,7 @@ contract PixelProofTest is Test {
         b = uint16(bound(b, 0, 10_000));
         vm.prank(alice); pp.attest(IMG, a, 14);
         vm.prank(bob); pp.attest(IMG, b, 14);
-        PixelProof.ImageView memory v = pp.getImage(IMG);
+        Nadeye.ImageView memory v = pp.getImage(IMG);
         assertEq(v.meanScore, (uint256(a) + b) / 2);
         assertLe(v.meanScore, 10_000);
     }

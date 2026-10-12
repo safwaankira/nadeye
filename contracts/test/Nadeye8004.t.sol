@@ -3,17 +3,17 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {PixelProof} from "../src/PixelProof.sol";
+import {Nadeye} from "../src/Nadeye.sol";
 import {HardhatMinimalUUPS} from "./erc8004/HardhatMinimalUUPS.sol";
 import {IdentityRegistryUpgradeable} from "./erc8004/IdentityRegistryUpgradeable.sol";
 import {ReputationRegistryUpgradeable} from "./erc8004/ReputationRegistryUpgradeable.sol";
 
-/// Runs PixelProof against the real ERC-8004 reference registries, deployed the
+/// Runs Nadeye against the real ERC-8004 reference registries, deployed the
 /// way they are on Monad (proxy -> MinimalUUPS -> upgrade to registry).
-contract PixelProof8004Test is Test {
+contract Nadeye8004Test is Test {
     IdentityRegistryUpgradeable identity;
     ReputationRegistryUpgradeable reputation;
-    PixelProof pp;
+    Nadeye pp;
 
     uint256 ownerPk = 0xA11CE;
     uint256 scannerPk = 0x5CA22E2;
@@ -45,7 +45,7 @@ contract PixelProof8004Test is Test {
         );
         reputation = ReputationRegistryUpgradeable(repProxy);
 
-        pp = new PixelProof(address(identity), address(reputation));
+        pp = new Nadeye(address(identity), address(reputation));
     }
 
     function _register(address who) internal returns (uint256 id) {
@@ -56,7 +56,7 @@ contract PixelProof8004Test is Test {
     function test_ownerCanLink_strangerCannot() public {
         uint256 id = _register(scanner);
         vm.prank(bob);
-        vm.expectRevert(PixelProof.NotAgentController.selector);
+        vm.expectRevert(Nadeye.NotAgentController.selector);
         pp.linkAgent(id);
 
         vm.prank(scanner);
@@ -64,7 +64,7 @@ contract PixelProof8004Test is Test {
         (bool linked, uint256 got) = pp.agentOf(scanner);
         assertTrue(linked);
         assertEq(got, id);
-        PixelProof.ScannerView memory v = pp.getScanner(scanner);
+        Nadeye.ScannerView memory v = pp.getScanner(scanner);
         assertTrue(v.hasAgent);
         assertEq(v.agentId, id);
     }
@@ -119,7 +119,7 @@ contract PixelProof8004Test is Test {
         assertEq(reputation.getLastIndex(id, address(pp)), 1);
         (int128 value,, string memory tag1, string memory tag2, bool revoked) = reputation.readFeedback(id, address(pp), 1);
         assertEq(value, 100);
-        assertEq(tag1, "pixelproof");
+        assertEq(tag1, "nadeye");
         assertEq(tag2, "consensus");
         assertFalse(revoked);
 
@@ -133,7 +133,7 @@ contract PixelProof8004Test is Test {
 
         address[] memory clients = new address[](1);
         clients[0] = address(pp);
-        (uint64 count, int128 summary,) = reputation.getSummary(id, clients, "pixelproof", "consensus");
+        (uint64 count, int128 summary,) = reputation.getSummary(id, clients, "nadeye", "consensus");
         assertEq(count, 2);
         assertEq(summary, 50); // average of 100 and 0 == the scanner's signal-to-noise
     }
@@ -163,8 +163,8 @@ contract PixelProof8004Test is Test {
     }
 
     function test_noRegistryMeansNoLinking() public {
-        PixelProof bare = new PixelProof(address(0), address(0));
-        vm.expectRevert(PixelProof.NoIdentityRegistry.selector);
+        Nadeye bare = new Nadeye(address(0), address(0));
+        vm.expectRevert(Nadeye.NoIdentityRegistry.selector);
         bare.linkAgent(1);
     }
 }

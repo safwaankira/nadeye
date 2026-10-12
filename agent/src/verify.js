@@ -1,4 +1,4 @@
-// One verification = local model verdict + PixelProof community verdict.
+// One verification = local model verdict + Nadeye community verdict.
 // Shared by the HTTP API, the MCP tool and the ERC-8004 validator.
 import { fetchImageBytes } from "./safefetch.js";
 import { verdictOf } from "./detector.js";
@@ -24,7 +24,7 @@ export function createVerifier({ detector, chain, cfg }) {
       reason: r.reason || null,
       degraded: r.degraded,
       pHash: r.phash,
-      community,                                 // onchain verdicts from PixelProof scanners
+      community,                                 // onchain verdicts from Nadeye scanners
       communityError,
       attestTx,
       model: { name: "Sieve (ViT-S/16, Community Forensics fine-tune)", version: r.model, tta: r.tta, ms: r.ms },

@@ -1,8 +1,8 @@
-// Monad side of the agent: PixelProof registry + the ERC-8004 registries.
+// Monad side of the agent: Nadeye registry + the ERC-8004 registries.
 import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, keccak256, toBytes, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-export const pixelProofAbi = parseAbi([
+export const nadeyeAbi = parseAbi([
   "struct ImageView { bytes32 pHash; uint32 reports; uint32 aiVotes; uint16 meanScore; address firstScanner; uint40 firstSeen; uint40 lastSeen; }",
   "struct ScannerView { address account; string handle; uint64 points; uint32 scans; uint32 firsts; uint32 signal; uint32 noise; uint32 activeDays; uint40 joined; bool hasAgent; uint256 agentId; }",
   "function getImages(bytes32[] pHashes) view returns (ImageView[])",
@@ -34,7 +34,7 @@ export const reputationAbi = parseAbi([
   "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
 ]);
 
-export const VALIDATION_TAG = "pixelproof/ai-image";
+export const VALIDATION_TAG = "nadeye/ai-image";
 export const GAS_BUFFER_PCT = 115n; // Monad bills the gas limit: pad estimates lightly
 
 // 8-bit fingerprint of the weights version, identical to the extension's
@@ -64,18 +64,18 @@ export function createChainClient(cfg) {
   /** community verdict for a hash and its near-variants, merged */
   async function community(keysHex) {
     if (!cfg.contract) return null;
-    const rows = await pub.readContract({ address: cfg.contract, abi: pixelProofAbi, functionName: "getImages", args: [keysHex.map(toKey)] });
+    const rows = await pub.readContract({ address: cfg.contract, abi: nadeyeAbi, functionName: "getImages", args: [keysHex.map(toKey)] });
     let reports = 0, aiVotes = 0, sum = 0;
     for (const r of rows) { reports += r.reports; aiVotes += r.aiVotes; sum += r.meanScore * r.reports; }
     return reports ? { reports, aiVotes, meanScore: sum / reports / 10000 } : { reports: 0, aiVotes: 0, meanScore: null };
   }
 
-  /** the agent records its own verdict as a PixelProof scanner (skips duplicates) */
+  /** the agent records its own verdict as a Nadeye scanner (skips duplicates) */
   async function attest(phashHex, score, modelVersion) {
     if (!cfg.contract || !wallet || !cfg.attest) return null;
     const key = toKey(phashHex);
-    if (await pub.readContract({ address: cfg.contract, abi: pixelProofAbi, functionName: "hasAttested", args: [key, account.address] })) return null;
-    const r = await send(cfg.contract, pixelProofAbi, "attest", [key, Math.round(score * 10000), modelVersion]);
+    if (await pub.readContract({ address: cfg.contract, abi: nadeyeAbi, functionName: "hasAttested", args: [key, account.address] })) return null;
+    const r = await send(cfg.contract, nadeyeAbi, "attest", [key, Math.round(score * 10000), modelVersion]);
     return r.transactionHash;
   }
 
@@ -85,14 +85,14 @@ export function createChainClient(cfg) {
     return { agentId: ev.args.agentId, hash: r.transactionHash };
   }
 
-  const linkAgent = (agentId) => send(cfg.contract, pixelProofAbi, "linkAgent", [agentId]);
-  const setHandle = (h) => send(cfg.contract, pixelProofAbi, "setHandle", [h]);
+  const linkAgent = (agentId) => send(cfg.contract, nadeyeAbi, "linkAgent", [agentId]);
+  const setHandle = (h) => send(cfg.contract, nadeyeAbi, "setHandle", [h]);
 
   async function reputation(agentId) {
     if (!cfg.contract || agentId == null) return null;
     const [count, value, decimals] = await pub.readContract({
       address: cfg.reputation, abi: reputationAbi, functionName: "getSummary",
-      args: [agentId, [cfg.contract], "pixelproof", "consensus"],
+      args: [agentId, [cfg.contract], "nadeye", "consensus"],
     });
     return { count: Number(count), agreement: count ? Number(value) / 10 ** decimals : null };
   }

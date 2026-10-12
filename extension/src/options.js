@@ -30,7 +30,7 @@ $("flaggedAction").addEventListener("change", (e) => chrome.storage.sync.set({
 }));
 $("badgeDisplay").addEventListener("change", (e) => chrome.storage.sync.set({ badgeDisplay: e.target.value }));
 
-// PixelProof: scanner wallet backup / restore
+// Nadeye: scanner wallet backup / restore
 $("revealKey").addEventListener("click", async () => {
   if (!confirm("Anyone with this key controls your scanner wallet and points. Show it?")) return;
   const r = await chrome.runtime.sendMessage({ kind: "pp:export-key" });
@@ -45,7 +45,7 @@ $("doImport").addEventListener("click", async () => {
   $("importKey").value = "";
 });
 
-// PixelProof: per-network contract / RPC override
+// Nadeye: per-network contract / RPC override
 async function loadOverride() {
   const { ppCustom = {} } = await chrome.storage.local.get(["ppCustom"]);
   const o = ppCustom[$("ovNet").value] || {};
@@ -64,7 +64,7 @@ $("ovSave").addEventListener("click", async () => {
 });
 loadOverride();
 
-// PixelProof: trusted passkey-site origins
+// Nadeye: trusted passkey-site origins
 chrome.runtime.sendMessage({ kind: "pp:site-origins" }).then((r) => { if (r && r.ok) $("origins").value = r.origins.join("\n"); });
 $("saveOrigins").addEventListener("click", async () => {
   const list = $("origins").value.split(/\s+/).map((x) => x.trim().replace(/\/$/, "")).filter(Boolean);

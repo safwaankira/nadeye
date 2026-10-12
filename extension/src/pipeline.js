@@ -1,6 +1,6 @@
 // Sieve's preprocessing, calibration and input-quality checks, as pure
 // functions over RGBA pixels. Shared by the extension's offscreen document and
-// the PixelProof agent verifier (Node), so both score images identically.
+// the Nadeye agent verifier (Node), so both score images identically.
 // Moved verbatim from Sieve's offscreen.js; only the tensor construction is
 // left to the caller (ONNX Runtime Web vs onnxruntime-node).
 

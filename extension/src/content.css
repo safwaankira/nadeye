@@ -45,7 +45,7 @@
   display: none !important;
 }
 
-/* PixelProof: badge carries a community verdict from the Monad registry */
+/* Nadeye: badge carries a community verdict from the Monad registry */
 .aid-badge.aid-community {
   box-shadow: inset 3px 0 0 #836ef9;
 }

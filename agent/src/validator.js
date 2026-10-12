@@ -4,8 +4,8 @@
 // and answers onchain with validationResponse:
 //   response     = authenticity 0-100 (100 = no sign of AI, 0 = AI-generated)
 //   responseURI  = data: JSON report      responseHash = keccak256(report)
-//   tag          = "pixelproof/ai-image"
-// It also records its verdict in the PixelProof registry as a scanner.
+//   tag          = "nadeye/ai-image"
+// It also records its verdict in the Nadeye registry as a scanner.
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { validationAbi, VALIDATION_TAG, reportHash } from "./chain.js";
@@ -44,7 +44,7 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
     const body = {
       verdict: report.verdict, aiConfidence: report.aiConfidence, authenticity: report.authenticity, evidence: report.evidence,
       degraded: report.degraded, pHash: report.pHash, community: report.community, model: report.model.version,
-      source: requestURI.slice(0, 300), pixelproof: cfg.contract,
+      source: requestURI.slice(0, 300), nadeye: cfg.contract,
     };
     const json = JSON.stringify(body);
     const responseURI = "data:application/json;base64," + Buffer.from(json).toString("base64");
@@ -73,7 +73,7 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
   async function run({ backfillBlocks = 3000n, pollMs = 2000, once = false } = {}) {
     let head = await chain.pub.getBlockNumber();
     let from = state.cursor ? BigInt(state.cursor) + 1n : head > backfillBlocks ? head - backfillBlocks : 0n;
-    log(`PixelProof validator ${me} on ${cfg.network}, watching ValidationRegistry ${cfg.validation} from block ${from}`);
+    log(`Nadeye validator ${me} on ${cfg.network}, watching ValidationRegistry ${cfg.validation} from block ${from}`);
     const open = await chain.pub.readContract({ address: cfg.validation, abi: validationAbi, functionName: "getValidatorRequests", args: [me] });
     log(`${open.length} request(s) ever addressed to this validator`);
     for (;;) {

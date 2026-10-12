@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {PixelProof} from "../src/PixelProof.sol";
+import {Nadeye} from "../src/Nadeye.sol";
 
-/// Deploys PixelProof wired to the live ERC-8004 registries.
+/// Deploys Nadeye wired to the live ERC-8004 registries.
 ///   forge script script/Deploy.s.sol --rpc-url monad_mainnet --account deployer --broadcast
 /// Other chains: set ERC8004_IDENTITY / ERC8004_REPUTATION (or 0x0 to disable).
 contract Deploy is Script {
@@ -14,7 +14,7 @@ contract Deploy is Script {
     address constant TESTNET_IDENTITY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
     address constant TESTNET_REPUTATION = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
 
-    function run() external returns (PixelProof pp) {
+    function run() external returns (Nadeye pp) {
         address identity;
         address reputation;
         if (block.chainid == 143) {
@@ -29,9 +29,9 @@ contract Deploy is Script {
         if (reputation != address(0)) require(reputation.code.length > 0, "reputation registry not deployed here");
 
         vm.startBroadcast();
-        pp = new PixelProof(identity, reputation);
+        pp = new Nadeye(identity, reputation);
         vm.stopBroadcast();
-        console.log("PixelProof deployed at", address(pp));
+        console.log("Nadeye deployed at", address(pp));
         console.log("chain id", block.chainid);
         console.log("ERC-8004 identity", identity);
         console.log("ERC-8004 reputation", reputation);

@@ -52,7 +52,7 @@ export async function fetchImageBytes(rawUrl, { allowPrivate = false } = {}) {
     const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     let resp;
     try {
-      resp = await fetch(u, { redirect: "manual", signal: ctrl.signal, headers: { "user-agent": "PixelProof-Agent/1.0", accept: "image/*" } });
+      resp = await fetch(u, { redirect: "manual", signal: ctrl.signal, headers: { "user-agent": "Nadeye-Agent/1.0", accept: "image/*" } });
     } finally {
       clearTimeout(t);
     }

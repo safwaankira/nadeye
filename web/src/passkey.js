@@ -11,11 +11,11 @@ const ERC8004 = {
   mainnet: { chain: monad, identity: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432", reputation: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63" },
   testnet: { chain: monadTestnet, identity: "0x8004A818BFB912233c491871b3d84c89A494BD9e", reputation: "0x8004B663056A597Dffe9eCcC1965A193B7388713" },
 };
-const CRED_KEY = "pixelproof.passkey";
+const CRED_KEY = "nadeye.passkey";
 const $ = (id) => document.getElementById(id);
 const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-const { CONFIG, NET } = window.PIXELPROOF;
+const { CONFIG, NET } = window.NADEYE;
 const net = ERC8004[CONFIG.network];
 const configured = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.contract) && !/^0x0{40}$/.test(CONFIG.contract);
 const client = configured ? createProfileClient({ chain: net.chain, rpcUrl: NET.rpc, contract: CONFIG.contract, identity: net.identity, reputation: net.reputation }) : null;
@@ -48,15 +48,15 @@ function explain(e) {
   }
   const msg = String(e?.shortMessage || e?.message || e);
   if (/insufficient funds|exceeds the balance|gas required exceeds/i.test(msg)) return "Not enough MON for gas. Send a little MON to your identity address, then try again.";
-  if (/Permissions Policy|publickey-credentials|not allowed in this document|NotAllowedError/i.test(msg)) return "Passkeys can't run in this preview frame. Open the hosted PixelProof site to sign in.";
+  if (/Permissions Policy|publickey-credentials|not allowed in this document|NotAllowedError/i.test(msg)) return "Passkeys can't run in this preview frame. Open the hosted Nadeye site to sign in.";
   return msg;
 }
 
 // ------------------------------------------------------- extension bridge
-let extReady = !!document.documentElement.dataset.pixelproofExtension;
+let extReady = !!document.documentElement.dataset.nadeyeExtension;
 const pending = new Map();
 window.addEventListener("message", (ev) => {
-  if (ev.source !== window || ev.origin !== location.origin || ev.data?.source !== "pixelproof-extension") return;
+  if (ev.source !== window || ev.origin !== location.origin || ev.data?.source !== "nadeye-extension") return;
   if (ev.data.type === "ready") { extReady = true; render(); return; }
   const p = pending.get(ev.data.id);
   if (p) { pending.delete(ev.data.id); p(ev.data); }
@@ -65,7 +65,7 @@ function askExtension(msg, timeout = 60_000) {
   return new Promise((resolve) => {
     const id = Math.random().toString(36).slice(2);
     pending.set(id, resolve);
-    window.postMessage({ source: "pixelproof-site", id, ...msg }, location.origin);
+    window.postMessage({ source: "nadeye-site", id, ...msg }, location.origin);
     setTimeout(() => { if (pending.delete(id)) resolve({ ok: false, error: "the extension did not answer" }); }, timeout);
   });
 }
@@ -75,8 +75,8 @@ async function signIn(create) {
   setBusy(create ? "Creating your passkey…" : "Waiting for your passkey…");
   try {
     if (create) {
-      const name = ($("ppName").value || "PixelProof scanner").slice(0, 64);
-      const created = await createPasskeyWithPrfOutput({ rp: { id: location.hostname, name: "PixelProof" }, user: { name, displayName: name } });
+      const name = ($("ppName").value || "Nadeye scanner").slice(0, 64);
+      const created = await createPasskeyWithPrfOutput({ rp: { id: location.hostname, name: "Nadeye" }, user: { name, displayName: name } });
       writeCred({ credentialId: created.credentialId, transports: created.transports });
       prf = created.prfOutput;
     } else {
@@ -155,7 +155,7 @@ function render() {
   $("ppSignedOut").hidden = !!addrs;
   $("ppSignedIn").hidden = !addrs;
   $("ppNoContract").hidden = configured;
-  $("ppExt").textContent = extReady ? "Extension detected" : "Extension not detected on this site (add this site under Options → Trusted PixelProof sites)";
+  $("ppExt").textContent = extReady ? "Extension detected" : "Extension not detected on this site (add this site under Options → Trusted Nadeye sites)";
   if (!addrs) return;
   const link = (a) => `<a href="${NET.explorer}/address/${a}" target="_blank" rel="noopener">${short(a)}</a>`;
   $("ppIdAddr").innerHTML = link(addrs.identity);

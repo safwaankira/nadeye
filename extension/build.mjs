@@ -28,7 +28,7 @@ for (const f of KEEP) {
 }
 console.log(`vendored ${KEEP.length} ONNX Runtime Web files (${(bytes / 1e6).toFixed(1)}MB) -> vendor/ort/`);
 
-// PixelProof: bundle the Monad chain client (viem) into one ES module the
+// Nadeye: bundle the Monad chain client (viem) into one ES module the
 // service worker imports. Still no remote code: everything ships in the
 // extension directory.
 const { build } = await import("esbuild");

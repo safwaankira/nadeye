@@ -33,18 +33,18 @@ export const NETWORKS = {
 };
 
 export function loadConfig(env = process.env) {
-  const network = env.PIXELPROOF_NETWORK || "mainnet";
+  const network = env.NADEYE_NETWORK || "mainnet";
   const base = NETWORKS[network];
-  if (!base) throw new Error(`PIXELPROOF_NETWORK must be mainnet or testnet, got ${network}`);
-  const chain = env.PIXELPROOF_CHAIN_ID
-    ? { ...base.chain, id: Number(env.PIXELPROOF_CHAIN_ID) } // local anvil runs
+  if (!base) throw new Error(`NADEYE_NETWORK must be mainnet or testnet, got ${network}`);
+  const chain = env.NADEYE_CHAIN_ID
+    ? { ...base.chain, id: Number(env.NADEYE_CHAIN_ID) } // local anvil runs
     : base.chain;
   return {
     network,
     chain,
-    rpcUrl: env.PIXELPROOF_RPC || base.rpcUrl,
+    rpcUrl: env.NADEYE_RPC || base.rpcUrl,
     explorer: base.explorer,
-    contract: env.PIXELPROOF_CONTRACT || null,
+    contract: env.NADEYE_CONTRACT || null,
     identity: env.ERC8004_IDENTITY || base.identity,
     reputation: env.ERC8004_REPUTATION || base.reputation,
     validation: env.ERC8004_VALIDATION || base.validation,
@@ -53,8 +53,8 @@ export function loadConfig(env = process.env) {
     attest: (env.AGENT_ATTEST ?? "1") !== "0",
     host: env.HOST || "127.0.0.1",
     port: Number(env.PORT || 8787),
-    cacheDir: env.PIXELPROOF_CACHE || join(homedir(), ".pixelproof"),
-    modelPath: env.PIXELPROOF_MODEL || null,
+    cacheDir: env.NADEYE_CACHE || join(homedir(), ".nadeye"),
+    modelPath: env.NADEYE_MODEL || null,
     allowPrivate: env.ALLOW_PRIVATE_URLS === "1", // tests only
   };
 }

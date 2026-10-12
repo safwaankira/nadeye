@@ -1,4 +1,4 @@
-// "One passkey, many keys": everything PixelProof derives from a Mera passkey,
+// "One passkey, many keys": everything Nadeye derives from a Mera passkey,
 // and the onchain steps that turn it into an ERC-8004 identity. Pure functions
 // over viem accounts, so the same code runs in the page and in Node tests.
 //
@@ -39,7 +39,7 @@ export const identityAbi = parseAbi([
   "function ownerOf(uint256 agentId) view returns (address)",
   "event Registered(uint256 indexed agentId, string agentURI, address indexed owner)",
 ]);
-export const pixelProofAbi = parseAbi([
+export const nadeyeAbi = parseAbi([
   "struct ScannerView { address account; string handle; uint64 points; uint32 scans; uint32 firsts; uint32 signal; uint32 noise; uint32 activeDays; uint40 joined; bool hasAgent; uint256 agentId; }",
   "function getScanner(address account) view returns (ScannerView)",
   "function linkAgent(uint256 agentId)",
@@ -54,8 +54,8 @@ const GAS_PAD = (g) => (g * 115n) / 100n; // Monad bills the gas limit
 export function scannerCard({ chainId, identity, scanner, handle, agentId = null }) {
   const card = {
     type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
-    name: handle ? `PixelProof scanner @${handle}` : "PixelProof scanner",
-    description: "Runs the PixelProof extension: detects AI-generated images on-device and attests verdicts to Monad. Reputation = agreement with the PixelProof consensus (client: the PixelProof contract, tag1 pixelproof, tag2 consensus).",
+    name: handle ? `Nadeye scanner @${handle}` : "Nadeye scanner",
+    description: "Runs the Nadeye extension: detects AI-generated images on-device and attests verdicts to Monad. Reputation = agreement with the Nadeye consensus (client: the Nadeye contract, tag1 nadeye, tag2 consensus).",
     services: [{ name: "agentWallet", endpoint: `eip155:${chainId}:${scanner}` }],
     active: true,
     registrations: agentId == null ? [] : [{ agentId: Number(agentId), agentRegistry: `eip155:${chainId}:${identity}` }],
@@ -81,11 +81,11 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
     const [idBal, scBal, sc] = await Promise.all([
       pub.getBalance({ address: identityAddr }),
       pub.getBalance({ address: scannerAddr }),
-      contract ? pub.readContract({ address: contract, abi: pixelProofAbi, functionName: "getScanner", args: [scannerAddr] }) : null,
+      contract ? pub.readContract({ address: contract, abi: nadeyeAbi, functionName: "getScanner", args: [scannerAddr] }) : null,
     ]);
     let rep = null;
     if (sc && sc.hasAgent && reputation) {
-      const [count, value, decimals] = await pub.readContract({ address: reputation, abi: reputationAbi, functionName: "getSummary", args: [sc.agentId, [contract], "pixelproof", "consensus"] });
+      const [count, value, decimals] = await pub.readContract({ address: reputation, abi: reputationAbi, functionName: "getSummary", args: [sc.agentId, [contract], "nadeye", "consensus"] });
       rep = { count: Number(count), agreement: count ? Number(value) / 10 ** decimals : null };
     }
     return { identityBalance: idBal, scannerBalance: scBal, scanner: sc, reputation: rep };
@@ -101,11 +101,11 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
 
   /**
    * register an ERC-8004 agent owned by the identity key, make the scanner
-   * key its agentWallet (scanner signs consent), and link it in PixelProof.
+   * key its agentWallet (scanner signs consent), and link it in Nadeye.
    * `onStep(label)` reports progress. Resumable: skips finished steps.
    */
   async function setupAgent({ identityAccount, scannerAccount, handle = "", onStep = () => {} }) {
-    const me = await pub.readContract({ address: contract, abi: pixelProofAbi, functionName: "getScanner", args: [scannerAccount.address] });
+    const me = await pub.readContract({ address: contract, abi: nadeyeAbi, functionName: "getScanner", args: [scannerAccount.address] });
     if (me.hasAgent) return { agentId: me.agentId, already: true };
 
     onStep("Registering your ERC-8004 agent identity");
@@ -132,16 +132,16 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
     });
     await send(identityAccount, identity, identityAbi, "setAgentWallet", [agentId, scannerAccount.address, deadline, signature]);
 
-    onStep("Linking the agent to your PixelProof scanner");
-    await send(scannerAccount, contract, pixelProofAbi, "linkAgent", [agentId]);
+    onStep("Linking the agent to your Nadeye scanner");
+    await send(scannerAccount, contract, nadeyeAbi, "linkAgent", [agentId]);
     if (handle) {
       onStep("Saving your handle");
-      await send(scannerAccount, contract, pixelProofAbi, "setHandle", [handle.replace(/^@/, "").slice(0, 32)]);
+      await send(scannerAccount, contract, nadeyeAbi, "setHandle", [handle.replace(/^@/, "").slice(0, 32)]);
     }
     return { agentId, already: false };
   }
 
-  const setHandle = (scannerAccount, h) => send(scannerAccount, contract, pixelProofAbi, "setHandle", [h.replace(/^@/, "").slice(0, 32)]);
+  const setHandle = (scannerAccount, h) => send(scannerAccount, contract, nadeyeAbi, "setHandle", [h.replace(/^@/, "").slice(0, 32)]);
 
   return { pub, status, fundScanner, setupAgent, setHandle };
 }

@@ -23,7 +23,7 @@ export const NETWORKS = {
   },
 };
 
-export const LEADERBOARD_URL = "https://pixelproof.example/"; // set to your hosted web/ page
+export const LEADERBOARD_URL = "https://nadeye.example/"; // set to your hosted web/ page
 // Pages allowed to hand the extension a passkey-derived scanner key
 // (editable on the options page). Add your hosted site's origin.
 export const SITE_ORIGINS = ["http://localhost:8080", "http://localhost:5173"];

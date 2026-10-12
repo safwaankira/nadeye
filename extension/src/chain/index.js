@@ -1,4 +1,4 @@
-// PixelProof chain client: burner wallet, batched attestations, registry
+// Nadeye chain client: burner wallet, batched attestations, registry
 // lookups. Storage is injected ({get(keys) -> Promise<obj>, set(obj)}) so the
 // same code runs in the MV3 service worker (chrome.storage.local) and in Node
 // tests against a local anvil node.
@@ -7,7 +7,7 @@
 
 import { createPublicClient, createWalletClient, http, formatEther, isAddress, zeroAddress } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
-import { pixelProofAbi } from "./abi.js";
+import { nadeyeAbi } from "./abi.js";
 import { parseAbi } from "viem";
 
 const reputationAbi = parseAbi([
@@ -43,7 +43,7 @@ export function createChain({ store, network = "testnet", override = null }) {
   /** registry lookup for many pHash keys in one eth_call */
   async function lookup(keys) {
     if (!configured() || keys.length === 0) return {};
-    const rows = await pub.readContract({ address: contract, abi: pixelProofAbi, functionName: "getImages", args: [keys] });
+    const rows = await pub.readContract({ address: contract, abi: nadeyeAbi, functionName: "getImages", args: [keys] });
     const out = {};
     rows.forEach((r, i) => {
       out[keys[i]] = { reports: r.reports, aiVotes: r.aiVotes, meanScore: r.meanScore / 10000 };
@@ -85,10 +85,10 @@ export function createChain({ store, network = "testnet", override = null }) {
     const batch = queue.slice(0, MAX_BATCH);
     const args = [batch.map((b) => b.k), batch.map((b) => b.s), modelVersion & 0xff];
     const { request } = await pub.simulateContract({
-      account: acct, address: contract, abi: pixelProofAbi, functionName: "attestBatch", args,
+      account: acct, address: contract, abi: nadeyeAbi, functionName: "attestBatch", args,
     });
     const est = await pub.estimateContractGas({
-      account: acct, address: contract, abi: pixelProofAbi, functionName: "attestBatch", args,
+      account: acct, address: contract, abi: nadeyeAbi, functionName: "attestBatch", args,
     });
     const wallet = createWalletClient({ account: acct, chain: net.chain, transport });
     const hash = await wallet.writeContract({ ...request, gas: (est * BigInt(Math.round(GAS_BUFFER * 100))) / 100n });
@@ -117,7 +117,7 @@ export function createChain({ store, network = "testnet", override = null }) {
       const [bal, me] = await Promise.all([
         pub.getBalance({ address: acct.address }),
         configured()
-          ? pub.readContract({ address: contract, abi: pixelProofAbi, functionName: "getScanner", args: [acct.address] })
+          ? pub.readContract({ address: contract, abi: nadeyeAbi, functionName: "getScanner", args: [acct.address] })
           : null,
       ]);
       base.balance = formatEther(bal);
@@ -132,7 +132,7 @@ export function createChain({ store, network = "testnet", override = null }) {
           try {
             const [count, value, decimals] = await pub.readContract({
               address: net.reputation, abi: reputationAbi, functionName: "getSummary",
-              args: [me.agentId, [contract], "pixelproof", "consensus"],
+              args: [me.agentId, [contract], "nadeye", "consensus"],
             });
             base.me.reputation = { count: Number(count), agreement: count ? Number(value) / 10 ** decimals : null };
           } catch {}
@@ -148,9 +148,9 @@ export function createChain({ store, network = "testnet", override = null }) {
     const acct = await account();
     const wallet = createWalletClient({ account: acct, chain: net.chain, transport });
     const args = [String(handle).replace(/^@/, "").slice(0, 32)];
-    const est = await pub.estimateContractGas({ account: acct, address: contract, abi: pixelProofAbi, functionName: "setHandle", args });
+    const est = await pub.estimateContractGas({ account: acct, address: contract, abi: nadeyeAbi, functionName: "setHandle", args });
     const hash = await wallet.writeContract({
-      address: contract, abi: pixelProofAbi, functionName: "setHandle", args,
+      address: contract, abi: nadeyeAbi, functionName: "setHandle", args,
       gas: (est * BigInt(Math.round(GAS_BUFFER * 100))) / 100n,
     });
     await pub.waitForTransactionReceipt({ hash, timeout: 30_000 });

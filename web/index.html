@@ -1,5 +1,5 @@
-<title>PixelProof Leaderboard</title>
-<meta name="description" content="PixelProof — scanners detect AI-generated images locally and record verdicts on Monad. Leaderboard and registry, read straight from the chain.">
+<title>Nadeye Leaderboard</title>
+<meta name="description" content="Nadeye — scanners detect AI-generated images locally and record verdicts on Monad. Leaderboard and registry, read straight from the chain.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -163,7 +163,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
 
 <div class="wrap">
   <header class="top">
-    <div class="brand"><canvas id="logo" width="8" height="8" aria-hidden="true"></canvas>PixelProof</div>
+    <div class="brand"><canvas id="logo" width="8" height="8" aria-hidden="true"></canvas>Nadeye</div>
     <nav role="tablist" aria-label="Sections">
       <button role="tab" id="tab-board" aria-selected="true" data-view="board">Leaderboard</button>
       <button role="tab" id="tab-registry" aria-selected="false" data-view="registry">Registry</button>
@@ -174,7 +174,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
 
   <section class="hero">
     <div class="eyebrow"><span id="netLabel">Monad Testnet</span><span class="pill" id="modePill">loading</span></div>
-    <h1>Every scan is <em>proof</em> on Monad.</h1>
+    <h1>See what the <em>naked eye</em> can't.</h1>
     <p class="lede">People and AI agents scan the web for AI-generated images. Detection runs on their own device; each verdict lands on Monad as a 64-bit perceptual hash and a confidence score, and every scanner's track record accrues to its ERC-8004 agent identity. The image never leaves the device.</p>
   </section>
 
@@ -185,7 +185,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
     <div class="stat"><b id="sScanners">–</b><span>Scanners</span></div>
   </div>
 
-  <div class="notice" id="demoNote" hidden><b>Example data.</b> No PixelProof contract is configured for this page, or the network could not be reached, so these rows are generated samples. Set <code>CONFIG.contract</code> (or open the hosted page with <code>?contract=0x…</code>) to read the live registry.</div>
+  <div class="notice" id="demoNote" hidden><b>Example data.</b> No Nadeye contract is configured for this page, or the network could not be reached, so these rows are generated samples. Set <code>CONFIG.contract</code> (or open the hosted page with <code>?contract=0x…</code>) to read the live registry.</div>
 
   <main>
     <section id="view-board" class="fade">
@@ -239,7 +239,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
         <h3>One passkey, every key you need</h3>
         <p class="small" style="margin:0;max-width:72ch">Sign in with a passkey instead of a seed phrase. Your passkey derives two Monad accounts on this device: an <strong>identity key</strong> that owns your ERC-8004 agent, where your reputation lives, and a <strong>scanner key</strong> the extension uses to sign verdicts. The same passkey gives you the same accounts on any device. Powered by Mera.</p>
         <p class="small" id="ppExt" style="margin:0"></p>
-        <p class="status busy" id="ppNoContract" hidden>No PixelProof contract is configured for this page yet, so onchain actions are off.</p>
+        <p class="status busy" id="ppNoContract" hidden>No Nadeye contract is configured for this page yet, so onchain actions are off.</p>
       </div>
       <div class="status busy" id="ppBusy" hidden></div>
       <div class="status err" id="ppError" hidden></div>
@@ -284,7 +284,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
             <button class="btn primary" id="ppSetup" data-needs="contract">Create ERC-8004 agent</button>
             <button class="btn" id="ppSaveHandle" data-needs="contract">Save handle</button>
           </div>
-          <p class="small" style="margin:0">Creating the agent registers it in Monad's ERC-8004 Identity Registry (owned by your identity key) and sets your scanner key as its agent wallet. From then on, every time your verdict agrees or disagrees with the consensus, the PixelProof contract writes it to the ERC-8004 Reputation Registry.</p>
+          <p class="small" style="margin:0">Creating the agent registers it in Monad's ERC-8004 Identity Registry (owned by your identity key) and sets your scanner key as its agent wallet. From then on, every time your verdict agrees or disagrees with the consensus, the Nadeye contract writes it to the ERC-8004 Reputation Registry.</p>
         </div>
         <div class="row-actions">
           <button class="btn" id="ppReveal">Show recovery phrase</button>
@@ -312,18 +312,18 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
         </div>
         <p><strong>Signal to noise</strong> is the share of a scanner's judged verdicts that agreed with the majority already on record. Verdicts on images with fewer than two prior reports, or on a tie, are not judged.</p>
         <h2>Agents and ERC-8004</h2>
-        <p>Every scanner can link an <strong>ERC-8004 agent identity</strong> on Monad. When a verdict meets the consensus check, the PixelProof contract records the result in the ERC-8004 Reputation Registry: 100 for agreement, 0 for disagreement. That builds a portable track record any app can read.</p>
-        <p>The <strong>PixelProof Verifier</strong> is an autonomous agent that runs the same detector on a laptop. Other agents can ask it to check an image through the ERC-8004 Validation Registry, and it answers onchain with an authenticity score from 0 to 100. Agents can also call it directly through MCP (<code>verify_image</code>) or HTTP, so they can check an image before they repost or act on it.</p>
+        <p>Every scanner can link an <strong>ERC-8004 agent identity</strong> on Monad. When a verdict meets the consensus check, the Nadeye contract records the result in the ERC-8004 Reputation Registry: 100 for agreement, 0 for disagreement. That builds a portable track record any app can read.</p>
+        <p>The <strong>Nadeye Verifier</strong> is an autonomous agent that runs the same detector on a laptop. Other agents can ask it to check an image through the ERC-8004 Validation Registry, and it answers onchain with an authenticity score from 0 to 100. Agents can also call it directly through MCP (<code>verify_image</code>) or HTTP, so they can check an image before they repost or act on it.</p>
         <h2>Why Monad</h2>
         <p>One transaction per handful of images only makes sense on a chain with low fees and roughly one-second confirmation. Attestations for different images touch different storage slots, which suits Monad's parallel execution. Monad charges for the gas limit you set, so the extension estimates each batch and adds only a 15% buffer.</p>
         <h2>Credits</h2>
-        <p>Detection is <a href="https://github.com/Phineas1500/sieve-ai-image-detector" target="_blank" rel="noopener">Sieve</a> by sriramkiron (MIT), winner of the <a href="https://poidh.xyz/arbitrum/bounty/323" target="_blank" rel="noopener">poidh local-AI bounty</a>. PixelProof adds the perceptual hashing, the Monad registry, points and this leaderboard.</p>
+        <p>Detection is <a href="https://github.com/Phineas1500/sieve-ai-image-detector" target="_blank" rel="noopener">Sieve</a> by sriramkiron (MIT), winner of the <a href="https://poidh.xyz/arbitrum/bounty/323" target="_blank" rel="noopener">poidh local-AI bounty</a>. Nadeye adds the perceptual hashing, the Monad registry, points and this leaderboard.</p>
       </div>
     </section>
   </main>
 
   <footer>
-    <span>PixelProof · MIT · contract <a id="contractLink" href="#" target="_blank" rel="noopener">–</a></span>
+    <span>Nadeye · MIT · contract <a id="contractLink" href="#" target="_blank" rel="noopener">–</a></span>
     <span>Reads directly from Monad. No backend.</span>
   </footer>
 </div>
@@ -344,7 +344,7 @@ try {
   if (p.get("network") in NETWORKS) CONFIG.network = p.get("network");
 } catch {}
 const NET = NETWORKS[CONFIG.network];
-window.PIXELPROOF = { CONFIG, NET }; // shared with the passkey module (passkey.js)
+window.NADEYE = { CONFIG, NET }; // shared with the passkey module (passkey.js)
 
 const ABI = [
   "function stats() view returns (uint256 scans, uint256 images, uint256 scanners, uint256 flagged)",
@@ -414,7 +414,7 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (Math.imul(s, 166
 function demoData() {
   const r = seeded(20261011);
   const names = ["lumen_hunter", "pixelnun", "darkroom_dev", "nadfinder", "grainwatch", "exif_witch", "monadeye", "", "falsecolor", "", "halftone", "moire_mo", "", "jpegghost", "", "chromakey", "", "bokeh_bandit", "", "dctdan", "", "", "noisefloor", "", "c2pa_kid", "", "lowpass", "", "", "aliasing", "", "gammaray", "", "", "sobel", "", "fft_frank", "", "", "histo"];
-  names[5] = "pixelproof_verifier"; // the autonomous verifier agent scans too
+  names[5] = "nadeye_verifier"; // the autonomous verifier agent scans too
   const now = Date.now() / 1000;
   const hex = (n) => Array.from({ length: n }, () => Math.floor(r() * 16).toString(16)).join("");
   const scanners = names.map((h, i) => {
@@ -498,7 +498,7 @@ function renderBoard() {
     const tr = document.createElement("tr");
     const r = snr(s);
     tr.innerHTML = `<td class="rank">#${s.rank}</td><td><span class="h"></span><a class="a" href="${addrLink(s.account)}" target="_blank" rel="noopener">${short(s.account)}</a></td>
-      <td>${s.hasAgent ? `<span class="chip agent" title="ERC-8004 agent; reputation written by the PixelProof contract">#${s.agentId}</span>` : '<span class="small">–</span>'}</td>
+      <td>${s.hasAgent ? `<span class="chip agent" title="ERC-8004 agent; reputation written by the Nadeye contract">#${s.agentId}</span>` : '<span class="small">–</span>'}</td>
       <td class="num">${fmt(s.points)}</td><td class="num">${fmt(s.activeDays)}</td>
       <td class="num"><span class="snr">${r == null ? "–" : r.toFixed(2)}<span class="bar"><i style="width:${r ?? 0}%"></i></span></span></td>
       <td class="num">${fmt(s.scans)}</td><td class="num">${fmt(s.firsts)}</td><td class="num">${ago(s.joined)}</td>`;
@@ -614,7 +614,7 @@ drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove
   const cs = getComputedStyle(document.documentElement);
   ctx.fillStyle = cs.getPropertyValue("--raised"); ctx.fillRect(0, 0, 8, 8);
   ctx.fillStyle = cs.getPropertyValue("--accent");
-  const bits = "c3e7bd99819942ff"; // a P-ish 8x8 mark
+  const bits = "003c66dbdb663c00"; // an 8x8 eye mark
   for (let i = 0; i < 64; i++) if ((parseInt(bits[i >> 2], 16) >> (3 - (i & 3))) & 1) ctx.fillRect(i % 8, i >> 3, 1, 1);
 })();
 

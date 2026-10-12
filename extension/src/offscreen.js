@@ -242,7 +242,7 @@ async function infer(url) {
   // generation short-circuits inference (score can only go up, never down).
   const meta = sniffMetadata(new Uint8Array(await blob.arrayBuffer()));
   if (meta.hit) {
-    // PixelProof: still hash the pixels so the verdict can be attested
+    // Nadeye: still hash the pixels so the verdict can be attested
     let ph = null;
     try { ph = pHashDetail(await decodeRGBA(blob)); } catch {}
     return { ok: true, score: 0.99, ms: Math.round(performance.now() - t0), ep: "metadata", reason: meta.reason,
@@ -252,7 +252,7 @@ async function infer(url) {
   const img = await decodeRGBA(blob);
   {
     if (img.width < 32 || img.height < 32) throw new Error("too-small");
-    const ph = pHashDetail(img); // PixelProof registry key (64-bit perceptual hash)
+    const ph = pHashDetail(img); // Nadeye registry key (64-bit perceptual hash)
     const phash = ph.hex, phashNear = lookupCandidates(ph);
     const degen = degenerateReason(img);
     if (degen) throw new Error(`degenerate-${degen}`);

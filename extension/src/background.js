@@ -1,6 +1,6 @@
 // Service worker: orchestrates analysis requests from content scripts.
 // Inference itself runs in the offscreen document (WebGPU/WASM live there).
-// PixelProof adds the Monad layer: community-verdict lookups and (opt-in)
+// Nadeye adds the Monad layer: community-verdict lookups and (opt-in)
 // batched attestations of local verdicts, keyed by perceptual hash.
 
 import { createChain, AUTO_FLUSH_AT, SITE_ORIGINS, NETWORKS } from "./chain.bundle.js";
@@ -107,7 +107,7 @@ async function analyze(url) {
     if (resp && resp.ok) {
       const result = { score: resp.score, ms: resp.ms, tta: !!resp.tta, degraded: !!resp.degraded, quality: resp.quality || null, phash: resp.phash || null, phashNear: resp.phashNear || null };
       cachePut(url, result);
-      contribute(result); // PixelProof: queue for onchain attestation (opt-in)
+      contribute(result); // Nadeye: queue for onchain attestation (opt-in)
       return result;
     }
     return { error: resp ? resp.error : "no response" };
@@ -116,7 +116,7 @@ async function analyze(url) {
   return p;
 }
 
-// ------------------------------------------------------------- PixelProof
+// ------------------------------------------------------------- Nadeye
 
 const PP_DEFAULTS = { ppContribute: false, ppNetwork: "mainnet" };
 let ppSettings = { ...PP_DEFAULTS };
@@ -179,7 +179,7 @@ async function contribute(result) {
     const n = await c.enqueue([{ key: "0x" + result.phash.padStart(64, "0"), score: result.score }]);
     if (n >= AUTO_FLUSH_AT) flushQueue();
   } catch (e) {
-    console.warn("PixelProof enqueue failed", e);
+    console.warn("Nadeye enqueue failed", e);
   }
 }
 
@@ -187,10 +187,10 @@ async function flushQueue() {
   try {
     const c = await chain();
     const r = await c.flush(await modelVersionByte());
-    if (r.sent) console.info(`PixelProof: attested ${r.sent} verdicts (${r.hash})`);
+    if (r.sent) console.info(`Nadeye: attested ${r.sent} verdicts (${r.hash})`);
     return r;
   } catch (e) {
-    console.warn("PixelProof flush failed", e);
+    console.warn("Nadeye flush failed", e);
     return { sent: 0, reason: String(e?.shortMessage || e?.message || e) };
   }
 }
@@ -231,7 +231,7 @@ async function runLookups() {
     for (let i = 0; i < all.length; i += 400) Object.assign(res, await c.lookup(all.slice(i, i + 400)));
   } catch (e) {
     ok = false;
-    console.warn("PixelProof lookup failed", e);
+    console.warn("Nadeye lookup failed", e);
   }
   for (const [phash, { keys, waiters }] of batch) {
     let reports = 0, aiVotes = 0, sum = 0;

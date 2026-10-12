@@ -1,2 +1,2 @@
 Vendored from https://github.com/erc-8004/erc-8004-contracts (MIT) for local tests only.
-The live registries on Monad are used in production (see src/PixelProof.sol / README).
+The live registries on Monad are used in production (see src/Nadeye.sol / README).

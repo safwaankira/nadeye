@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createPublicClient, createWalletClient, http, parseEther, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-const ARTIFACT = new URL("../../contracts/out/PixelProof.sol/PixelProof.json", import.meta.url);
+const ARTIFACT = new URL("../../contracts/out/Nadeye.sol/Nadeye.json", import.meta.url);
 const BUNDLE = new URL("../src/chain.bundle.js", import.meta.url);
 const hasAnvil = spawnSync("anvil", ["--version"]).status === 0;
 const skip = !hasAnvil || !existsSync(ARTIFACT) || !existsSync(BUNDLE) ? "anvil, compiled contract or bundle missing" : false;

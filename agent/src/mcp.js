@@ -11,14 +11,14 @@ const asText = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, n
 const asError = (e) => ({ isError: true, content: [{ type: "text", text: String(e?.message || e) }] });
 
 export function buildMcpServer({ verifier, chain, allowFiles }) {
-  const server = new McpServer({ name: "pixelproof", version: "1.0.0" });
+  const server = new McpServer({ name: "nadeye", version: "1.0.0" });
 
   server.registerTool("verify_image", {
     title: "Check if an image is AI-generated",
     description:
-      "Runs PixelProof's local AI-image detector on an image URL (https, ipfs:// or data:) and merges the onchain community verdict " +
+      "Runs Nadeye's local AI-image detector on an image URL (https, ipfs:// or data:) and merges the onchain community verdict " +
       "recorded on Monad for the same picture. Returns verdict (ai | real | unsure), aiConfidence 0-1 (flagged at 0.65), " +
-      "the image's perceptual hash and how many PixelProof scanners flagged it.",
+      "the image's perceptual hash and how many Nadeye scanners flagged it.",
     inputSchema: { url: z.string().describe("Image URL: https://…, ipfs://… or data:image/…") },
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ url }) => {
@@ -37,8 +37,8 @@ export function buildMcpServer({ verifier, chain, allowFiles }) {
   }
 
   server.registerTool("lookup_phash", {
-    title: "Look up a perceptual hash in the PixelProof registry",
-    description: "Returns the community verdict stored on Monad for a 16-hex-character PixelProof pHash, without downloading any image.",
+    title: "Look up a perceptual hash in the Nadeye registry",
+    description: "Returns the community verdict stored on Monad for a 16-hex-character Nadeye pHash, without downloading any image.",
     inputSchema: { pHash: z.string().regex(/^[0-9a-fA-F]{16}$/).describe("16 hex characters") },
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ pHash }) => {

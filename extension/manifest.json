@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "PixelProof \u2014 Local AI Image Detector on Monad",
+  "name": "Nadeye \u2014 Local AI Image Detector on Monad",
   "version": "1.0.0",
   "description": "Detects AI-generated images on-device (WebGPU/WASM) and shares verdicts on Monad by perceptual hash. Images never leave your browser.",
   "minimum_chrome_version": "124",
@@ -41,7 +41,7 @@
   },
   "action": {
     "default_popup": "src/popup.html",
-    "default_title": "PixelProof",
+    "default_title": "Nadeye",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
