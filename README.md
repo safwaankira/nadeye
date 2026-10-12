@@ -36,6 +36,8 @@ Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**. Th
 | `extension/` | Chrome MV3 extension. Detection is Sieve. Nadeye adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
 | `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
 | `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera). It has no backend and reads the chain directly. |
+| `brand/` | The Nadeye eye mark (SVG and PNG): `nadeye-avatar` on night, with the verdict-colour pupil, and `nadeye-mark` on a transparent ground. |
+| `ecosystem/` | Nadeye's entry for Monad's protocol registry and the steps to submit it. |
 
 ## Credits
 
@@ -44,7 +46,7 @@ The detection model and the extension it ships in are **[Sieve](https://github.c
 Other third-party code:
 - [ERC-8004 reference registries](https://github.com/erc-8004/erc-8004-contracts) (MIT). These are vendored only for local tests; production uses the live Monad deployments.
 - [Mera](https://mera.category.xyz/) by Category Labs (MIT/Apache-2.0).
-- viem, ONNX Runtime, OpenZeppelin and the MCP SDK.
+- viem, ethers, ONNX Runtime, OpenZeppelin, undici and the MCP SDK.
 
 Everything else in this repo was written during the Metropolis build window (see the git history and `NOTICE`).
 
@@ -53,6 +55,16 @@ Everything else in this repo was written during the Metropolis build window (see
 ## Mainnet runbook (Mac, about an hour)
 
 You need Node ≥ 20, [Foundry](https://book.getfoundry.sh/getting-started/installation), Chrome, and about **3 MON on Monad mainnet**. That covers deploying, the agent's gas and your passkey identity.
+
+### 0. Publish the code with its history
+
+Judges check what was built during the window, and the commit history is the evidence, so push the repository itself rather than an archive:
+
+```bash
+git clone nadeye.bundle nadeye && cd nadeye
+git remote set-url origin https://github.com/safwaanDK/nadeye.git   # an empty public repo you created
+git push -u origin main
+```
 
 ### 1. Wallets
 

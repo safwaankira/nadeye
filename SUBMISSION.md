@@ -6,6 +6,28 @@
 
 ---
 
+## Track fit
+
+Track 4 lists three example ideas. Nadeye builds on all three:
+
+| Track 4 example idea | In Nadeye |
+| --- | --- |
+| "Provenance for generated media that survives re-encoding" | The core: each verdict is keyed by a 64-bit DCT perceptual hash, and lookups also try the 36 nearest variants, so resized and recompressed copies match (94% vs 59% for an exact hash in our tests). |
+| "Agent identity and reputation under ERC-8004" | Scanners link ERC-8004 agents. Consensus results are written to the Reputation Registry, and the verifier answers the Validation Registry onchain. |
+| "Passkey-native accounts using P256 and WebAuthn, with no seed phrase" | Sign-in is a passkey through Mera, with no seed phrase. Mera turns the passkey's PRF output into Monad keys rather than verifying P256 signatures onchain. |
+
+## Submission checklist
+
+- [ ] **Code with history.** Push the repo with its git history (clone `nadeye.bundle`, then push), so judges can see what was built in the window: 15 commits, all between 11 and 12 Oct. Make it public; the platform rules reportedly also require it to be readable by metropolis@hackathon.monad.xyz.
+- [ ] **Working product.** Contract deployed and verified on Monad mainnet, site hosted, verifier agent running (README, "Mainnet runbook").
+- [ ] **Demo video, 3 minutes or less.** The script below runs 2:30.
+- [ ] **Pitch video, 2 minutes or less.** The script is below.
+- [ ] **Logo or graphic, 3 MB or less.** `brand/nadeye-avatar.png` (1024 × 1024, 12 KB); `brand/nadeye-mark.png` has a transparent background.
+- [ ] **Portal.** Create the team and project, choose Track 4, and tag both Mera bounties.
+- [ ] **Links.** Fill in the Links section below.
+
+The video, graphic and readable-by-email items come from another team's README citing the platform rules. Confirm them on the application platform.
+
 ## Project name
 Nadeye (say "nad-eye": naked eye + nads)
 
@@ -81,6 +103,22 @@ The detector model and base extension are Sieve by Sriram Kiron (MIT, open sourc
 | 1:35–2:05 | **Agents.** In Claude Desktop, ask "is this image AI-generated? <url>" and it calls `verify_image`. In a terminal, run `request <url>`; the validator log answers; show the `ValidationResponse` event on the explorer. |
 | 2:05–2:25 | **Reputation.** Leaderboard: agent chips, points, signal-to-noise. Read the ERC-8004 `getSummary` for your agent. |
 | 2:25–2:30 | **Close.** "Nadeye: see what the naked eye can't. Images never leave your device; trust lives on Monad." |
+
+## Pitch video (about 1:50, 223 words spoken)
+
+Talk to camera, or over the site and the cover. Say the name "nad-eye" once, early.
+
+> **Problem (0:00–0:20).** AI images are now part of everyday browsing. People can't reliably tell them apart, and AI agents repost and act on images without checking at all. "Is this real?" has no shared, checkable answer.
+>
+> **What Nadeye is (0:20–0:45).** Nadeye, said "nad-eye", is a browser extension and a verifier agent. The extension runs an AI-image detector on your own device, so the picture is never uploaded. A confident verdict goes to Monad as a 64-bit perceptual hash, a fingerprint that still matches after the image is resized or recompressed. The next person to meet that image, on any site, sees how many scanners flagged it.
+>
+> **Agents (0:45–1:10).** Agents use the same detector through MCP, HTTP or ERC-8004's Validation Registry, and get an answer onchain. Every scanner, human or agent, can link an ERC-8004 identity. The Nadeye contract writes each consensus result to the Reputation Registry, so a detector's track record is public and portable.
+>
+> **No seed phrase (1:10–1:25).** You sign in with a passkey through Mera. One passkey gives you an identity key that owns your agent and a scanner key the extension uses, and recreates both on any device.
+>
+> **Why Monad (1:25–1:40).** A browsing session produces many small attestations. Monad's fees and fast confirmation make one batch a minute practical, and writes for different images run in parallel.
+>
+> **Close (1:40–1:50).** Nadeye: see what the naked eye can't. Your images stay on your device, and trust lives on Monad.
 
 ## Launch post (X)
 
