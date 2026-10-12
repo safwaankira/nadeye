@@ -143,6 +143,12 @@ contract Handler is Test {
             nadeye.attest(hash, score, 1);
             return;
         }
+        if (score >= nadeye.REAL_CEILING() && score < nadeye.AI_THRESHOLD()) {
+            vm.prank(who);
+            vm.expectRevert(Nadeye.UnsureScore.selector);
+            nadeye.attest(hash, score, 1);
+            return;
+        }
         uint256 repBefore = rep.feedbackCount();
         (bool judged,) = _modelAttest(who, hash, score);
         vm.prank(who);
@@ -166,6 +172,7 @@ contract Handler is Test {
         uint256 repBefore = rep.feedbackCount();
         for (uint256 i; i < n; ++i) {
             if (gAttested[hs[i]][who]) continue;
+            if (ss[i] >= nadeye.REAL_CEILING() && ss[i] < nadeye.AI_THRESHOLD()) continue;
             (bool judged,) = _modelAttest(who, hs[i], ss[i]);
             if (judged) ++judgedCount;
             ++expected;

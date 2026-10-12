@@ -18,7 +18,7 @@ export function createVerifier({ detector, chain, cfg }) {
     return {
       source,
       verdict,                                   // "ai" | "real" | "unsure"
-      aiConfidence: +r.score.toFixed(4),         // 0..1, calibrated; flagged at >= 0.65
+      aiConfidence: +r.score.toFixed(4),         // 0..1, calibrated; flagged at >= 0.65, onchain AI vote at >= 0.80
       authenticity: Math.round((1 - r.score) * 100), // 0..100, the ERC-8004 validation response
       evidence: r.evidence,                      // "model" | "metadata" (C2PA / generator tags)
       reason: r.reason || null,

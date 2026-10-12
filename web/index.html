@@ -344,6 +344,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
           <div><span>Disagreeing with the majority</span><b>+0, counts as noise</b></div>
           <div><span>Daily cap on point-earning verdicts</span><b>300 / UTC day</b></div>
         </div>
+        <p><strong>What counts as a vote.</strong> Your badge flags an image at 65% AI confidence. An onchain vote is public and permanent, so it needs more: 80% or above is an AI vote, below 50% is a real vote, and anything in between stays on your device as unsure. On Sieve's benchmark, flags between 65% and 80% are wrong about 1 time in 9; at 80% and above, 1 or 2 times in 100.</p>
         <p><strong>Signal to noise</strong> is the share of a scanner's judged verdicts that agreed with the majority already on record. Verdicts on images with fewer than two prior reports, or on a tie, are not judged.</p>
         <h2>Agents and ERC-8004</h2>
         <p>Every scanner can link an <strong>ERC-8004 agent identity</strong> on Monad. When a verdict meets the consensus check, the Nadeye contract records the result in the ERC-8004 Reputation Registry: 100 for agreement, 0 for disagreement. That builds a portable track record any app can read.</p>

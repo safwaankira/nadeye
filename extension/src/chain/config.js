@@ -28,7 +28,13 @@ export const LEADERBOARD_URL = "https://nadeye.example/"; // set to your hosted 
 // (editable on the options page). Add your hosted site's origin.
 export const SITE_ORIGINS = ["http://localhost:8080", "http://localhost:5173"];
 
-export const AI_THRESHOLD_BPS = 6500;
+// Onchain vote bands, mirroring Nadeye.sol. The badge still flags at 65%, but
+// a public, permanent vote uses only the confident bands: >= 80% is an AI
+// vote, < 50% a real vote. Scores in between stay local as "unsure" and are
+// never sent (the contract would skip them in a batch anyway).
+export const AI_THRESHOLD_BPS = 8000;
+export const REAL_CEILING_BPS = 5000;
+export const isRecordable = (bps) => bps < REAL_CEILING_BPS || bps >= AI_THRESHOLD_BPS;
 // The contract accepts 100, but verdicts that get a consensus judgement also
 // write ERC-8004 reputation feedback, so keep batches well inside the
 // per-transaction gas limit.

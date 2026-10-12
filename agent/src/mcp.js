@@ -17,7 +17,7 @@ export function buildMcpServer({ verifier, chain, allowFiles }) {
     title: "Check if an image is AI-generated",
     description:
       "Runs Nadeye's local AI-image detector on an image URL (https, ipfs:// or data:) and merges the onchain community verdict " +
-      "recorded on Monad for the same picture. Returns verdict (ai | real | unsure), aiConfidence 0-1 (flagged at 0.65), " +
+      "recorded on Monad for the same picture. Returns verdict (ai | real | unsure), aiConfidence 0-1 (flagged at 0.65; recorded onchain as an AI vote at 0.80+, a real vote below 0.50), " +
       "the image's perceptual hash and how many Nadeye scanners flagged it.",
     inputSchema: { url: z.string().describe("Image URL: https://…, ipfs://… or data:image/…") },
     annotations: { readOnlyHint: true, openWorldHint: true },

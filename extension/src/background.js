@@ -172,7 +172,8 @@ async function contribute(result) {
   try {
     await ppReady;
     // only evidence-backed verdicts go onchain: degraded inputs show as
-    // "unsure" locally and are not attested
+    // "unsure" locally and are not attested; neither are scores in the
+    // 50-80% band (see chain/config.js)
     if (!ppSettings.ppContribute || !result.phash || result.degraded) return;
     const c = await chain();
     if (!c.configured()) return;

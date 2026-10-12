@@ -28,6 +28,7 @@ Method: the Ultrafuzz approach, run directly in Foundry. It has four steps:
 **Change.** The call now happens last (checks-effects-interactions), so any re-entry sees finished state.
 
 ### Accepted / by design
+- **Onchain vote bands.** `AI_THRESHOLD = 8000` and `REAL_CEILING = 5000`. Scores in between are rejected (`UnsureScore`) by `attest` and skipped by `attestBatch`, and the handler's ghost model mirrors both. This keeps public AI votes to the band where Sieve's benchmark error is about 1–2%, not 10–12%. The badge's 65% local threshold is unchanged.
 - **Sybil voting.** Anyone can create addresses and vote, so a cluster can steer an image's majority and with it other scanners' agreement scores. The mitigations are the daily point cap and ERC-8004 reputation: readers choose which scanners' feedback to trust. Stake-weighted consensus is future work.
 - **Signal-to-noise at write time.** Each verdict is judged against the majority at the moment it's recorded. It is not recomputed later.
 - **Slither notes.** The remaining detectors (external calls in a batch loop, an event after the call, timestamp day-bucketing, gas costs) were triaged as non-issues.
@@ -95,7 +96,7 @@ The handler drives the contract with:
 
 Batch return values and "linked controller's judged verdict reaches the registry" are asserted inline on every call.
 
-Run: `cd contracts && forge test` (32 tests). Settings are in `foundry.toml`.
+Run: `cd contracts && forge test` (34 tests). Settings are in `foundry.toml`.
 
 ## Full Ultrafuzz campaign (optional)
 

@@ -122,6 +122,19 @@ export const nadeyeAbi = [
  },
  {
   "type": "function",
+  "name": "REAL_CEILING",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint16",
+    "internalType": "uint16"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
   "name": "REPUTATION_GAS",
   "inputs": [],
   "outputs": [
@@ -885,6 +898,11 @@ export const nadeyeAbi = [
  {
   "type": "error",
   "name": "NotAgentController",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "UnsureScore",
   "inputs": []
  }
 ];

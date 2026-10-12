@@ -40,8 +40,15 @@ contract Nadeye {
 
     /// score is basis points of AI confidence (0 = surely real, 10000 = surely AI)
     uint16 public constant MAX_SCORE = 10_000;
-    /// a report is an "AI" vote at or above this score (Sieve's 65% threshold)
-    uint16 public constant AI_THRESHOLD = 6_500;
+    /// a report is an "AI" vote at or above this score. Stricter than the
+    /// extension's 65% badge threshold: on Sieve's 36k-image benchmark, flagged
+    /// scores in [0.65, 0.80) are wrong ~10-12% of the time, scores >= 0.80
+    /// only ~1-2%. An onchain vote is public and permanent, so it uses the
+    /// confident band only.
+    uint16 public constant AI_THRESHOLD = 8_000;
+    /// a report is a "real" vote below this score. Scores in
+    /// [REAL_CEILING, AI_THRESHOLD) are unsure and are not recorded.
+    uint16 public constant REAL_CEILING = 5_000;
     /// prior reports needed before agreement/disagreement is judged
     uint32 public constant QUORUM = 2;
 
@@ -113,6 +120,7 @@ contract Nadeye {
     event ReputationSkipped(address indexed scanner, uint256 indexed agentId, bytes32 pHash);
 
     error InvalidScore();
+    error UnsureScore();
     error AlreadyAttested();
     error EmptyHash();
     error BatchTooLarge();
@@ -186,6 +194,7 @@ contract Nadeye {
     // ------------------------------------------------------------ attesting
 
     /// @notice attest one verdict; reverts on a duplicate from the same scanner
+    ///         and on an unsure score (REAL_CEILING <= score < AI_THRESHOLD)
     function attest(bytes32 pHash, uint16 score, uint8 modelVersion) external {
         if (hasAttested[pHash][msg.sender]) revert AlreadyAttested();
         _attest(pHash, score, modelVersion);
@@ -193,7 +202,8 @@ contract Nadeye {
 
     /// @notice attest many verdicts in one transaction. Duplicates are skipped
     ///         rather than reverting, so one already-seen image cannot sink the
-    ///         whole batch. Returns how many were recorded.
+    ///         whole batch; unsure scores (see REAL_CEILING) are skipped the
+    ///         same way. Returns how many were recorded.
     function attestBatch(bytes32[] calldata pHashes, uint16[] calldata scores, uint8 modelVersion)
         external
         returns (uint256 recorded)
@@ -203,14 +213,20 @@ contract Nadeye {
         if (n > MAX_BATCH) revert BatchTooLarge();
         for (uint256 i; i < n; ++i) {
             if (hasAttested[pHashes[i]][msg.sender]) continue;
+            if (_unsure(scores[i])) continue; // unsure: skipped, not recorded
             _attest(pHashes[i], scores[i], modelVersion);
             ++recorded;
         }
     }
 
+    function _unsure(uint16 score) internal pure returns (bool) {
+        return score >= REAL_CEILING && score < AI_THRESHOLD;
+    }
+
     function _attest(bytes32 pHash, uint16 score, uint8 modelVersion) internal {
         if (pHash == bytes32(0)) revert EmptyHash();
         if (score > MAX_SCORE) revert InvalidScore();
+        if (_unsure(score)) revert UnsureScore();
         hasAttested[pHash][msg.sender] = true;
 
         Scanner storage s = _scanners[msg.sender];

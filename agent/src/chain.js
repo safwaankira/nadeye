@@ -2,6 +2,12 @@
 import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, keccak256, toBytes, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+// Onchain vote bands, mirroring Nadeye.sol: >= 80% is an AI vote, < 50% a
+// real vote; the contract rejects anything in between as unsure.
+export const AI_VOTE_BPS = 8000;
+export const REAL_CEILING_BPS = 5000;
+export const isRecordable = (bps) => bps < REAL_CEILING_BPS || bps >= AI_VOTE_BPS;
+
 export const nadeyeAbi = parseAbi([
   "struct ImageView { bytes32 pHash; uint32 reports; uint32 aiVotes; uint16 meanScore; address firstScanner; uint40 firstSeen; uint40 lastSeen; }",
   "struct ScannerView { address account; string handle; uint64 points; uint32 scans; uint32 firsts; uint32 signal; uint32 noise; uint32 activeDays; uint40 joined; bool hasAgent; uint256 agentId; }",
@@ -73,9 +79,11 @@ export function createChainClient(cfg) {
   /** the agent records its own verdict as a Nadeye scanner (skips duplicates) */
   async function attest(phashHex, score, modelVersion) {
     if (!cfg.contract || !wallet || !cfg.attest) return null;
+    const bps = Math.round(score * 10000);
+    if (!isRecordable(bps)) return null; // 50-80%: unsure, not an onchain vote
     const key = toKey(phashHex);
     if (await pub.readContract({ address: cfg.contract, abi: nadeyeAbi, functionName: "hasAttested", args: [key, account.address] })) return null;
-    const r = await send(cfg.contract, nadeyeAbi, "attest", [key, Math.round(score * 10000), modelVersion]);
+    const r = await send(cfg.contract, nadeyeAbi, "attest", [key, bps, modelVersion]);
     return r.transactionHash;
   }
 

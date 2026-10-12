@@ -13,7 +13,7 @@ import { parseAbi } from "viem";
 const reputationAbi = parseAbi([
   "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
 ]);
-import { NETWORKS, MAX_BATCH, AUTO_FLUSH_AT, GAS_BUFFER, LEADERBOARD_URL, SITE_ORIGINS } from "./config.js";
+import { NETWORKS, MAX_BATCH, AUTO_FLUSH_AT, GAS_BUFFER, LEADERBOARD_URL, SITE_ORIGINS, isRecordable } from "./config.js";
 
 export { NETWORKS, AUTO_FLUSH_AT, SITE_ORIGINS };
 
@@ -59,7 +59,9 @@ export function createChain({ store, network = "testnet", override = null }) {
     const inQueue = new Set(queue.map((q) => q.k));
     for (const { key, score } of items) {
       if (!key || /^0x0+$/.test(key) || seen.has(key) || inQueue.has(key)) continue;
-      queue.push({ k: key, s: Math.max(0, Math.min(10000, Math.round(score * 10000))) });
+      const s = Math.max(0, Math.min(10000, Math.round(score * 10000)));
+      if (!isRecordable(s)) continue; // unsure band: not an onchain vote
+      queue.push({ k: key, s });
       inQueue.add(key);
     }
     await store.set({ [qKey]: queue });

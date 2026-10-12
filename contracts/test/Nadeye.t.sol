@@ -42,6 +42,42 @@ contract NadeyeTest is Test {
         pp.attest(IMG, 1_000, 14);
     }
 
+    function test_unsureBandIsNotRecorded() public {
+        // boundaries: < 5000 real, [5000, 8000) unsure, >= 8000 AI
+        vm.startPrank(alice);
+        vm.expectRevert(Nadeye.UnsureScore.selector);
+        pp.attest(IMG, 5_000, 14);
+        vm.expectRevert(Nadeye.UnsureScore.selector);
+        pp.attest(IMG, 7_999, 14);
+        vm.expectRevert(Nadeye.UnsureScore.selector);
+        pp.attest(IMG, 6_500, 14); // flagged by the badge, still not an onchain vote
+        pp.attest(IMG, 8_000, 14);
+        pp.attest(IMG2, 4_999, 14);
+        vm.stopPrank();
+        Nadeye.ImageView memory a = pp.getImage(IMG);
+        Nadeye.ImageView memory b = pp.getImage(IMG2);
+        assertEq(a.aiVotes, 1);
+        assertEq(b.reports, 1);
+        assertEq(b.aiVotes, 0);
+    }
+
+    function test_batchSkipsUnsureScores() public {
+        bytes32[] memory h = new bytes32[](4);
+        uint16[] memory s = new uint16[](4);
+        h[0] = IMG; s[0] = 9_000;
+        h[1] = IMG2; s[1] = 7_000;              // unsure: skipped
+        h[2] = bytes32(uint256(3)); s[2] = 1_000;
+        h[3] = bytes32(uint256(4)); s[3] = 5_000; // unsure: skipped
+        vm.prank(alice);
+        assertEq(pp.attestBatch(h, s, 14), 2);
+        assertFalse(pp.hasAttested(IMG2, alice));
+        (uint256 scans,,,) = pp.stats();
+        assertEq(scans, 2);
+        // the skipped image can still be attested later with a confident score
+        vm.prank(alice);
+        pp.attest(IMG2, 8_800, 14);
+    }
+
     function test_rejectsBadInput() public {
         vm.expectRevert(Nadeye.InvalidScore.selector);
         pp.attest(IMG, 10_001, 14);
@@ -56,7 +92,7 @@ contract NadeyeTest is Test {
         assertEq(b.points, 10);
         assertEq(b.signal + b.noise, 0);
 
-        vm.prank(carol); pp.attest(IMG, 7_000, 14);  // majority AI, agrees
+        vm.prank(carol); pp.attest(IMG, 8_500, 14);  // majority AI, agrees
         Nadeye.ScannerView memory c = pp.getScanner(carol);
         assertEq(c.signal, 1);
         assertEq(c.points, 25);
@@ -69,7 +105,7 @@ contract NadeyeTest is Test {
         Nadeye.ImageView memory v = pp.getImage(IMG);
         assertEq(v.reports, 4);
         assertEq(v.aiVotes, 3);
-        assertEq(v.meanScore, (9_000 + 8_000 + 7_000 + 1_000) / 4);
+        assertEq(v.meanScore, (9_000 + 8_000 + 8_500 + 1_000) / 4);
     }
 
     function test_tieIsNotJudged() public {
@@ -165,8 +201,9 @@ contract NadeyeTest is Test {
     }
 
     function testFuzz_meanStaysInRange(uint16 a, uint16 b) public {
-        a = uint16(bound(a, 0, 10_000));
-        b = uint16(bound(b, 0, 10_000));
+        // recordable scores only: [0, 5000) and [8000, 10000]
+        a = uint16(bound(a, 0, 7_000)); if (a >= 5_000) a += 3_000;
+        b = uint16(bound(b, 0, 7_000)); if (b >= 5_000) b += 3_000;
         vm.prank(alice); pp.attest(IMG, a, 14);
         vm.prank(bob); pp.attest(IMG, b, 14);
         Nadeye.ImageView memory v = pp.getImage(IMG);

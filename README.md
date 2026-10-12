@@ -32,7 +32,7 @@ Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**. Th
 
 | Path | What it is |
 | --- | --- |
-| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. 21 Foundry tests, including tests against the real ERC-8004 reference registries. |
+| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. 34 Foundry tests, including tests against the real ERC-8004 reference registries. |
 | `extension/` | Chrome MV3 extension. Detection is Sieve. Nadeye adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
 | `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
 | `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera). It has no backend and reads the chain directly. |
@@ -67,7 +67,7 @@ Send about 1 MON to the agent address. Keep the deployer separate. Never paste a
 
 ```bash
 cd contracts
-forge build && forge test                    # 21 passing
+forge build && forge test                    # 34 passing
 forge script script/Deploy.s.sol --rpc-url monad_mainnet --account deployer --broadcast
 ```
 
@@ -155,6 +155,19 @@ Each image gets a 64-bit DCT pHash: luma, area-averaged to 32×32, a 2-D DCT, th
 
 Lookups query the hash plus every 1- and 2-bit flip among its 8 least-stable bits. That is 37 keys in one `eth_call`. On re-encoded copies (resize, JPEG q40–85, WebP q50), this found 94% of matches, versus 59% for an exact-hash lookup.
 
+### What counts as a vote
+
+The badge flags an image at 65% AI confidence, Sieve's calibrated threshold. An onchain vote is public and permanent, so it needs more:
+
+| Score | Badge | Onchain |
+| --- | --- | --- |
+| 80% and above | ◆ AI | AI vote |
+| 65–80% | ◆ AI | not recorded |
+| 50–65% | ▲ Unsure | not recorded |
+| below 50% | ● Real | real vote |
+
+On Sieve's 36,355-image benchmark, flagged scores between 65% and 80% are wrong about 10–12% of the time; scores of 80% and above, about 1–2%. The contract enforces the bands (`AI_THRESHOLD = 8000`, `REAL_CEILING = 5000`): a single `attest` in between reverts with `UnsureScore`, and a batch skips it. The extension and the agent never send those scores.
+
 ### Points and signal-to-noise
 
 | Event | Points |
@@ -227,7 +240,7 @@ The contract passed a stateful invariant fuzz campaign: 6 invariants, each held 
 ## Tests
 
 ```bash
-cd contracts && forge test     # 31 incl. 6 invariants (30,720 calls each) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
+cd contracts && forge test     # 34 incl. 6 invariants (30,720 calls each) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
 cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF guard
 cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner

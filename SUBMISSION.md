@@ -18,7 +18,7 @@ AI-generated images are now part of everyday browsing. People can't easily tell 
 
 Nadeye makes "is this image AI-generated?" a question with a public, verifiable answer.
 
-**People** install the Nadeye Chrome extension. It runs a ViT detector entirely in the browser on WebGPU, so images are never uploaded. Users sign in with a passkey instead of a seed phrase. When they opt in, each verdict goes to Monad as a 64-bit perceptual hash plus a confidence score. Anyone who later meets the same picture on any site, even resized or recompressed, sees how many scanners flagged it, right on the image.
+**People** install the Nadeye Chrome extension. It runs a ViT detector entirely in the browser on WebGPU, so images are never uploaded. Users sign in with a passkey instead of a seed phrase. When they opt in, each verdict goes to Monad as a 64-bit perceptual hash plus a confidence score. Only confident verdicts become votes: 80% and above counts as AI, below 50% as real, and the uncertain middle never leaves the device. Anyone who later meets the same picture on any site, even resized or recompressed, sees how many scanners flagged it, right on the image.
 
 **Agents** call the Nadeye Verifier. It runs the same model on a laptop and offers three ways in:
 - an **MCP tool** (`verify_image`), for agents to check an image before they post or act on it;
@@ -55,7 +55,7 @@ The detector model and base extension are **Sieve** by Sriram Kiron (MIT, open s
 
 ## Verification (for judges)
 
-- **Contract:** 31 Foundry tests: unit tests, 7 against the real ERC-8004 reference registries, and a stateful invariant campaign (30,720 calls per invariant) with a hostile registry. The campaign found and fixed one Medium DoS issue (see SECURITY.md).
+- **Contract:** 34 Foundry tests: unit tests, 7 against the real ERC-8004 reference registries, and a stateful invariant campaign (30,720 calls per invariant) with a hostile registry. The campaign found and fixed one Medium DoS issue (see SECURITY.md).
 - **Agent end-to-end on a local chain:** register → validation request → onchain answer → attestation → HTTP and MCP.
 - **Extension:** the service worker is tested under a mocked Chrome API.
 - **Passkey flow:** tested with real Mera signing sessions.
