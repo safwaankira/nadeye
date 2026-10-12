@@ -3,7 +3,6 @@ Nadeye includes and builds on the following MIT-licensed work:
 Sieve — Local AI Image Detector for Chrome
   https://github.com/Phineas1500/sieve-ai-image-detector
   by Sriram Kiron (sriramkiron, GitHub: Phineas1500)
-  Winning claim of poidh bounty #323 (https://poidh.xyz/arbitrum/bounty/323)
   License: MIT (see LICENSE.sieve)
   Used: the extension under extension/ (detection model download and
   inference, content script, offscreen document, setup/options pages).

@@ -39,7 +39,7 @@ Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**. Th
 
 ## Credits
 
-The detection model and the extension it ships in are **[Sieve](https://github.com/Phineas1500/sieve-ai-image-detector)** by **Sriram Kiron (@sriramkiron, GitHub @Phineas1500)**. Sieve is MIT licensed and was the winning claim of [poidh bounty #323](https://poidh.xyz/arbitrum/bounty/323): 91.3% balanced accuracy on clean images and 87.3% on web-degraded ones, at a 65% threshold. Sieve builds on [Community Forensics](https://github.com/JeongsooP/Community-Forensics) (Park & Owens, CVPR 2025, MIT).
+The detection model and the extension it ships in are **[Sieve](https://github.com/Phineas1500/sieve-ai-image-detector)** by **Sriram Kiron (@sriramkiron, GitHub @Phineas1500)**. Sieve is MIT licensed and reports 91.3% balanced accuracy on clean images and 87.3% on web-degraded ones, at a 65% threshold. Sieve builds on [Community Forensics](https://github.com/JeongsooP/Community-Forensics) (Park & Owens, CVPR 2025, MIT).
 
 Other third-party code:
 - [ERC-8004 reference registries](https://github.com/erc-8004/erc-8004-contracts) (MIT). These are vendored only for local tests; production uses the live Monad deployments.
