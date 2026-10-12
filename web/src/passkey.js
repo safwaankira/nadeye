@@ -142,14 +142,26 @@ async function refresh() {
   render();
 }
 
+// Buttons stay focusable while a transaction runs (aria-disabled, not
+// disabled), so focus is never dropped and the progress text is announced
+// through the polite #ppBusy region.
 function setBusy(msg, error = null) {
-  $("ppBusy").hidden = !msg;
   $("ppBusy").textContent = msg || "";
-  $("ppError").hidden = !error;
   $("ppError").textContent = error || "";
-  document.querySelectorAll("#view-me button").forEach((b) => { b.disabled = !!msg || b.dataset.needs === "contract" && !configured; });
+  document.querySelectorAll("#view-me button").forEach((b) => {
+    if (b.id === "ppToastClose") return;
+    const off = !!msg || (b.dataset.needs === "contract" && !configured);
+    if (off) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled");
+  });
 }
-function toast(t) { $("ppToast").textContent = t; $("ppToast").hidden = false; setTimeout(() => ($("ppToast").hidden = true), 4000); }
+// Persistent banner: stays until dismissed or replaced (no auto-hiding toasts)
+function toast(t) { $("ppToastText").textContent = t; }
+$("ppToastClose").addEventListener("click", () => { $("ppToastText").textContent = ""; });
+// swallow activation of aria-disabled buttons (capture phase, before their handlers)
+$("view-me").addEventListener("click", (e) => {
+  const b = e.target.closest("button[aria-disabled='true']");
+  if (b) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
 
 function render() {
   $("ppSignedOut").hidden = !!addrs;

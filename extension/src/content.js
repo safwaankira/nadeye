@@ -170,12 +170,18 @@
     if (st) return st;
     const badge = document.createElement("div");
     badge.className = "aid-badge";
-    badge.addEventListener("click", (e) => {
+    const toggle = (e) => {
       e.stopPropagation();
       e.preventDefault();
+      if (st.na) return; // "not analysed" badges are informational only
       // clicking a blurred image reveals it; clicking a revealed one re-blurs
       st.revealed = img.classList.contains("aid-blurred");
       syncVisualState(img, st, isFlagged(st), "blur");
+    };
+    badge.addEventListener("click", toggle);
+    // Nadeye: keyboard-operable (Enter / Space), like any other button
+    badge.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") toggle(e);
     });
     document.documentElement.appendChild(badge);
     st = { badge, score: null, degraded: false, na: null, revealed: false, action: null, targets: [] };
@@ -197,9 +203,12 @@
     st.na = reason; st.score = null; st.degraded = false;
     delete img.dataset.aidScore;
     img.dataset.aidNa = reason; // diagnostics/tests
-    st.badge.textContent = "not analysed";
+    st.badge.textContent = "\u25CB Not analysed"; // ○ hollow circle: no verdict
     st.badge.className = "aid-badge aid-na";
     st.badge.title = NA_TEXT[reason] || NA_TEXT.error;
+    st.badge.setAttribute("role", "img");
+    st.badge.removeAttribute("tabindex");
+    st.badge.setAttribute("aria-label", `Nadeye: not analysed. ${st.badge.title}`);
     st.badge.classList.toggle("aid-quiet", settings.badgeDisplay === "flags");
     syncVisualState(img, st, false, effectiveFlaggedAction());
     positionBadge(img, st.badge);
@@ -219,7 +228,14 @@
     // show that honestly instead of a bare number that reads as "safe".
     // A degraded input that clears the threshold is shown as unsure too.
     const isUnsure = !flagged && (score >= 0.5 || (score >= thr && st.degraded));
-    st.badge.textContent = flagged ? `AI ${pct}%` : isUnsure ? `unsure ${pct}%` : `${pct}%`;
+    // Nadeye: every verdict carries a word AND a distinct shape, never color
+    // alone (the verdict fills are close in lightness): ◆ AI · ▲ Unsure · ● Real
+    const lowQuality = st.degraded && score >= thr;
+    st.badge.textContent = flagged
+      ? `\u25C6 AI ${pct}%`
+      : isUnsure
+        ? `\u25B2 Unsure ${pct}%${lowQuality ? " \u00B7 low quality" : ""}`
+        : `\u25CF Real \u00B7 AI ${pct}%`;
     st.badge.className = "aid-badge";
     st.badge.classList.toggle("aid-flagged", flagged);
     st.badge.classList.toggle("aid-unsure", isUnsure);
@@ -235,12 +251,18 @@
           ? `Uncertain — AI confidence ${pct}%, below the ${Math.round(thr * 100)}% flag threshold`
           : `Likely real (AI confidence ${pct}%)`;
     // Nadeye: community verdict from the Monad registry, if any
+    const verdictWord = flagged ? "likely AI-generated" : isUnsure ? "unsure" : "likely real";
+    let spoken = `Nadeye verdict: ${verdictWord}, AI confidence ${pct} percent${lowQuality ? ", low-quality input" : ""}.`;
     if (st.community && st.community.reports > 0) {
       const c = st.community;
-      st.badge.textContent += ` · 👥 ${c.aiVotes}/${c.reports}`;
+      st.badge.textContent += ` \u00B7 ${c.aiVotes}/${c.reports} AI`;
       st.badge.classList.add("aid-community");
       st.badge.title += `\nNadeye community: ${c.aiVotes} of ${c.reports} scanners flagged this image as AI (mean confidence ${Math.round(c.meanScore * 100)}%), recorded on Monad.`;
+      spoken += ` Community: ${c.aiVotes} of ${c.reports} scanners flagged it as AI.`;
     }
+    st.badge.setAttribute("role", "button");
+    st.badge.setAttribute("tabindex", "0");
+    st.badge.setAttribute("aria-label", `${spoken} Press to toggle blur.`);
     const act = effectiveFlaggedAction();
     if (st.action !== act) st.revealed = false;
     st.action = act;

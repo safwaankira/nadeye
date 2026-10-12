@@ -30,16 +30,31 @@ $("flaggedAction").addEventListener("change", (e) => chrome.storage.sync.set({
 }));
 $("badgeDisplay").addEventListener("change", (e) => chrome.storage.sync.set({ badgeDisplay: e.target.value }));
 
+// Confirmation dialog (native <dialog>): action-named buttons, focus starts on
+// Cancel (the safe choice), Esc cancels, focus returns to the trigger.
+function confirmDialog({ title, body, confirmLabel }) {
+  const dlg = $("confirmDlg"), trigger = document.activeElement;
+  $("confirmTitle").textContent = title;
+  $("confirmBody").textContent = body;
+  $("confirmOk").textContent = confirmLabel;
+  dlg.returnValue = "cancel";
+  dlg.showModal();
+  $("confirmCancel").focus();
+  return new Promise((resolve) => {
+    dlg.addEventListener("close", () => { trigger?.focus?.(); resolve(dlg.returnValue === "ok"); }, { once: true });
+  });
+}
+
 // Nadeye: scanner wallet backup / restore
 $("revealKey").addEventListener("click", async () => {
-  if (!confirm("Anyone with this key controls your scanner wallet and points. Show it?")) return;
+  if (!(await confirmDialog({ title: "Show your private key?", body: "Anyone with this key controls your scanner wallet and its points. Make sure nobody can see your screen.", confirmLabel: "Show key" }))) return;
   const r = await chrome.runtime.sendMessage({ kind: "pp:export-key" });
   $("keyOut").textContent = r && r.ok ? r.key : r?.error || "unavailable";
 });
 $("doImport").addEventListener("click", async () => {
   const key = $("importKey").value.trim();
   if (!/^0x[0-9a-fA-F]{64}$/.test(key)) { $("importMsg").textContent = "Expected 0x + 64 hex characters."; return; }
-  if (!confirm("Replace the current scanner wallet? Back up its key first if it holds points.")) return;
+  if (!(await confirmDialog({ title: "Replace your scanner wallet?", body: "The current scanner key will be replaced. Back it up first if it holds points you want to keep.", confirmLabel: "Replace wallet" }))) return;
   const r = await chrome.runtime.sendMessage({ kind: "pp:import-key", key });
   $("importMsg").textContent = r && r.ok ? `Now scanning as ${r.address}` : r?.error || "failed";
   $("importKey").value = "";

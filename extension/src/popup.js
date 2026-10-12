@@ -16,6 +16,7 @@ $("blur").addEventListener("change", (e) => chrome.storage.sync.set({
 }));
 $("threshold").addEventListener("input", (e) => {
   $("thval").textContent = `${Math.round(e.target.value * 100)}%`;
+  e.target.setAttribute("aria-valuetext", `${Math.round(e.target.value * 100)}% — images at or above this AI confidence are flagged`);
   chrome.storage.sync.set({ threshold: Number(e.target.value) });
 });
 

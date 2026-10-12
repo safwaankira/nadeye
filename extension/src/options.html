@@ -56,6 +56,14 @@
       They are analyzed automatically if expanded.
     </p>
     <script src="options.js"></script>
+    <dialog id="confirmDlg" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+      <h3 id="confirmTitle"></h3>
+      <p id="confirmBody"></p>
+      <form method="dialog" style="display:flex;gap:8px;justify-content:flex-end">
+        <button value="cancel" id="confirmCancel">Cancel</button>
+        <button value="ok" id="confirmOk"></button>
+      </form>
+    </dialog>
     <h2>Scanner wallet (Monad)</h2>
     <p>Nadeye signs attestations with a burner key generated and stored only in this browser profile. It pays gas, earns your leaderboard points, and holds nothing else — keep only a little MON in it.</p>
     <p>

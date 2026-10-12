@@ -38,11 +38,11 @@
     <h1><span class="dot"></span>Nadeye</h1>
     <p class="sub">See what the naked eye can't · verdicts on Monad</p>
 
-    <div class="row"><span>Enabled</span><input type="checkbox" id="enabled" /></div>
-    <div class="row"><span>Blur flagged images</span><input type="checkbox" id="blur" /></div>
+    <div class="row"><label for="enabled">Enabled</label><input type="checkbox" id="enabled" role="switch" /></div>
+    <div class="row"><label for="blur">Blur flagged images</label><input type="checkbox" id="blur" role="switch" /></div>
     <div class="row">
       <span>Threshold <span id="thval"></span></span>
-      <input type="range" id="threshold" min="0.5" max="0.95" step="0.01" />
+      <input type="range" id="threshold" min="0.5" max="0.95" step="0.01" aria-label="Flag threshold" />
     </div>
     <div class="row"><span>Analyzed on this page</span><span class="stat" id="analyzed">–</span></div>
     <div class="row"><span>Flagged as AI</span><span class="stat" id="flagged">–</span></div>
@@ -52,14 +52,14 @@
     <h2>Monad</h2>
     <div class="row">
       <span>Network</span>
-      <select id="network">
+      <select id="network" aria-label="Network">
         <option value="mainnet">Mainnet</option>
         <option value="testnet">Testnet</option>
       </select>
     </div>
     <div class="row">
-      <span title="Posts a 64-bit perceptual hash + your confidence score. Never the image.">Contribute verdicts</span>
-      <input type="checkbox" id="contribute" />
+      <label for="contribute" title="Posts a 64-bit perceptual hash + your confidence score. Never the image.">Contribute verdicts</label>
+      <input type="checkbox" id="contribute" role="switch" />
     </div>
     <div id="unconfigured" class="notice" hidden>No Nadeye contract set for this network yet — lookups and attestations are off.</div>
     <div id="nogas" class="notice" hidden>Your scanner wallet needs a little MON for gas. <a href="#" id="faucet2">Get testnet MON</a></div>

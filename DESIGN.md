@@ -332,7 +332,7 @@ The palette comes from Monad's brand kit (monad.xyz/brand-and-media-kit).
   - Control borders and the hash-tile frame use `line-strong` / `line-strong-day`, which hold 3:1 or better.
 - **Focus:** `focus-ring` (lavender) on night grounds, `focus-ring-day` (Monad purple) on day grounds. Draw it as a 2px solid outline with a 2px offset.
 
-The verdict colors differ mainly in hue, so every verdict also carries its word ("AI", "unsure", "Likely real"). Color never carries the meaning alone.
+The verdict fills are close in lightness (pink vs orange ≈ 1.1:1, pink vs cyan ≈ 1.4:1), so in grayscale they look alike. Every verdict therefore carries its word *and* a distinct shape: ◆ AI, ● real, ▲ unsure (◐ split), ○ none / not in the registry. Color never carries the meaning alone. Acceptance test: in grayscale, every verdict stays distinguishable.
 
 ## Typography
 
@@ -391,33 +391,47 @@ Corners:
   - `button-primary`: the one main action per view.
   - `button-secondary`: `surface-raised` with a `line-strong` border; the border turns `accent` on hover.
   - Labels are verbs in mono ("Create passkey", "Use in extension", "Send").
-  - While a transaction runs, the button disables and its label becomes the step in progress ("Registering your agent…").
+  - While a transaction runs, the button stays focusable with `aria-disabled="true"` (never `disabled`, which drops focus). Its label becomes the step in progress ("Registering your agent…"), mirrored to a polite live region.
 - **Verdict badge (in-page):** pinned to the top-left of each analysed image, with two segments:
-  - The score, toned by verdict (`badge-ai`, `badge-unsure`, `badge-neutral`): "AI 94%", "unsure 58%", "12%".
-  - The community count, only when the registry has reports (`badge-crowd`): "👥 3/4" means 3 of 4 scanners flagged AI.
-  - Degraded inputs get a dashed night inner outline.
-- **Verdict chip:** the registry verdict inside the app: "Likely AI", "Likely real", "Split", "Not in the registry" (`chip-none`).
+  - The verdict, toned by color (`badge-ai`, `badge-unsure`, `badge-neutral`) and always written with its shape and word: "◆ AI 94%", "▲ Unsure 58%", "● Real · AI 12%", "○ Not analysed".
+  - The community count in words, only when the registry has reports (`badge-crowd`): "3/4 AI" means 3 of 4 scanners flagged AI.
+  - Degraded inputs get a dashed night inner outline and the words "· low quality".
+  - The badge is a keyboard button (`role="button"`, `tabindex="0"`; Enter or Space toggles blur). Its `aria-label` is the full sentence ("Nadeye verdict: likely AI-generated, AI confidence 94 percent. Community: 3 of 4 scanners flagged it as AI. Press to toggle blur.").
+  - It brings its own near-opaque night ground and a lavender edge, so contrast never depends on the photo. Don't animate it over images.
+- **Verdict chip:** the registry verdict inside the app, each with its shape: "◆ Likely AI", "● Likely real", "◐ Split", "○ Not in the registry" (`chip-none`). Chips are static; don't style them as buttons.
   - More than half AI votes is AI; exactly half is Split.
 - **Hash tile:** a 40px default, 96px in lookup results, 28–34px on the podium. Pixel cells (`hash-tile-cell`) in the verdict fill or `primary` on a `surface-sunken` ground, framed with `line-strong`. As graphics the cells need 3:1, and `primary` gives 3.4:1 on night and 4.1:1 on day.
-- **Consensus meter:** a `full`-rounded 8px bar with the AI share in `verdict-ai` and the real share in `verdict-real` on a `surface-sunken` track, separated by a 2px gap. Always show the counts in text under it.
+- **Consensus meter:** a measurement, so it is a meter, not a progress bar.
+  - Markup: `role="meter"`, `aria-valuemin="0"`, `aria-valuemax="100"`, `aria-valuenow` = AI share, `aria-valuetext` ("75% say AI (3 of 4 votes)"), and a visible "Community verdict" label.
+  - Visuals: a `full`-rounded 8px bar with `verdict-ai` and `verdict-real` segments (`aria-hidden`) separated by a 2px gap, plus a legend underneath ("◆ 3 AI · ● 1 real").
+  - With zero votes, show "No votes yet" instead of the meter.
 - **Agent chip:** a scanner's ERC-8004 identity, "#412" in `accent`, with a 12px `primary` pixel. Show it only when an agent is linked.
 - **Stat strip:** 2–4 cells; `numeral` values, `label-md` captions in `on-surface-muted`.
 - **Scanner table:**
+  - Native `<table>` with a caption that states the sort, `scope="col"` headers and a `scope="row"` scanner cell.
+  - Sortable columns hold a header button. The active column's `<th>` has `aria-sort`; every other column has none.
+  - After sort, search (debounced) or page changes, announce "Sorted by …, descending. Showing 1 to 25 of 40 scanners." in a polite live region.
+  - Pagination is `<nav aria-label="Leaderboard pages">`: "Previous page" / "Next page", "Go to page N", `aria-current="page"`, targets 36px or larger.
   - `table-header` rows in `label-md`.
   - Rank numerals in the display face; the top three in `accent`.
   - Handle in `body-strong`, then the short address in `table-address`.
   - Numeric columns right-aligned with tabular numerals.
-- **Status note:** one sentence with a mono tag (··· busy, OK, ERR, EXAMPLE). Sample data is always labelled EXAMPLE.
+- **Status note (inline):** one sentence with a mono tag (··· busy, OK, ERR, EXAMPLE), in a persistent live region: `role="status"` for progress and success, `role="alert"` for errors from the person's own action. Sample data is always labelled EXAMPLE.
+- **Banner:** a persistent outcome message ("Your ERC-8004 agent is live and linked. View transaction ↗") with a Dismiss button. No auto-dismissing toasts.
+- **Dialog:** confirmations use a native `<dialog>` with action-named buttons ("Show key", "Replace wallet"). Focus starts on Cancel, Esc cancels, and focus returns to the trigger. The extension's passkey hand-off on third-party sites keeps the browser's native confirm, because a web page cannot imitate it or click it.
+- **Settings:** every control has a label. Settings that apply immediately are switches (`role="switch"`). The threshold slider speaks its value in words.
 
 ## Do's and Don'ts
 
 - Do keep the night theme as the default and the day theme as an equal, fully tokenized alternative.
 - Do put `on-verdict` (night) text on every verdict, `ice` and `secondary` fill. Never white.
-- Do write the verdict word in every badge and chip.
+- Do write the verdict word *and* its shape (◆ ● ▲ ◐ ○) in every badge and chip.
+- Do give every control a programmatic label, and keep live regions in the page (change their text; don't add and remove the element).
 - Do set every button, tab, label, hash and address in Roboto Mono.
 - Do show real values only. Label any sample data "EXAMPLE".
 - Don't use the verdict colors for anything but verdicts and community counts.
 - Don't use more than one `primary` fill per view, or `primary` as text on a night surface (use `accent`).
 - Don't add shadows or gradients, except the in-page badge shadow.
+- Don't use auto-dismissing toasts or `window.confirm` in the app. Use a Banner or a Dialog.
 - Don't use the pixel grid as decoration.
 - Don't reproduce or redraw Monad's logo. For "Built on Monad", use the official files from monad.xyz/brand-and-media-kit.

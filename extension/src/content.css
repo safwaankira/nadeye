@@ -1,10 +1,11 @@
 .aid-badge {
   position: absolute;
   z-index: 2147483646;
-  padding: 2px 7px;
-  border-radius: 10px;
-  font: 500 11px/1.5 "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: rgba(14, 9, 28, 0.82); /* Nadeye night */
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(221, 215, 254, 0.45); /* lavender edge: separates the badge from any photo */
+  font: 500 12px/1.5 "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(14, 9, 28, 0.94); /* Nadeye night, near-opaque so text contrast never depends on the image */
   color: #f3f0ff;
   box-shadow: 0 1px 3px rgba(14, 9, 28, 0.45);
   cursor: pointer;
@@ -25,6 +26,13 @@
 
 .aid-badge.aid-degraded {
   border: 1px dashed #0e091c;
+}
+
+/* keyboard focus: lavender ring (14:1 on night) with a night halo so it reads on any photo */
+.aid-badge:focus-visible {
+  outline: 2px solid #ddd7fe;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #0e091c;
 }
 
 .aid-badge.aid-na {

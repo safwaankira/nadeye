@@ -26,7 +26,7 @@ Two themes: `night` (first, the default, matching monad.xyz) and `day`.
   - unsure, split or degraded: `verdict-unsure` (Monad orange)
   - onchain community counts: `ice`
 - Text on any of those fills, on `lavender` and on `ice` is `night`, never white. As text on a surface, use `ai-ink`, `real-ink` or `unsure-ink` instead of the fills.
-- Pink, cyan and orange are told apart by hue. Every verdict therefore also carries its word ("AI", "unsure", "Likely real"), so color never carries the meaning alone.
+- Pink, cyan and orange are close in lightness (pink vs orange ≈ 1.1:1), so in grayscale they look alike. Every verdict therefore carries its word *and* its shape: ◆ AI, ● real, ▲ unsure (◐ split), ○ none or not in the registry. Color never carries the meaning alone.
 - Hairlines are `line`, which is decorative (below 3:1). Input, button and tile borders are `line-strong`, which holds 3:1 everywhere.
 - No gradients. Monad purple is never blended into blue.
 
@@ -56,6 +56,17 @@ Nadeye's own motif is the 8×8 grid of a 64-bit perceptual hash.
 ## Motion
 
 Almost none. State changes swap instantly. Respect `prefers-reduced-motion`; nothing in the system depends on animation.
+
+## Feedback and accessibility
+
+- Inline status (StatusNote) lives in a persistent live region: `role="status"` for progress and success, `role="alert"` for errors from the person's own action.
+- Outcomes that must stay visible go in a Banner, which the person dismisses. There are no auto-dismissing toasts.
+- Confirmations use a dialog with action-named buttons ("Show key", "Replace wallet") and focus starting on Cancel. One exception: the extension's passkey hand-off on third-party sites keeps the browser's native confirm, because a web page cannot imitate it or click it.
+- Busy buttons use `aria-disabled="true"`, not `disabled`, so keyboard focus is never lost.
+- Measurements are meters (`role="meter"`). System work is a progress bar.
+- Tables sort from their column headers (`aria-sort` on the active column only), have a caption and use row headers. Pagination is a labelled `nav`.
+- Every form control has a programmatic label. Settings that apply immediately are switches (`role="switch"`).
+- Use the `.vh` class to add text for assistive technology without showing it.
 
 ## Focus and states
 
