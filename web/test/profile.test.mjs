@@ -6,12 +6,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { createPublicClient, createWalletClient, http, encodeFunctionData, parseEther } from "viem";
+import { bytesToHex, createPublicClient, createWalletClient, http, encodeFunctionData, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 import { createSecp256k1SigningSession } from "@category-labs/mera";
 import { toViemAccount } from "@category-labs/mera/viem";
-import { deriveEvmKey, recoveryPhrase, createProfileClient, identityAbi, IDENTITY_INDEX, SCANNER_INDEX, keyHex } from "../src/profile-core.js";
+import { deriveEvmKey, recoveryPhrase, createProfileClient, identityAbi, IDENTITY_INDEX, SCANNER_INDEX } from "../src/profile-core.js";
 
 const OUT = new URL("../../contracts/out/", import.meta.url);
 const art = (file, name) => JSON.parse(readFileSync(new URL(`${file}/${name}.json`, OUT)));
@@ -20,9 +20,9 @@ const skip = spawnSync("anvil", ["--version"]).status !== 0 || !existsSync(new U
 test("derivation is deterministic and matches the documented BIP-44 path", () => {
   const prf = new Uint8Array(32).fill(7);
   assert.equal(recoveryPhrase(prf).split(" ").length, 24);
-  const a = privateKeyToAccount(keyHex(deriveEvmKey(prf, 0)));
-  const b = privateKeyToAccount(keyHex(deriveEvmKey(prf, 0)));
-  const c = privateKeyToAccount(keyHex(deriveEvmKey(prf, 1)));
+  const a = privateKeyToAccount(bytesToHex(deriveEvmKey(prf, 0)));
+  const b = privateKeyToAccount(bytesToHex(deriveEvmKey(prf, 0)));
+  const c = privateKeyToAccount(bytesToHex(deriveEvmKey(prf, 1)));
   assert.equal(a.address, b.address);
   assert.notEqual(a.address, c.address);
 });

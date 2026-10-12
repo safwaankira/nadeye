@@ -3,10 +3,10 @@
 // agent identity your reputation accrues to. Bundled to web/passkey.js.
 import { createPasskeyWithPrfOutput, getPasskeyPrfOutput, createSecp256k1SigningSession, isMeraError } from "@category-labs/mera";
 import { toViemAccount } from "@category-labs/mera/viem";
-import { formatEther } from "viem";
+import { bytesToHex, formatEther, hexToBytes, parseEther } from "viem";
 import { monad, monadTestnet } from "viem/chains";
-import { deriveEvmKey, recoveryPhrase, keyHex, createProfileClient, IDENTITY_INDEX, SCANNER_INDEX } from "./profile-core.js";
-import { readAssertion, candidateKeys, pickKey, toWebAuthnAuth, keyToArgs, b64urlToBytes, hexToBytes, passkeyRegistryAbi } from "./webauthn-proof.js";
+import { deriveEvmKey, recoveryPhrase, createProfileClient, IDENTITY_INDEX, SCANNER_INDEX } from "./profile-core.js";
+import { readAssertion, candidateKeys, pickKey, toWebAuthnAuth, keyToArgs, b64urlToBytes, passkeyRegistryAbi } from "./webauthn-proof.js";
 import { JOURNAL_SALT, journalKeys, makeEntry, seal, readJournal, journalAbi } from "./journal.js";
 
 const ERC8004 = {
@@ -19,8 +19,8 @@ const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 const { CONFIG, NET } = window.NADEYE;
 const net = ERC8004[CONFIG.network];
-const configured = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.contract) && !/^0x0{40}$/.test(CONFIG.contract);
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(a || "") && !/^0x0{40}$/.test(a);
+const configured = isAddr(CONFIG.contract);
 const passkeys = configured && isAddr(CONFIG.passkeys) ? CONFIG.passkeys : null;
 const journal = configured && isAddr(CONFIG.journal) ? CONFIG.journal : null;
 
@@ -65,6 +65,15 @@ async function withAccounts(fn) {
     idSession.end();
     scSession.end();
   }
+}
+
+// The scanner key pays gas for its own transactions; top it up from the identity key when low.
+const SCANNER_MIN = parseEther("0.02"), SCANNER_TOPUP = "0.05";
+async function ensureScannerGas(identity, scanner) {
+  const st = await client.status(identity.address, scanner.address);
+  if (st.scannerBalance >= SCANNER_MIN) return;
+  setBusy("Sending your scanner key a little MON for gas…");
+  await client.fundScanner(identity, scanner.address, SCANNER_TOPUP);
 }
 
 function readCred() { try { return JSON.parse(localStorage.getItem(CRED_KEY) || "null"); } catch { return null; } }
@@ -125,7 +134,7 @@ async function signIn(create) {
 
 async function sendToExtension() {
   setBusy("Confirm in the dialog the extension shows…");
-  const key = keyHex(deriveEvmKey(prf, SCANNER_INDEX));
+  const key = bytesToHex(deriveEvmKey(prf, SCANNER_INDEX));
   const r = await askExtension({ type: "import-scanner-key", key, address: addrs.scanner });
   setBusy(null, r.ok ? null : `Extension: ${r.error}`);
   if (r.ok) toast(`Extension now scans as ${short(r.address)}`);
@@ -136,11 +145,7 @@ async function setupAgent() {
   const handle = $("ppHandle").value.trim();
   try {
     await withAccounts(async (identity, scanner) => {
-      const st = await client.status(identity.address, scanner.address);
-      if (st.scannerBalance < 20_000_000_000_000_000n) { // < 0.02 MON
-        setBusy("Sending your scanner key a little MON for gas…");
-        await client.fundScanner(identity, scanner.address, "0.05");
-      }
+      await ensureScannerGas(identity, scanner);
       await client.setupAgent({ identityAccount: identity, scannerAccount: scanner, handle, onStep: (s) => setBusy(s + "…") });
     });
     setBusy(null);
@@ -176,11 +181,7 @@ async function provePasskey() {
     const key = pickKey(candidates, proof);
     if (!key) throw new Error("This passkey doesn't use a P256 key, so Monad's P256 precompile can't check it. Create a new passkey on this device and try again.");
     await withAccounts(async (identity, scanner) => {
-      const st = await client.status(identity.address, scanner.address);
-      if (st.scannerBalance < 20_000_000_000_000_000n) { // < 0.02 MON
-        setBusy("Sending your scanner key a little MON for gas…");
-        await client.fundScanner(identity, scanner.address, "0.05");
-      }
+      await ensureScannerGas(identity, scanner);
       setBusy("Recording the proof onchain…");
       await client.send(scanner, passkeys, passkeyRegistryAbi, "register", [...keyToArgs(key), toWebAuthnAuth(proof)]);
     });
@@ -238,11 +239,7 @@ async function saveToJournal(result, note) {
     const entry = makeEntry({ pHash: result.hex, verdict: result.verdict, reports: result.reports, aiVotes: result.aiVotes, note });
     const box = await seal(jkeys, entry);
     await withAccounts(async (identity, scanner) => {
-      const st = await client.status(identity.address, scanner.address);
-      if (st.scannerBalance < 20_000_000_000_000_000n) {
-        setBusy("Sending your scanner key a little MON for gas…");
-        await client.fundScanner(identity, scanner.address, "0.05");
-      }
+      await ensureScannerGas(identity, scanner);
       setBusy("Saving the encrypted entry to Monad…");
       await client.send(scanner, journal, journalAbi, "append", [jkeys.id, box]);
     });

@@ -13,7 +13,7 @@ import { waitForReserveWindow } from "./reserve.js";
 import { HDKey } from "@scure/bip32";
 import { entropyToMnemonic, mnemonicToSeedSync } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
-import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, parseEther, bytesToHex } from "viem";
+import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, parseEther } from "viem";
 
 export const IDENTITY_INDEX = 0;
 export const SCANNER_INDEX = 1;
@@ -29,8 +29,6 @@ export function deriveEvmKey(prfOutput, index) {
   if (!node.privateKey) throw new Error("derivation produced no key");
   return node.privateKey;
 }
-
-export const keyHex = (bytes) => bytesToHex(bytes);
 
 export const identityAbi = parseAbi([
   "function register(string agentURI) returns (uint256 agentId)",
@@ -115,6 +113,8 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
    * key its agentWallet (scanner signs consent), and link it in Nadeye.
    * `onStep(label)` reports progress. Resumable: skips finished steps.
    */
+  const setHandle = (scannerAccount, h) => send(scannerAccount, contract, nadeyeAbi, "setHandle", [h.replace(/^@/, "").slice(0, 32)]);
+
   async function setupAgent({ identityAccount, scannerAccount, handle = "", onStep = () => {} }) {
     const me = await pub.readContract({ address: contract, abi: nadeyeAbi, functionName: "getScanner", args: [scannerAccount.address] });
     if (me.hasAgent) return { agentId: me.agentId, already: true };
@@ -147,12 +147,10 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
     await send(scannerAccount, contract, nadeyeAbi, "linkAgent", [agentId]);
     if (handle) {
       onStep("Saving your handle");
-      await send(scannerAccount, contract, nadeyeAbi, "setHandle", [handle.replace(/^@/, "").slice(0, 32)]);
+      await setHandle(scannerAccount, handle);
     }
     return { agentId, already: false };
   }
-
-  const setHandle = (scannerAccount, h) => send(scannerAccount, contract, nadeyeAbi, "setHandle", [h.replace(/^@/, "").slice(0, 32)]);
 
   return { pub, send, status, fundScanner, setupAgent, setHandle };
 }

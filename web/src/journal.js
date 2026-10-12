@@ -7,11 +7,10 @@
 // device re-derives both and decrypts the journal; nothing secret is stored anywhere.
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, hexToBytes } from "viem";
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
-const hex = (u8) => "0x" + Array.from(u8, (b) => b.toString(16).padStart(2, "0")).join("");
-const fromHex = (h) => Uint8Array.from(h.replace(/^0x/, "").match(/../g) || [], (b) => parseInt(b, 16));
 
 /** the PRF salt namespace for the journal (32 bytes, as WebAuthn PRF requires) */
 export const JOURNAL_SALT = sha256(enc.encode("nadeye:journal:v1"));
@@ -22,7 +21,7 @@ const VERSION = 1;
 export async function journalKeys(prfOutput) {
   if (!(prfOutput instanceof Uint8Array) || prfOutput.length !== 32) throw new Error("journal PRF output must be 32 bytes");
   const raw = hkdf(sha256, prfOutput, undefined, enc.encode("nadeye journal aes-256-gcm v1"), 32);
-  const id = hex(hkdf(sha256, prfOutput, undefined, enc.encode("nadeye journal id v1"), 32));
+  const id = bytesToHex(hkdf(sha256, prfOutput, undefined, enc.encode("nadeye journal id v1"), 32));
   const key = await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
   raw.fill(0);
   return { id, key };
@@ -46,19 +45,19 @@ function fitNote(note) {
 /** version || 12-byte nonce || AES-GCM(JSON), with the journal id as associated data */
 export async function seal({ id, key }, entry) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce, additionalData: fromHex(id) }, key, enc.encode(JSON.stringify(entry))));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce, additionalData: hexToBytes(id) }, key, enc.encode(JSON.stringify(entry))));
   const out = new Uint8Array(1 + 12 + ct.length);
   out[0] = VERSION; out.set(nonce, 1); out.set(ct, 13);
   if (out.length > MAX_ENTRY_BYTES) throw new Error("This note is too long to store. Shorten it and try again.");
-  return hex(out);
+  return bytesToHex(out);
 }
 
 /** the entry, or null when the bytes are not a valid entry of this journal */
 export async function open({ id, key }, sealedHex) {
-  const b = fromHex(sealedHex);
-  if (b.length < 1 + 12 + 16 || b[0] !== VERSION) return null;
   try {
-    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(1, 13), additionalData: fromHex(id) }, key, b.slice(13));
+    const b = hexToBytes(sealedHex);
+    if (b.length < 1 + 12 + 16 || b[0] !== VERSION) return null;
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(1, 13), additionalData: hexToBytes(id) }, key, b.slice(13));
     const e = JSON.parse(dec.decode(pt));
     return e && e.v === VERSION && /^[0-9a-f]{16}$/.test(e.p) ? e : null;
   } catch {

@@ -1,4 +1,4 @@
-// Same as agent/src/reserve.js. Monad reserve balance (docs.monad.xyz/developer-essentials/reserve-balance): an undelegated
+// Monad reserve balance (docs.monad.xyz/developer-essentials/reserve-balance): an undelegated
 // account holding under 10 MON can move value only in a transaction that is its first within
 // the last k = 3 blocks (an "emptying" transaction). Otherwise the transfer reverts and still
 // pays gas. Before a value transfer, wait until `address` has sent nothing in the last 3 blocks.

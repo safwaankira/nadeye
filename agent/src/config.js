@@ -36,6 +36,7 @@ export function loadConfig(env = process.env) {
   const network = env.NADEYE_NETWORK || "testnet";
   const base = NETWORKS[network];
   if (!base) throw new Error(`NADEYE_NETWORK must be mainnet or testnet, got ${network}`);
+  const cacheDir = env.NADEYE_CACHE || join(homedir(), ".nadeye");
   const chain = env.NADEYE_CHAIN_ID
     ? { ...base.chain, id: Number(env.NADEYE_CHAIN_ID) } // local anvil runs
     : base.chain;
@@ -53,7 +54,7 @@ export function loadConfig(env = process.env) {
     attest: (env.AGENT_ATTEST ?? "1") !== "0",
     host: env.HOST || "127.0.0.1",
     port: Number(env.PORT || 8787),
-    cacheDir: env.NADEYE_CACHE || join(homedir(), ".nadeye"),
+    cacheDir,
     modelPath: env.NADEYE_MODEL || null,
     allowPrivate: env.ALLOW_PRIVATE_URLS === "1", // tests only
     // HTTP API: extra Host names to accept (e.g. a tunnel's), and browser origins allowed to call it
@@ -67,7 +68,7 @@ export function loadConfig(env = process.env) {
       amount: env.NADEYE_DRIP_AMOUNT || "0.25", // agent setup + scanner top-up + a few journal entries
       perIpPerDay: Number(env.NADEYE_DRIP_PER_IP || 3),
       perDay: Number(env.NADEYE_DRIP_PER_DAY || 25),
-      file: join(env.NADEYE_CACHE || join(homedir(), ".nadeye"), "drip.json"),
+      file: join(cacheDir, "drip.json"),
     },
     validatorMinBalanceWei: BigInt(Math.round(Number(env.NADEYE_VALIDATOR_MIN_BALANCE || "0.05") * 1e6)) * 10n ** 12n,
   };

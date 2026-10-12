@@ -1,5 +1,6 @@
 // Monad side of the agent: Nadeye registry + the ERC-8004 registries.
-import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, keccak256, toBytes, toHex } from "viem";
+import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, keccak256, toBytes } from "viem";
+import { toKey } from "../../extension/src/phash.js";
 import { privateKeyToAccount, nonceManager } from "viem/accounts";
 
 // Onchain vote bands, mirroring Nadeye.sol: >= 80% is an AI vote, < 50% a
@@ -49,8 +50,6 @@ export function modelVersionByte(version) {
   for (const c of version) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
   return h & 0xff;
 }
-
-export const toKey = (hex) => "0x" + hex.padStart(64, "0");
 
 export function createChainClient(cfg) {
   const transport = http(cfg.rpcUrl, { batch: { wait: 10 }, retryCount: 2 });
@@ -112,4 +111,3 @@ export function createChainClient(cfg) {
 export function reportHash(json) {
   return keccak256(toBytes(json));
 }
-export { toHex };

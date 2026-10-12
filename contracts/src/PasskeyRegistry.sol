@@ -104,7 +104,8 @@ contract PasskeyRegistry {
     /// @dev checks the user-presence and user-verification flags, that clientDataJSON is a
     ///      `webauthn.get` carrying exactly this challenge (base64url), then the P256
     ///      signature over sha256(authenticatorData || sha256(clientDataJSON)) via the
-    ///      RIP-7212 precompile (0x100, available on Monad) with a Solidity fallback.
+    ///      P256 precompile (0x0100, EIP-7951, which supersedes RIP-7212; available on Monad)
+    ///      with a Solidity fallback.
     function verify(bytes32 challenge, WebAuthnAuth calldata auth, bytes32 x, bytes32 y) public view returns (bool) {
         bytes calldata ad = auth.authenticatorData;
         if (ad.length < 37) return false;

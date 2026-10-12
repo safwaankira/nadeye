@@ -5,15 +5,14 @@
 //
 // Bundled with viem into src/chain.bundle.js by build.mjs.
 
-import { createPublicClient, createWalletClient, http, formatEther, isAddress, zeroAddress } from "viem";
+import { createPublicClient, createWalletClient, http, formatEther, isAddress, parseAbi, zeroAddress } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { nadeyeAbi } from "./abi.js";
-import { parseAbi } from "viem";
+import { NETWORKS, MAX_BATCH, AUTO_FLUSH_AT, GAS_BUFFER, LEADERBOARD_URL, SITE_ORIGINS, isRecordable } from "./config.js";
 
 const reputationAbi = parseAbi([
   "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) view returns (uint64 count, int128 summaryValue, uint8 summaryValueDecimals)",
 ]);
-import { NETWORKS, MAX_BATCH, AUTO_FLUSH_AT, GAS_BUFFER, LEADERBOARD_URL, SITE_ORIGINS, isRecordable } from "./config.js";
 
 export { NETWORKS, AUTO_FLUSH_AT, SITE_ORIGINS };
 

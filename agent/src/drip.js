@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import { isAddress, getAddress, parseEther, formatEther } from "viem";
-import { waitForReserveWindow } from "./reserve.js";
+import { waitForReserveWindow } from "../../web/src/reserve.js"; // shared with the site
 
 const DAY = 24 * 60 * 60_000;
 

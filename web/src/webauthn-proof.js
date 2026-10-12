@@ -4,14 +4,13 @@
 // exercise the same code the site runs.
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, numberToHex } from "viem";
 
 const N = p256.Point.Fn.ORDER;
 const enc = new TextEncoder();
-const hex = (u8) => "0x" + Array.from(u8, (b) => b.toString(16).padStart(2, "0")).join("");
-const bytes32 = (n) => "0x" + n.toString(16).padStart(64, "0");
+const bytes32 = (n) => numberToHex(n, { size: 32 });
 
 export const b64urlToBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(s.length / 4) * 4, "=")), (c) => c.charCodeAt(0));
-export const hexToBytes = (h) => Uint8Array.from(h.replace(/^0x/, "").match(/../g).map((b) => parseInt(b, 16)));
 
 /** the fields of a PublicKeyCredential assertion we need, as bytes and text */
 export function readAssertion(credential) {
@@ -68,7 +67,7 @@ export function toWebAuthnAuth(assertion) {
   const challengeIndex = assertion.clientDataJSON.indexOf('"challenge":"');
   if (typeIndex < 0 || challengeIndex < 0) throw new Error("not a WebAuthn authentication response");
   return {
-    authenticatorData: hex(assertion.authenticatorData),
+    authenticatorData: bytesToHex(assertion.authenticatorData),
     clientDataJSON: assertion.clientDataJSON,
     challengeIndex: BigInt(challengeIndex),
     typeIndex: BigInt(typeIndex),
