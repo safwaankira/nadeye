@@ -64,7 +64,7 @@ export function loadConfig(env = process.env) {
     // testnet gas drip for new site accounts (POST /drip); never on mainnet
     drip: {
       enabled: env.NADEYE_DRIP === "1",
-      amount: env.NADEYE_DRIP_AMOUNT || "0.1",
+      amount: env.NADEYE_DRIP_AMOUNT || "0.25", // agent setup + scanner top-up + a few journal entries
       perIpPerDay: Number(env.NADEYE_DRIP_PER_IP || 3),
       perDay: Number(env.NADEYE_DRIP_PER_DAY || 25),
       file: join(env.NADEYE_CACHE || join(homedir(), ".nadeye"), "drip.json"),

@@ -5,9 +5,15 @@
 // (recorded on disk); each client IP and the whole service have daily caps; addresses that
 // already hold gas or are contracts are skipped; the agent wallet never goes below its floor.
 // Sends run one at a time, so concurrent requests can't race the caps or the nonce.
+//
+// Monad's reserve balance: an account holding under 10 MON may only move value in its first
+// transaction within 3 blocks; otherwise the transfer reverts (and still pays gas). The agent
+// wallet also sends validator answers, so each drip waits for the wallet to be quiet for 3
+// blocks, then checks the receipt. A transfer that reverted is never counted as paid.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import { isAddress, getAddress, parseEther, formatEther } from "viem";
+import { waitForReserveWindow } from "./reserve.js";
 
 const DAY = 24 * 60 * 60_000;
 
@@ -21,10 +27,10 @@ export class DripError extends Error {
  * @param send  async (to, valueWei) => txHash   (the agent wallet)
  * @param from  the agent wallet address (for the floor check)
  */
-export function createDrip({ cfg, pub, send, from, now = () => Date.now() }) {
+export function createDrip({ cfg, pub, send, from, now = () => Date.now(), sleep }) {
   const d = cfg.drip || {};
   const enabled = !!d.enabled && cfg.network === "testnet";
-  const amount = parseEther(String(d.amount ?? "0.1"));
+  const amount = parseEther(String(d.amount ?? "0.25"));
   const perIp = d.perIpPerDay ?? 3, perDay = d.perDay ?? 25;
   const floor = (cfg.validatorMinBalanceWei ?? 0n) + amount;
 
@@ -58,7 +64,10 @@ export function createDrip({ cfg, pub, send, from, now = () => Date.now() }) {
     recent.push({ at: t, ip });
     save();
     try {
+      await waitForReserveWindow(pub, from, { sleep });
       const hash = await send(to, amount);
+      const r = await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });
+      if (r.status !== "success") throw new Error("transfer reverted");
       return { address: to, amount: `${formatEther(amount)} MON`, tx: hash };
     } catch (e) {
       paid.delete(to.toLowerCase());

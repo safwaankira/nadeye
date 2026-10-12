@@ -13,22 +13,39 @@ import { createApi } from "../src/server.js";
 const FROM = "0x00000000000000000000000000000000000A9E17";
 const addr = (i) => "0x" + i.toString(16).padStart(40, "0");
 
-function fakeChain({ balances = {}, code = {}, agent = parseEther("10") } = {}) {
+// A Monad-like chain: blocks advance on their own; each send is mined in the current block, and
+// `revertNext` makes the next transfer revert (the reserve-balance failure mode).
+function fakeChain({ balances = {}, code = {}, agent = parseEther("10"), recentTxBlocks = [] } = {}) {
   const sent = [];
-  let inFlight = 0, maxInFlight = 0;
+  let inFlight = 0, maxInFlight = 0, block = 100n, revertNext = false;
+  const agentTxBlocks = [...recentTxBlocks.map((b) => block - BigInt(b))]; // blocks the agent sent in
+  const receipts = new Map();
   return {
     sent,
     get maxInFlight() { return maxInFlight; },
+    tick() { block += 1n; },
+    revertNext() { revertNext = true; },
     pub: {
       getBalance: async ({ address }) => (address === FROM ? agent : balances[address.toLowerCase()] ?? 0n),
       getCode: async ({ address }) => code[address.toLowerCase()] ?? "0x",
+      getBlockNumber: async () => block,
+      getTransactionCount: async ({ address, blockNumber, blockTag }) => {
+        if (address !== FROM) return 0;
+        const upTo = blockTag === "pending" ? block : blockNumber;
+        return agentTxBlocks.filter((b) => b <= upTo).length;
+      },
+      waitForTransactionReceipt: async ({ hash }) => receipts.get(hash),
     },
     send: async (to, value) => {
       inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 5));
       inFlight--;
-      sent.push({ to, value });
-      return "0x" + "ab".repeat(32);
+      sent.push({ to, value, block });
+      agentTxBlocks.push(block);
+      const hash = "0x" + sent.length.toString(16).padStart(64, "0");
+      receipts.set(hash, { status: revertNext ? "reverted" : "success" });
+      revertNext = false;
+      return hash;
     },
   };
 }
@@ -40,8 +57,8 @@ const cfgFor = (over = {}) => ({ network: "testnet", validatorMinBalanceWei: par
 
 test("drip is off by default and refused on mainnet", async () => {
   const c = fakeChain();
-  assert.equal(createDrip({ cfg: { network: "testnet", drip: {} }, ...c, from: FROM }).enabled, false);
-  const main = createDrip({ cfg: cfgFor({ network: "mainnet" }), ...c, from: FROM });
+  assert.equal(createDrip({ cfg: { network: "testnet", drip: {} }, ...c, from: FROM, sleep: async () => c.tick() }).enabled, false);
+  const main = createDrip({ cfg: cfgFor({ network: "mainnet" }), ...c, from: FROM, sleep: async () => c.tick() });
   assert.equal(main.enabled, false);
   await assert.rejects(main.request(addr(1), "1.1.1.1"), { status: 404 });
   assert.equal(c.sent.length, 0);
@@ -49,19 +66,19 @@ test("drip is off by default and refused on mainnet", async () => {
 
 test("pays an address once, ever, even across restarts", async () => {
   const c = fakeChain(), cfg = cfgFor();
-  const d = createDrip({ cfg, ...c, from: FROM });
+  const d = createDrip({ cfg, ...c, from: FROM, sleep: async () => c.tick() });
   const r = await d.request(addr(1), "1.1.1.1");
   assert.equal(r.amount, "0.1 MON");
   assert.equal(c.sent[0].value, parseEther("0.1"));
   await assert.rejects(d.request(addr(1).toUpperCase().replace("0X", "0x"), "2.2.2.2"), { status: 409 });
-  const restarted = createDrip({ cfg, ...c, from: FROM });
+  const restarted = createDrip({ cfg, ...c, from: FROM, sleep: async () => c.tick() });
   await assert.rejects(restarted.request(addr(1), "3.3.3.3"), { status: 409 });
   assert.equal(c.sent.length, 1);
 });
 
 test("caps per IP and per day; skips bad, funded and contract addresses; keeps the floor", async () => {
   const c = fakeChain({ balances: { [addr(50)]: parseEther("1") }, code: { [addr(51)]: "0x6080" } });
-  const d = createDrip({ cfg: cfgFor(), ...c, from: FROM });
+  const d = createDrip({ cfg: cfgFor(), ...c, from: FROM, sleep: async () => c.tick() });
   await assert.rejects(d.request("not an address", "9.9.9.9"), { status: 400 });
   await assert.rejects(d.request(addr(50), "9.9.9.9"), { status: 409 }); // already has gas
   await assert.rejects(d.request(addr(51), "9.9.9.9"), { status: 400 }); // a contract
@@ -78,7 +95,7 @@ test("caps per IP and per day; skips bad, funded and contract addresses; keeps t
 
 test("concurrent requests are serialized and can't double-pay", async () => {
   const c = fakeChain();
-  const d = createDrip({ cfg: cfgFor({ drip: { enabled: true, amount: "0.1", perIpPerDay: 100, perDay: 100, file: join(dir, "c.json") } }), ...c, from: FROM });
+  const d = createDrip({ cfg: cfgFor({ drip: { enabled: true, amount: "0.1", perIpPerDay: 100, perDay: 100, file: join(dir, "c.json") } }), ...c, from: FROM, sleep: async () => c.tick() });
   const rs = await Promise.allSettled([...Array(10)].map(() => d.request(addr(9), "1.1.1.1")));
   assert.equal(rs.filter((r) => r.status === "fulfilled").length, 1);
   assert.equal(c.sent.length, 1);
@@ -89,7 +106,7 @@ test("a failed send is not counted against the address", async () => {
   const c = fakeChain();
   let fail = true;
   const send = async (to, v) => { if (fail) throw new Error("rpc down"); return c.send(to, v); };
-  const d = createDrip({ cfg: cfgFor(), pub: c.pub, send, from: FROM });
+  const d = createDrip({ cfg: cfgFor(), pub: c.pub, send, from: FROM, sleep: async () => c.tick() });
   await assert.rejects(d.request(addr(1), "1.1.1.1"), { status: 502 });
   fail = false;
   assert.ok((await d.request(addr(1), "1.1.1.1")).tx);
@@ -97,7 +114,7 @@ test("a failed send is not counted against the address", async () => {
 
 test("POST /drip: allow-listed origin only, JSON errors, tunnel client IP", async () => {
   const c = fakeChain();
-  const drip = createDrip({ cfg: cfgFor({ drip: { enabled: true, amount: "0.1", perIpPerDay: 1, perDay: 10, file: join(dir, "h.json") } }), ...c, from: FROM });
+  const drip = createDrip({ cfg: cfgFor({ drip: { enabled: true, amount: "0.1", perIpPerDay: 1, perDay: 10, file: join(dir, "h.json") } }), ...c, from: FROM, sleep: async () => c.tick() });
   const cfg = { network: "testnet", chain: { id: 10143 }, host: "127.0.0.1", allowedHosts: [], corsOrigins: ["https://nadeye.example"] };
   const api = createApi({ verifier: {}, cfg, drip });
   await new Promise((ok) => api.listen(0, "127.0.0.1", ok));
@@ -123,4 +140,26 @@ test("POST /drip: allow-listed origin only, JSON errors, tunnel client IP", asyn
   } finally {
     api.close();
   }
+});
+
+test("Monad reserve balance: waits until the agent wallet has been quiet for 3 blocks", async () => {
+  const c = fakeChain({ recentTxBlocks: [1] }); // the validator answered one block ago
+  let slept = 0;
+  const sleep = async () => { slept++; c.tick(); }; // ~400 ms per Monad block
+  const d = createDrip({ cfg: cfgFor(), ...c, from: FROM, sleep });
+  await d.request(addr(1), "1.1.1.1");
+  assert.equal(slept, 2, "waited until the earlier tx was 3 blocks old");
+  // back-to-back drips: the second waits for the first to age out of the window
+  await d.request(addr(2), "2.2.2.2");
+  assert.ok(c.sent[1].block - c.sent[0].block >= 3n, `drips ${c.sent[0].block} and ${c.sent[1].block} are 3+ blocks apart`);
+});
+
+test("a transfer that reverted onchain is not counted as paid", async () => {
+  const c = fakeChain();
+  const d = createDrip({ cfg: cfgFor(), ...c, from: FROM, sleep: async () => c.tick() });
+  c.revertNext();
+  await assert.rejects(d.request(addr(1), "1.1.1.1"), { status: 502 });
+  const ok = await d.request(addr(1), "1.1.1.1");
+  assert.ok(ok.tx);
+  assert.equal(c.sent.length, 2);
 });

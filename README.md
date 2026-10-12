@@ -122,13 +122,19 @@ To share the extension with judges, zip the built `extension/` folder (without `
 On the site, open **My scanner**:
 
 1. Choose **Create passkey**.
-2. If the site has a drip URL, the agent sends the identity address gas MON on its own. Otherwise send it about 0.2 testnet MON from the faucet.
+2. If the site has a drip URL, the agent sends the identity address gas MON on its own. Otherwise send it about 0.25 testnet MON from the faucet.
 3. Choose **Create ERC-8004 agent** and enter your handle. This takes 4–5 transactions. The identity key registers the agent, your scanner key becomes its `agentWallet` with its own EIP-712 consent, and the scanner links it in Nadeye.
 4. Choose **Prove with passkey** and answer two passkey prompts. Monad's P256 precompile verifies the proof, and your scanner gets the passkey chip on the leaderboard.
 5. Choose **Use in extension**, then confirm the dialog the extension shows.
 6. Optional: on **Registry**, check an image and choose **Unlock and save to my journal**. The entry shows up under **Private journal** on My scanner, on any device you sign in from.
 
-**Optional: gas for new accounts.** Run the agent with `NADEYE_DRIP=1`, add your site's origin to `NADEYE_CORS_ORIGINS`, and pass the agent's public `https://…/drip` URL to `build.mjs`. Each new address gets `NADEYE_DRIP_AMOUNT` (0.1 MON) once. There are per-IP and daily caps, and the agent wallet keeps its floor. The drip refuses to run on mainnet.
+**Optional: gas for new accounts.** Run the agent with `NADEYE_DRIP=1`, add your site's origin to `NADEYE_CORS_ORIGINS`, and pass the agent's public `https://…/drip` URL to `build.mjs`. Each new address gets `NADEYE_DRIP_AMOUNT` (0.25 MON; agent setup plus the scanner top-up use about 0.16) once. There are per-IP and daily caps, and the agent wallet keeps its floor. The drip refuses to run on mainnet.
+
+**Monad's reserve balance.** An account holding less than 10 MON can move value only in its first transaction within 3 blocks. Otherwise the transfer reverts and still pays gas. Nadeye's two value transfers (the drip, and the identity key's gas top-up for the scanner key) both handle this:
+- **Before sending,** they wait until the sender has sent nothing in the last 3 blocks. That is about a second on Monad.
+- **After sending,** they check the receipt, so a reverted transfer is reported and never counted as paid.
+
+The same applies when you fund the agent wallet from your deployer: send one transfer at a time.
 
 In the extension popup, turn on **Contribute verdicts** and browse.
 

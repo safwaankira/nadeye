@@ -250,6 +250,11 @@ Scope: `contracts/src/NadeyeJournal.sol`, `web/src/journal.js`, the session and 
 - Requests are serialized, so concurrent calls can't double-pay (tested).
 - The client IP comes from `cf-connecting-ip` or `x-forwarded-for` only when the connection comes from loopback, which is the tunnel. A direct caller can't spoof it.
 - One viem nonce manager is shared by the validator, attestations and the drip.
+- **Monad reserve balance.** The agent wallet holds less than 10 MON, and validator answers come from the same wallet. A value transfer is safe only as the sender's first transaction within 3 blocks; any other transfer reverts and still pays gas. So the drip and the site's gas top-up:
+  - wait until the sender has sent nothing in the last 3 blocks (`reserve.js` compares the nonce three blocks back with the pending nonce);
+  - then require a successful receipt.
+  A reverted drip releases the address, so it isn't counted as paid. Tests: a fake Monad chain with a validator transaction one block earlier, back-to-back drips at least 3 blocks apart, and an injected revert. Anvil doesn't model this rule, so these are unit tests.
+- **P256 precompile confirmed** in Monad's precompile list: `0x0100`, EIP-7951 (same interface as RIP-7212), 6,900 gas.
 
 **Dependencies.** `onnxruntime-node` moved from 1.22.0 to 1.30.0, because the older version pulled vulnerable `adm-zip` and `sprintf-js` (through `global-agent`) into its install script. `npm audit --omit=dev` now reports 0 for `agent/` and `web/`. The detector gives the same verdict on the test fixture.
 

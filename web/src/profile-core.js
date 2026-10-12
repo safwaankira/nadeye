@@ -9,6 +9,7 @@
 //                                     attestations with; registered as the
 //                                     agent's agentWallet, so the identity key
 //                                     can rotate it out if it ever leaks.
+import { waitForReserveWindow } from "./reserve.js";
 import { HDKey } from "@scure/bip32";
 import { entropyToMnemonic, mnemonicToSeedSync } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
@@ -101,9 +102,11 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
   /** move a little MON from the identity key to the scanner key for gas */
   async function fundScanner(identityAccount, scannerAddr, amount = "0.05") {
     guard(scannerAddr);
+    await waitForReserveWindow(pub, identityAccount.address); // Monad reserve balance: see reserve.js
     const wallet = createWalletClient({ account: identityAccount, chain, transport });
     const hash = await wallet.sendTransaction({ to: scannerAddr, value: parseEther(amount), gas: 21_000n });
-    await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    const r = await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    if (r.status !== "success") throw new Error("The gas top-up for your scanner key was reverted. Wait a few seconds and try again.");
     return hash;
   }
 

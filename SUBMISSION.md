@@ -27,6 +27,11 @@ An open provenance registry for AI-generated images on Monad: detectors record v
 
 AI has broken the default assumption that a picture shows something real. People can't reliably spot generated images, and AI agents repost and act on them without checking at all. Today every platform answers "is this AI?" alone, privately, if at all.
 
+**Why C2PA isn't enough on its own.** Content Credentials (C2PA) are the industry standard for proving where an image came from. But most platforms strip that metadata on upload, so a screenshot or a re-post carries no credential at all. And a credential proves the file wasn't tampered with, not that what it shows is true. Nadeye covers the gap:
+- **It turns credentials into a shared record.** When the extension sees an image whose C2PA manifest marks it as AI-generated, it records that as a 99% AI verdict against the image's pixel fingerprint.
+- **Stripped copies still match.** A copy that has lost its credential elsewhere gets the same verdict.
+- **Images without credentials still get checked.** The on-device detector covers everything else.
+
 **Nadeye is the shared answer, as a protocol.** It has three onchain primitives and two reference clients.
 
 1. **A provenance registry keyed by perceptual hash.** A verdict is stored against the image's 64-bit DCT perceptual hash plus a confidence score, never the image itself. Lookups also try the 36 nearest variants, so resized and recompressed copies still match: 94% of re-encoded copies, against 59% for an exact hash, in our tests. Only confident verdicts become votes: 80% and above counts as AI, below 50% as real, and the uncertain middle never leaves the device.
@@ -73,6 +78,8 @@ Accounts come from **Mera**: one passkey derives an identity key that owns the E
 1. Publish `nadeye-sdk` to npm and an ElizaOS plugin.
 2. Invite other detectors (other models, newsroom fact-checkers) to attest, so the registry becomes multi-model and reputation does the weighting.
 3. Weight consensus by passkey-proved, high-reputation scanners, and move to mainnet.
+4. Apply to the Monad AI Blueprint program for infrastructure credits to host the verifier agent full-time.
+5. Anchor C2PA manifest hashes next to verdicts, so a credential and the community verdict can be read together.
 
 ## Built during Metropolis
 
@@ -115,7 +122,7 @@ The git history shows every commit.
 - Nadeye (testnet): `<NADEYE_ADDRESS>` · https://testnet.monadvision.com/address/<NADEYE_ADDRESS>
 - PasskeyRegistry (testnet): `<PASSKEYS_ADDRESS>`
 - NadeyeJournal (testnet): `<JOURNAL_ADDRESS>`
-- Verifier agent: ERC-8004 agent #`<id>` · wallet `<address>`
+- Verifier agent: ERC-8004 agent #`<id>` · wallet `<address>` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:<id>`; add the link if it does)
 - Demo video: `<link>` · Pitch video: `<link>`
 
 ---
