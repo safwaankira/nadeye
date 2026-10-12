@@ -195,6 +195,10 @@ The Node agent matches Sieve's own Python/PIL reference scores on Sieve's 17 lab
 
 Measured gas: about 110–140k per newly attested image. A judged verdict from a linked agent costs more, because it also writes the ERC-8004 feedback. That is why the extension caps batches at 50.
 
+## Security review
+
+The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. See [SECURITY.md](SECURITY.md).
+
 ## Privacy and safety
 
 - Images never leave the device in the extension. The agent fetches images only when asked to.
@@ -212,7 +216,7 @@ Measured gas: about 110–140k per newly attested image. A judged verdict from a
 ## Tests
 
 ```bash
-cd contracts && forge test     # 21: points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
+cd contracts && forge test     # 31 incl. 6 invariants (30,720 calls each) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
 cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF guard
 cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner

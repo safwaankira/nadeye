@@ -122,6 +122,19 @@ export const nadeyeAbi = [
  },
  {
   "type": "function",
+  "name": "REPUTATION_GAS",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
   "name": "agentOf",
   "inputs": [
    {

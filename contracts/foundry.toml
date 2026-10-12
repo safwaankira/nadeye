@@ -11,3 +11,12 @@ via_ir = true
 [rpc_endpoints]
 monad_testnet = "https://testnet-rpc.monad.xyz"
 monad_mainnet = "https://rpc.monad.xyz"
+
+[invariant]
+runs = 256
+depth = 120
+fail_on_revert = true
+call_override = false
+
+[fuzz]
+runs = 1000

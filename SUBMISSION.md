@@ -55,7 +55,7 @@ The detector model and base extension are **Sieve** by Sriram Kiron (MIT, open s
 
 ## Verification (for judges)
 
-- **Contract:** 21 Foundry tests, 7 of them against the real ERC-8004 reference registries.
+- **Contract:** 31 Foundry tests: unit tests, 7 against the real ERC-8004 reference registries, and a stateful invariant campaign (30,720 calls per invariant) with a hostile registry. The campaign found and fixed one Medium DoS issue (see SECURITY.md).
 - **Agent end-to-end on a local chain:** register → validation request → onchain answer → attestation → HTTP and MCP.
 - **Extension:** the service worker is tested under a mocked Chrome API.
 - **Passkey flow:** tested with real Mera signing sessions.

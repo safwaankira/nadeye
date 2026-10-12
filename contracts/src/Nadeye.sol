@@ -52,6 +52,10 @@ contract Nadeye {
     /// still recorded, they just score zero
     uint32 public constant DAILY_POINT_CAP = 300;
     uint256 public constant MAX_BATCH = 100;
+    /// gas forwarded to ERC-8004 giveFeedback. The reference registry uses
+    /// 72k-174k; the cap stops a heavy or hostile (the registry is an
+    /// upgradeable proxy) implementation from making attestations revert.
+    uint256 public constant REPUTATION_GAS = 300_000;
 
     // ----------------------------------------------------------------- state
 
@@ -171,7 +175,9 @@ contract Nadeye {
             emit ReputationSkipped(scanner, agentId, pHash);
             return;
         }
-        try reputationRegistry.giveFeedback(agentId, agreed ? int128(100) : int128(0), 0, "nadeye", "consensus", "", "", pHash) {}
+        try reputationRegistry.giveFeedback{gas: REPUTATION_GAS}(
+            agentId, agreed ? int128(100) : int128(0), 0, "nadeye", "consensus", "", "", pHash
+        ) {}
         catch {
             emit ReputationSkipped(scanner, agentId, pHash);
         }
@@ -225,7 +231,7 @@ contract Nadeye {
         Image storage img = _images[pHash];
         bool isAI = score >= AI_THRESHOLD;
         bool first = img.reports == 0;
-        int8 consensus;
+        int8 consensus = 0; // 1 agreed, -1 disagreed, 0 not judged
         uint64 pts = earns ? POINTS_SCAN : 0;
 
         if (first) {
@@ -246,7 +252,6 @@ contract Nadeye {
                     consensus = -1;
                     ++s.noise;
                 }
-                _reputation(msg.sender, consensus == 1, pHash);
             }
         }
 
@@ -262,6 +267,9 @@ contract Nadeye {
         s.points += pts;
         ++totalScans;
         emit Attested(pHash, msg.sender, score, modelVersion, first, consensus, pts);
+        // external call last (checks-effects-interactions): a re-entering
+        // registry only ever sees fully updated state
+        if (consensus != 0) _reputation(msg.sender, consensus == 1, pHash);
     }
 
     /// @notice optional display name (e.g. an X handle) shown on the leaderboard
