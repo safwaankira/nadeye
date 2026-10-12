@@ -208,7 +208,7 @@ For coding agents, [`DESIGN.md`](DESIGN.md) holds the whole system in Google's [
 
 ## Security review
 
-The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. See [SECURITY.md](SECURITY.md).
+The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. The live ERC-8004 registries on Monad mainnet were audited too. They match the source Nadeye is tested against, and REA confirms the function selectors from bytecode. Nadeye's feedback call fits its 300k gas stipend at Monad prices, with a worst case of 264k. A single key can upgrade all three registries, and Nadeye contains the damage if one is upgraded. See [SECURITY.md](SECURITY.md).
 
 ## Privacy and safety
 

@@ -15,7 +15,7 @@ Method: the Ultrafuzz approach, run directly in Foundry. It has four steps:
 
 **How it was found.** The invariant campaign flagged it. Every failing sequence ended with the gas-burning registry mode followed by `attest` or `attestBatch`.
 
-**Fix.** Feedback calls now forward at most `REPUTATION_GAS = 300_000`. The reference registry uses 72k–174k gas.
+**Fix.** Feedback calls now forward at most `REPUTATION_GAS = 300_000`. The reference registry uses 72k–174k gas at Ethereum prices and at most 264k at Monad prices (see D2).
 
 **Tests.** `test_gasBurningRegistryCannotBlockAttest` and `test_gasBurningRegistryCannotBlockBatch` fail on the old code and pass on the fixed code.
 
@@ -31,6 +31,51 @@ Method: the Ultrafuzz approach, run directly in Foundry. It has four steps:
 - **Sybil voting.** Anyone can create addresses and vote, so a cluster can steer an image's majority and with it other scanners' agreement scores. The mitigations are the daily point cap and ERC-8004 reputation: readers choose which scanners' feedback to trust. Stake-weighted consensus is future work.
 - **Signal-to-noise at write time.** Each verdict is judged against the majority at the moment it's recorded. It is not recomputed later.
 - **Slither notes.** The remaining detectors (external calls in a batch loop, an event after the call, timestamp day-bucketing, gas costs) were triaged as non-issues.
+
+## Live dependency audit: ERC-8004 registries on Monad mainnet
+
+Nadeye calls three registries it doesn't control: Identity `0x8004A169…a432`, Reputation `0x8004BAa1…9b63` and Validation `0x8004Cc84…AB58`. This audit checks that what's deployed is what Nadeye was built and tested against.
+
+**Method.**
+- Upstream git history: [erc-8004/erc-8004-contracts](https://github.com/erc-8004/erc-8004-contracts).
+- Monadscan, for proxy, upgrade and transaction records.
+- [REA](https://github.com/morluto/rea) 6.4.0 `inspect-evm-interface`, which recovers selectors from bytecode offline.
+- A Foundry gas measurement repriced to Monad's opcode schedule.
+
+The sandbox can't reach a Monad RPC, so live bytecode was not hashed. D1 rests on source history, not a bytecode match.
+
+### D1 — Pass — Interface compatibility
+
+- **Source matches the deployment.** The last change to any registry contract upstream was on 2026-01-24 (`27caef9`). All three proxies were created and upgraded on 2026-02-03, and the registries report version 2.0.0. The vendored copies in `contracts/test/erc8004/` are byte-identical to upstream at that point, so the 31 earlier tests ran against the deployed source.
+- **giveFeedback.** Nadeye calls `giveFeedback(uint256,int128,uint8,string,string,string,string,bytes32)`, selector `0x3c036a7e`. REA recovers that selector from the compiled implementation as nonpayable, with matching leading arguments.
+- **Identity registry.** REA finds all five selectors Nadeye uses: `ownerOf` and `getAgentWallet` from the contract, and `register`, `setAgentURI` and `setAgentWallet` from the agent. The reputation registry's `getSummary` (`0x81bbba58`) is found as a view.
+
+### D2 — Pass — `REPUTATION_GAS` covers Monad pricing
+
+**Concern.** Live giveFeedback transactions on Monadscan carry gas limits from about 181k to 391k, three of the latest 50 are above 300k, and one used 298,989. Monad bills the gas limit, so these figures mean each sender's limit. They include the 21k base transaction cost and the caller's own strings.
+
+**Measurement.** `test/MonadGas.t.sol` makes Nadeye's exact call: the first-ever feedback for an agent, with every account and slot cold. It records every account and slot touched and reprices them at [Monad rates](https://docs.monad.xyz/developer-essentials/opcode-pricing): cold account 10,100; cold storage page 8,100; a new slot 27,900. It treats every slot as its own page, which can only overcount.
+
+| Measure | Value |
+| --- | --- |
+| Gas at Ethereum prices | 157,420 |
+| Accounts touched | 4 |
+| Cold slot reads | 6 |
+| New slots | 7 |
+| **Monad upper bound** | **264,020** (stipend 300,000) |
+
+Nadeye always sends the same two short tags and empty URIs, so its cost can't grow with input. The test fails if a future registry or pricing change pushes the bound past the stipend.
+
+### D3 — Medium (accepted, external) — A single key can upgrade all three registries
+
+All three are UUPS proxies. The only upgrades so far came from one EOA, `0x547289319C3e6aedB179C0b8e8aF0B5ACd062603`, on 2026-02-03. Upstream's upgrade script reads `OWNER_PRIVATE_KEY` from `.env`. Whoever holds that key can replace any registry's logic at any time.
+
+**Effect on Nadeye.** Bounded:
+- **Reputation.** Calls go out last, with a 300k cap, inside `try/catch`. A changed, reverting or gas-burning registry turns into `ReputationSkipped`, and attestations and points carry on. F1, F2 and invariants I1–I5 test this against reverting, re-entering and gas-burning registries.
+- **Identity.** A malicious identity registry could change who `linkAgent` accepts as an agent's controller (I5 only holds for an honest registry). That link affects reputation labels and nothing else: verdicts, tallies and points don't read it.
+- **What Nadeye can't prevent.** A changed registry can rewrite or drop the reputation history it stores.
+
+**Watch.** Monitor `Upgraded(address)` events on the three proxies. If one fires, re-run D1 and D2 against the new implementation before trusting new feedback.
 
 ## Invariants (all pass: 256 runs × 120 calls each, 30,720 calls per invariant)
 
@@ -50,7 +95,7 @@ The handler drives the contract with:
 
 Batch return values and "linked controller's judged verdict reaches the registry" are asserted inline on every call.
 
-Run: `cd contracts && forge test` (31 tests). Settings are in `foundry.toml`.
+Run: `cd contracts && forge test` (32 tests). Settings are in `foundry.toml`.
 
 ## Full Ultrafuzz campaign (optional)
 
