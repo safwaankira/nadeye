@@ -420,6 +420,7 @@ Corners:
   - Numeric columns right-aligned with tabular numerals.
 - **Status note (inline):** one sentence with a mono tag (··· busy, OK, ERR, EXAMPLE), in a persistent live region: `role="status"` for progress and success, `role="alert"` for errors from the person's own action. Sample data is always labelled EXAMPLE.
 - **Banner:** a persistent outcome message ("Your ERC-8004 agent is live and linked. View transaction ↗") with a Dismiss button. No auto-dismissing toasts.
+- **Menu button:** for choices that apply at once (the leaderboard sort), not a native select. A secondary button reads "Sort: Total points" with the label in `muted` and a chevron. It opens a `role="menu"` of `menuitemradio` items in `label` mono, the checked one marked by a single `primary` pixel cell. Arrows move, Home and End jump, a letter jumps by first letter, Enter or Space picks, Esc closes and refocuses the button, and Tab or a click outside closes it.
 - **Dialog:** confirmations use a native `<dialog>` with action-named buttons ("Show key", "Replace wallet"). Focus starts on Cancel, Esc cancels, and focus returns to the trigger. The extension's passkey hand-off on third-party sites keeps the browser's native confirm, because a web page cannot imitate it or click it.
 - **Settings:** every control has a label. Settings that apply immediately are switches (`role="switch"`). The threshold slider speaks its value in words.
 
