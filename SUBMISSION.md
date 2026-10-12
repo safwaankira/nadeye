@@ -77,7 +77,7 @@ The detector model and base extension are **Sieve** by Sriram Kiron (MIT, open s
 | 0:00–0:15 | **Problem.** Scroll a feed with a few AI images and say: "Can you tell with the naked eye? Can your agent?" Then: "This is Nadeye" (say it "nad-eye"). |
 | 0:15–0:45 | **Passkey.** On the live site, open My scanner, choose Create passkey (Touch ID) and show the two derived keys. Create the ERC-8004 agent; the progress steps tick by, about a second each on Monad. Click Use in extension and confirm. |
 | 0:45–1:15 | **Extension.** Browse. Badges appear and an AI image is blurred with `AI 97%`. Open the popup: mainnet, agent #id, queue sending. Open the last batch transaction on monadvision. |
-| 1:15–1:35 | **Community verdict.** In a second Chrome profile, a resized copy of the same image shows `AI 96% · 👥 1/1`. |
+| 1:15–1:35 | **Community verdict.** In a second Chrome profile, a resized copy of the same image shows `◆ AI 96% · 1/1 AI`. |
 | 1:35–2:05 | **Agents.** In Claude Desktop, ask "is this image AI-generated? <url>" and it calls `verify_image`. In a terminal, run `request <url>`; the validator log answers; show the `ValidationResponse` event on the explorer. |
 | 2:05–2:25 | **Reputation.** Leaderboard: agent chips, points, signal-to-noise. Read the ERC-8004 `getSummary` for your agent. |
 | 2:25–2:30 | **Close.** "Nadeye: see what the naked eye can't. Images never leave your device; trust lives on Monad." |

@@ -10,7 +10,7 @@ Plain, exact and calm. Nadeye reports evidence; it never accuses.
 - Privacy is stated, not implied: "The image never leaves your device. Only a 64-bit hash and a score reach Monad."
 - Errors say what went wrong and the fix, without apology: "Not enough MON for gas. Send a little MON to your identity address, then try again."
 - Sentence case everywhere. Uppercase only through the `label` style.
-- Emoji: only 👥 in a badge's community count, which is product copy. No decorative emoji.
+- No emoji. The badge community count is written in words ("1/1 AI").
 - The tagline is "See what the naked eye can't." Say the name "nad-eye" once in any video or talk.
 
 ## Color

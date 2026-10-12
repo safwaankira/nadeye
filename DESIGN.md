@@ -301,7 +301,7 @@ The feeling is calm and exact, like a lab instrument with a bit of Monad's commu
 - Give numbers exactly: "AI 94%", "3 of 4 scanners flagged it as AI".
 - Errors say what went wrong and how to fix it, without apology: "Not enough MON for gas. Send a little MON to your identity address, then try again."
 - State privacy plainly: "The image never leaves your device. Only a 64-bit hash and a score reach Monad."
-- No decorative emoji. The only one in the product is 👥 in a badge's community count.
+- No emoji in the product. The badge community count is written in words ("3/4 AI").
 
 ## Colors
 
