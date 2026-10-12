@@ -198,6 +198,23 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .status:empty, .banner:has(#ppToastText:empty) { display: none; }
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #view-me [aria-disabled="true"], #journalSlot [aria-disabled="true"] { opacity: .5; cursor: default; }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.act-totals { margin: 0 0 14px; }
+.act-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.act-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; min-width: 0; }
+.act-list button.act-row { all: unset; display: contents; cursor: pointer; }
+.act-list li:has(button.act-row:hover), .act-list li:has(button.act-row:focus-visible) { border-color: var(--accent); }
+.act-list button.act-row:focus-visible { outline: none; }
+.act-list .who { min-width: 0; overflow-wrap: anywhere; line-height: 1.35; }
+.bars { display: grid; grid-template-columns: repeat(14, 1fr); gap: 6px; height: 150px; align-items: end; }
+.bars .col { display: grid; grid-template-rows: 1fr 16px; height: 100%; min-width: 0; }
+.bars .bar-all { align-self: end; background: var(--line-strong); border-radius: 4px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; min-height: 0; }
+.bars .bar-ai { background: var(--fill-ai); }
+.bars .lbl { font: 10px var(--mono); color: var(--muted); text-align: center; white-space: nowrap; overflow: visible; justify-self: center; }
+.act-list .when { font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
+.act-list .empty { display: block; grid-column: 1 / -1; padding: 14px; border: 0; }
+.key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
+.key.ai { background: var(--fill-ai); } .key.all { background: var(--line-strong); }
 .journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 360px; overflow: auto; }
 .journal li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; }
 .status.busy { background: var(--accent-soft); color: var(--accent-ink); }
@@ -231,6 +248,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
     <nav role="tablist" aria-label="Sections">
       <button role="tab" id="tab-board" aria-selected="true" data-view="board">Leaderboard</button>
       <button role="tab" id="tab-registry" aria-selected="false" data-view="registry">Registry</button>
+      <button role="tab" id="tab-activity" aria-selected="false" data-view="activity" hidden>Activity</button>
       <button role="tab" id="tab-me" aria-selected="false" data-view="me">My scanner</button>
       <button role="tab" id="tab-how" aria-selected="false" data-view="how">How it works</button>
     </nav>
@@ -308,6 +326,32 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
           <div class="feed" id="feed"></div>
         </div>
       </div>
+    </section>
+
+    <section id="view-activity" hidden>
+      <div class="toolbar"><h2>Live activity</h2><span class="small" id="actNote" role="status" aria-live="polite"></span></div>
+      <dl class="stats act-totals" aria-label="Indexed totals">
+        <div class="stat"><dt>Verdicts</dt><dd id="aScans">–</dd></div>
+        <div class="stat"><dt>Passkey holders</dt><dd id="aPasskeys">–</dd></div>
+        <div class="stat"><dt>Verifier answers</dt><dd id="aAnswers">–</dd></div>
+        <div class="stat"><dt>Scanners</dt><dd id="aScanners">–</dd></div>
+      </dl>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="toolbar" style="margin:0"><h3>Last 14 days</h3><span class="small"><span class="key ai"></span>AI votes <span class="key all"></span>all verdicts</span></div>
+        <div id="actChart"></div>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <h3>Latest verdicts</h3>
+          <ol class="act-list" id="actFeed" aria-label="Latest verdicts, newest first"></ol>
+        </div>
+        <div class="panel">
+          <h3>Verifier agent answers</h3>
+          <p class="small" style="margin:0">Other agents ask the Nadeye Verifier to check an image through the ERC-8004 Validation Registry. Each answer is an authenticity score: 100 means no sign of AI.</p>
+          <ol class="act-list" id="actAnswers" aria-label="Verifier answers, newest first"></ol>
+        </div>
+      </div>
+      <p class="small">History and these totals come from an <a href="https://envio.dev" target="_blank" rel="noopener">Envio HyperIndex</a> indexer of the Nadeye contracts and the ERC-8004 Validation Registry. The leaderboard and lookups still read the contracts directly.</p>
     </section>
 
     <section id="view-me" hidden>
@@ -439,6 +483,7 @@ const CONFIG = {
   passkeys: "0x0000000000000000000000000000000000000000", // PasskeyRegistry, set after deploying
   journal: "0x0000000000000000000000000000000000000000",  // NadeyeJournal, set after deploying
   drip: "", // optional: the agent's https://…/drip URL, so new testnet accounts get gas MON
+  indexer: "", // optional: the Envio indexer's GraphQL URL (https://…/v1/graphql), for the Activity tab
 };
 const NETWORKS = {
   testnet: { label: "Monad Testnet", rpc: "https://testnet-rpc.monad.xyz", explorer: "https://testnet.monadvision.com" },
@@ -449,6 +494,7 @@ try {
   if (/^0x[0-9a-fA-F]{40}$/.test(p.get("contract") || "")) CONFIG.contract = p.get("contract");
   if (/^0x[0-9a-fA-F]{40}$/.test(p.get("passkeys") || "")) CONFIG.passkeys = p.get("passkeys");
   if (/^0x[0-9a-fA-F]{40}$/.test(p.get("journal") || "")) CONFIG.journal = p.get("journal");
+  if (/^https:\/\/[^\s"]+$/.test(p.get("indexer") || "")) CONFIG.indexer = p.get("indexer");
   if (p.get("network") in NETWORKS) CONFIG.network = p.get("network");
 } catch {}
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(a || "") && !/^0x0{40}$/.test(a);
@@ -779,7 +825,8 @@ async function checkFile(file) {
 
 document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
-  for (const v of ["board", "registry", "me", "how"]) $(`view-${v}`).hidden = v !== b.dataset.view;
+  for (const v of ["board", "registry", "activity", "me", "how"]) $(`view-${v}`).hidden = v !== b.dataset.view;
+  if (b.dataset.view === "activity") loadActivity();
   try { localStorage.setItem("pp-view", b.dataset.view); } catch {}
 }));
 function setSort(k) {
@@ -881,9 +928,119 @@ async function load() {
   }
   renderAll();
 }
+// ---- Activity (Envio indexer) ----------------------------------------------------------
+// History the contract only keeps as totals: every verdict, daily counts, and the verifier
+// agent's ERC-8004 answers, read from the indexer's GraphQL API. Optional: without
+// CONFIG.indexer the tab stays hidden and nothing else changes.
+const ACTIVITY_QUERY = `query Activity {
+  Totals { scans scanners passkeys verifierAnswers }
+  DailyStat(order_by: {day: desc}, limit: 14) { day scans aiVotes }
+  Attestation(order_by: [{block: desc}, {logIndex: desc}], limit: 15) {
+    timestamp isAI consensus first
+    scanner { id handle passkey agentId }
+    image { pHash reports aiVotes scoreSum }
+  }
+  VerifierAnswer(order_by: {timestamp: desc}, limit: 8) { timestamp authenticity verdict requesterAgentId image { pHash } }
+}`;
+let ACT = { state: "idle" }, actTimer = null;
+const hasIndexer = () => /^https?:\/\//.test(CONFIG.indexer || "");
+async function loadActivity() {
+  if (!hasIndexer()) return;
+  clearTimeout(actTimer);
+  if (ACT.state === "idle") { ACT = { state: "loading" }; renderActivity(); }
+  try {
+    const r = await fetch(CONFIG.indexer, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: ACTIVITY_QUERY }) });
+    const j = await r.json();
+    if (!r.ok || j.errors) throw new Error(j.errors?.[0]?.message || `HTTP ${r.status}`);
+    ACT = { state: "live", data: j.data, at: new Date() };
+  } catch (e) {
+    console.warn("indexer read failed", e);
+    ACT = ACT.data ? { ...ACT, stale: true } : { state: "error" };
+  }
+  renderActivity();
+  if (!$("view-activity").hidden) actTimer = setTimeout(loadActivity, 15_000);
+}
+function renderActivity() {
+  const d = ACT.data, t = d?.Totals?.[0];
+  $("actNote").textContent = ACT.state === "loading" ? "Reading the indexer…"
+    : ACT.state === "error" ? "The indexer is not reachable right now. Retrying when you come back to this tab."
+    : ACT.stale ? `Could not refresh. Showing ${ACT.at.toLocaleTimeString()}.`
+    : `Indexed by Envio · ${ACT.at.toLocaleTimeString()} · refreshes every 15 s`;
+  for (const [id, k] of [["aScans", "scans"], ["aPasskeys", "passkeys"], ["aAnswers", "verifierAnswers"], ["aScanners", "scanners"]]) $(id).textContent = t ? fmt(t[k]) : "–";
+  renderActChart(d?.DailyStat || []);
+  const feed = $("actFeed"), answers = $("actAnswers");
+  feed.replaceChildren(); answers.replaceChildren();
+  const empty = (list, text) => { const li = document.createElement("li"); li.className = "empty small"; li.textContent = text; list.append(li); };
+  if (!d) { empty(feed, ACT.state === "error" ? "No data." : "Loading…"); empty(answers, ACT.state === "error" ? "No data." : "Loading…"); return; }
+  for (const a of d.Attestation) {
+    const li = document.createElement("li"), btn = document.createElement("button");
+    btn.type = "button"; btn.className = "act-row";
+    const im = a.image, hex = im.pHash, vd = a.isAI ? { cls: "ai", text: "AI" } : { cls: "real", text: "real" };
+    const tile = hashTile(hex, 28, getComputedStyle(document.documentElement).getPropertyValue(a.isAI ? "--fill-ai" : "--fill-real"));
+    const who = document.createElement("span"); who.className = "who";
+    const name = document.createElement("b"); name.textContent = a.scanner.handle ? `@${a.scanner.handle}` : short(a.scanner.id);
+    const what = document.createElement("span"); what.className = "small";
+    what.textContent = ` voted ${vd.text}${a.first ? " · first to record it" : ""}${a.consensus === 1 ? " · agreed with the majority" : a.consensus === -1 ? " · against the majority" : ""}`;
+    who.append(name);
+    if (a.scanner.agentId != null) { const c = document.createElement("span"); c.className = "chip agent"; c.textContent = `#${a.scanner.agentId}`; who.append(" ", c); }
+    if (a.scanner.passkey) { const c = document.createElement("span"); c.className = "chip passkey"; c.textContent = "passkey"; who.append(" ", c); }
+    what.style.display = "block";
+    who.append(what);
+    const when = document.createElement("span"); when.className = "when"; when.textContent = since(a.timestamp);
+    btn.append(tile, who, when);
+    btn.setAttribute("aria-label", `${name.textContent} voted ${vd.text} on pHash ${hex}, ${since(a.timestamp)}. Show the community verdict.`);
+    btn.addEventListener("click", () => {
+      document.querySelector('nav button[data-view="registry"]').click();
+      showResult(null, hex, { reports: im.reports, aiVotes: im.aiVotes, meanScore: im.reports ? Number(im.scoreSum) / im.reports : 0 }, 0);
+      $("checkOut").scrollIntoView({ block: "nearest" });
+    });
+    li.append(btn); feed.append(li);
+  }
+  if (!d.Attestation.length) empty(feed, "No verdicts indexed yet.");
+  for (const v of d.VerifierAnswer) {
+    const li = document.createElement("li");
+    const score = document.createElement("b"); score.textContent = String(v.authenticity); score.style.textAlign = "center";
+    const who = document.createElement("span"); who.className = "who";
+    const verdict = v.verdict === "ai" ? "AI-generated" : v.verdict === "real" ? "no sign of AI" : v.verdict === "unsure" ? "unsure" : "answered";
+    who.textContent = `${verdict} · asked by agent #${v.requesterAgentId}${v.image ? ` · pHash ${v.image.pHash}` : ""}`;
+    const when = document.createElement("span"); when.className = "when"; when.textContent = since(v.timestamp);
+    li.title = "Authenticity 0-100"; li.append(score, who, when); answers.append(li);
+  }
+  if (!d.VerifierAnswer.length) empty(answers, "No answers yet. Agents ask through the ERC-8004 Validation Registry.");
+}
+function renderActChart(days) {
+  const today = Math.floor(Date.now() / 86_400_000), by = new Map(days.map((x) => [x.day, x]));
+  const rows = Array.from({ length: 14 }, (_, i) => by.get(today - 13 + i) || { day: today - 13 + i, scans: 0, aiVotes: 0 });
+  const max = Math.max(1, ...rows.map((r) => r.scans));
+  const total = rows.reduce((a, r) => a + r.scans, 0), ai = rows.reduce((a, r) => a + r.aiVotes, 0);
+  const chart = document.createElement("div");
+  chart.className = "bars";
+  chart.setAttribute("role", "img");
+  chart.setAttribute("aria-label", `Verdicts per day over the last 14 days: ${total} in total, ${ai} of them AI votes. Busiest day: ${Math.max(...rows.map((r) => r.scans))}.`);
+  rows.forEach((r, i) => {
+    const col = document.createElement("div");
+    col.className = "col";
+    col.title = `${new Date(r.day * 86_400_000).toLocaleDateString()}: ${r.scans} verdicts, ${r.aiVotes} AI`;
+    const bar = document.createElement("div");
+    bar.className = "bar-all"; bar.style.height = `${(r.scans / max) * 100}%`;
+    const aiBar = document.createElement("div");
+    aiBar.className = "bar-ai"; aiBar.style.height = r.scans ? `${(r.aiVotes / r.scans) * 100}%` : "0";
+    bar.append(aiBar);
+    const label = document.createElement("span");
+    label.className = "lbl";
+    label.textContent = i === 13 ? "today" : i % 3 === 1 ? new Date(r.day * 86_400_000).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+    col.append(bar, label);
+    chart.append(col);
+  });
+  $("actChart").replaceChildren(chart);
+}
+const since = (ts) => { const s = Math.max(0, Math.floor(Date.now() / 1000 - ts)); return s < 60 ? "just now" : s < 3600 ? `${Math.floor(s / 60)} min ago` : s < 86400 ? `${Math.floor(s / 3600)} h ago` : `${Math.floor(s / 86400)} d ago`; };
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("view-activity").hidden) loadActivity(); });
+$("tab-activity").hidden = !hasIndexer();
+
 DATA = configured() ? blank("loading") : { ...demoData(), state: "demo" };
 renderAll();
-try { const v = localStorage.getItem("pp-view"); if (v && v !== "board") document.querySelector(`nav button[data-view="${v}"]`)?.click(); } catch {}
+try { const v = localStorage.getItem("pp-view"); if (v && v !== "board" && (v !== "activity" || hasIndexer())) document.querySelector(`nav button[data-view="${v}"]`)?.click(); } catch {}
 load();
 setInterval(() => { if (configured()) load(); }, 60_000);
 </script>

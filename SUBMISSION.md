@@ -1,7 +1,7 @@
 # Monad Metropolis submission: Nadeye
 
 **Track:** 04 · Trust, Identity & AI Infrastructure
-**Bounties to tag:** Monad Foundation "Mera: One Passkey, Many Keys" · Monad Foundation "Best Mera-Powered UX on Monad"
+**Bounties to tag:** Monad Foundation "Mera: One Passkey, Many Keys" · Monad Foundation "Best Mera-Powered UX on Monad" · Envio "Best Use of Envio"
 **Network:** Monad testnet (chain 10143); the rules allow mainnet or testnet, and the same code deploys to mainnet unchanged
 **Team:** Safwaan Uddin (solo)
 
@@ -15,7 +15,8 @@
 - [ ] **Pitch video** (2 minutes or less, introducing the team, the problem and why you're building it). Script below, about 1:35.
 - [ ] **Live product link** on Monad testnet, with the access instructions below ("For judges").
 - [ ] **Product advertisement** (optional, 30 seconds or less). Script below.
-- [ ] **Portal:** create the team and project, choose Track 4, and tag both Mera bounties.
+- [ ] **Portal:** create the team and project, choose Track 4, and tag both Mera bounties and Envio's.
+- [ ] **Envio:** the indexer deployed on Envio Cloud (README step 7), the site rebuilt with its endpoint, the "how it uses Envio" answer below, and the optional Envio demo video (2 minutes or less, script below).
 
 ## Project name
 Nadeye (say "nad-eye": naked eye + nads)
@@ -122,6 +123,7 @@ The git history shows every commit.
 - Nadeye (testnet): `<NADEYE_ADDRESS>` · https://testnet.monadvision.com/address/<NADEYE_ADDRESS>
 - PasskeyRegistry (testnet): `<PASSKEYS_ADDRESS>`
 - NadeyeJournal (testnet): `<JOURNAL_ADDRESS>`
+- Envio indexer (GraphQL): `<INDEXER_ENDPOINT>`
 - Verifier agent: ERC-8004 agent #`<id>` · wallet `<address>` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:<id>`; add the link if it does)
 - Demo video: `<link>` · Pitch video: `<link>`
 
@@ -171,6 +173,29 @@ The git history shows every commit.
   - **The session expires visibly.** Keys live in tab memory and are wiped after 10 idle minutes, after an hour at most, or on **Lock now**. The page shows when the session ends.
   - **No faucet detour.** New testnet accounts get gas from the agent's drip, which pays each address once and has per-IP and daily caps.
   - **Errors say what to do,** for example: no PRF support, a dismissed prompt, or no gas.
+
+## Envio: how Nadeye uses HyperIndex (paste into the submission form)
+
+> Nadeye's contract stores totals, not history. An Envio HyperIndex indexer (`indexer/`: `config.yaml`, `schema.graphql`, `src/handlers/`) replays Nadeye's events on Monad testnet through HyperSync. It joins three contracts: the Nadeye registry, our PasskeyRegistry, and the shared ERC-8004 Validation Registry. The result is one model with derived and aggregated entities:
+> - **Image:** per-image tallies and the majority verdict.
+> - **Scanner:** points, signal and noise, linked ERC-8004 agent, and passkey proof, joined across two contracts.
+> - **Attestation:** one row per verdict, the history the chain doesn't keep.
+> - **VerifierAnswer:** our agent's ERC-8004 validation answers, filtered by tag from every validator's traffic. The handler decodes the agent's `data:` JSON report and links each answer to the image it judged.
+> - **DailyStat and Totals:** aggregates per day and overall, including passkey holders.
+>
+> This data drives the site's **Activity** tab: a 14-day chart, a live verdict stream with agent and passkey chips (click a verdict to see that image's community result), and the verifier agent's answers. It refreshes every 15 seconds.
+>
+> **Correctness is tested against the chain.** A parity test runs the real contract on anvil with several scanners over three days, feeds the logs through the handlers, and requires every image and scanner to equal the contract's own `getImage` and `getScanner`. A runtime check runs `envio start` against a local chain and compares Postgres with the contract.
+
+## Envio demo video (about 1:45, optional)
+
+| Time | Show |
+| --- | --- |
+| 0:00–0:15 | "Nadeye's contract keeps totals. Envio gives it a memory." Show `config.yaml` (three contracts, Monad testnet, HyperSync) and `schema.graphql` for a few seconds. |
+| 0:15–0:45 | The extension records a verdict on a page with AI images. Switch to the site's **Activity** tab: the verdict appears in the stream within seconds, with the scanner's agent and passkey chips. The 14-day chart and the totals tick up. |
+| 0:45–1:10 | Click the verdict: the Registry tab opens with that image's community verdict. Then show the verifier agent answering an ERC-8004 validation request. Its answer appears under "Verifier agent answers", linked to the image's pHash and decoded from the agent's report. |
+| 1:10–1:35 | Open the Envio Cloud GraphQL playground and run the `Activity` query, or a scanner's history, so the raw data is visible. |
+| 1:35–1:45 | `cd indexer && npm test`: the parity test against the real contract passes. "Every number here matches the chain." |
 
 ## Launch post (X)
 

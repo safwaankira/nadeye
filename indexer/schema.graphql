@@ -1,0 +1,78 @@
+# An image, keyed by its 64-bit perceptual hash (the contract's bytes32 key).
+type Image {
+  id: ID!                      # bytes32 key, 0x-prefixed
+  pHash: String!               # the 16 hex characters the site and SDK show
+  reports: Int!
+  aiVotes: Int!
+  scoreSum: BigInt!            # basis points, for the mean
+  verdict: String!             # "ai" | "real" | "split", from the majority
+  firstScanner: Scanner!
+  firstSeen: Int!
+  lastSeen: Int!
+  attestations: [Attestation!]! @derivedFrom(field: "image")
+  verifierAnswers: [VerifierAnswer!]! @derivedFrom(field: "image")
+}
+
+type Scanner {
+  id: ID!                      # address
+  handle: String
+  points: BigInt!
+  scans: Int!
+  firsts: Int!
+  signal: Int!                 # agreed with the consensus
+  noise: Int!                  # disagreed
+  agentId: BigInt              # linked ERC-8004 agent, if any
+  passkey: Boolean!            # proved a passkey in PasskeyRegistry
+  passkeyAt: Int
+  joined: Int!
+  lastSeen: Int!
+  attestations: [Attestation!]! @derivedFrom(field: "scanner")
+}
+
+# One recorded verdict: the history the contract itself only keeps as totals.
+type Attestation {
+  id: ID!                      # tx hash - log index
+  image: Image!
+  scanner: Scanner!
+  score: Int!                  # basis points of AI confidence
+  isAI: Boolean!               # an AI vote (score >= 8000)
+  first: Boolean!
+  consensus: Int!              # 1 agreed, -1 disagreed, 0 not judged
+  points: BigInt!
+  modelVersion: Int!
+  timestamp: Int! @index
+  block: Int! @index
+  logIndex: Int!               # with block, the order verdicts happened in
+  txHash: String!
+}
+
+# An ERC-8004 validation answer from a Nadeye verifier agent (tag "nadeye/ai-image").
+type VerifierAnswer {
+  id: ID!                      # requestHash
+  validator: String! @index    # the verifier agent's wallet
+  requesterAgentId: BigInt!    # the agent that asked
+  authenticity: Int!           # 0-100, 100 = no sign of AI
+  verdict: String              # from the agent's JSON report, when it decodes
+  aiConfidence: Float
+  image: Image                 # the judged image, when the report names its pHash
+  timestamp: Int! @index
+  txHash: String!
+}
+
+type DailyStat {
+  id: ID!                      # UTC day index (timestamp / 86400)
+  day: Int!
+  scans: Int!
+  aiVotes: Int!
+  newImages: Int!
+  verifierAnswers: Int!
+}
+
+type Totals {
+  id: ID!                      # "nadeye"
+  scans: Int!
+  images: Int!
+  scanners: Int!
+  passkeys: Int!
+  verifierAnswers: Int!
+}

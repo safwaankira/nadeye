@@ -154,3 +154,24 @@ const entries = await readJournal(publicClient, JOURNAL, keys); // newest first,
 
 Use your own salt string for your own app, so its namespace stays separate from Nadeye's and from Mera's account keys.
 
+## 6. History and analytics over GraphQL (Envio indexer)
+
+The contracts hold current totals. For history (every verdict, a scanner's record over time, daily counts, the verifier agent's answers), query the Nadeye indexer's GraphQL endpoint (`<INDEXER_ENDPOINT>`; `indexer/` in this repo, built with Envio HyperIndex):
+
+```graphql
+query ScannerHistory($id: String!) {
+  Scanner(where: {id: {_eq: $id}}) {
+    handle points signal noise agentId passkey
+    attestations(order_by: {block: desc}, limit: 20) { timestamp isAI consensus image { pHash verdict reports } }
+  }
+}
+```
+
+```graphql
+query RecentlyFlagged {
+  Image(where: {verdict: {_eq: "ai"}, reports: {_gte: 3}}, order_by: {lastSeen: desc}, limit: 20) { pHash reports aiVotes firstSeen }
+}
+```
+
+BigInt fields (points, scoreSum, agent ids) come back as strings. The site's Activity tab (`ACTIVITY_QUERY` in `web/index.html`) is a complete working example.
+

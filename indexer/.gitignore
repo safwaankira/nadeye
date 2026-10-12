@@ -1,0 +1,6 @@
+node_modules/
+build/
+generated/
+.envio/
+envio-env.d.ts
+.env

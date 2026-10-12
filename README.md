@@ -39,6 +39,7 @@ Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**, on
 | `extension/` | Chrome MV3 extension. Detection is Sieve. Nadeye adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
 | `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. On testnet it can also give new site accounts a little gas MON (`POST /drip`, opt-in). |
 | `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera): the onchain passkey proof, the private journal and a time-limited, scoped signing session. It has no backend and reads the chain directly. |
+| `indexer/` | **Envio HyperIndex** indexer for Monad: every verdict, scanner, passkey proof and verifier-agent answer (ERC-8004 Validation Registry), plus daily and global aggregates, behind one GraphQL API. It powers the site's **Activity** tab. |
 | `sdk/` | `nadeye-sdk`: hash an image, look up its community verdict, read scanners' reputation and passkey status, or ask a verifier agent. |
 | `docs/` | `INTEGRATE.md`: paste-ready integrations for apps, contracts and agents. |
 | `brand/` | The Nadeye eye mark (SVG and PNG): `nadeye-avatar` on night, with the verdict-colour pupil, and `nadeye-mark` on a transparent ground. |
@@ -96,8 +97,9 @@ The script deploys **Nadeye**, the **PasskeyRegistry** and the **NadeyeJournal**
 
 ```bash
 cd web && npm install
-node build.mjs 0xNADEYE testnet 0xPASSKEYS 0xJOURNAL [https://your-agent.example/drip]
-# writes web/dist/ (index.html, passkey.js, ethers.umd.min.js); the drip URL is optional
+node build.mjs 0xNADEYE testnet 0xPASSKEYS 0xJOURNAL \
+  [--drip=https://your-agent.example/drip] [--indexer=https://…/v1/graphql]
+# writes web/dist/ (index.html, passkey.js, ethers.umd.min.js); both flags are optional
 npx vercel deploy dist --prod                # or Netlify / GitHub Pages: upload the whole dist/ folder
 ```
 
@@ -128,7 +130,7 @@ On the site, open **My scanner**:
 5. Choose **Use in extension**, then confirm the dialog the extension shows.
 6. Optional: on **Registry**, check an image and choose **Unlock and save to my journal**. The entry shows up under **Private journal** on My scanner, on any device you sign in from.
 
-**Optional: gas for new accounts.** Run the agent with `NADEYE_DRIP=1`, add your site's origin to `NADEYE_CORS_ORIGINS`, and pass the agent's public `https://…/drip` URL to `build.mjs`. Each new address gets `NADEYE_DRIP_AMOUNT` (0.25 MON; agent setup plus the scanner top-up use about 0.16) once. There are per-IP and daily caps, and the agent wallet keeps its floor. The drip refuses to run on mainnet.
+**Optional: gas for new accounts.** Run the agent with `NADEYE_DRIP=1`, add your site's origin to `NADEYE_CORS_ORIGINS`, and pass the agent's public URL to `build.mjs` as `--drip=https://…/drip`. Each new address gets `NADEYE_DRIP_AMOUNT` (0.25 MON; agent setup plus the scanner top-up use about 0.16) once. There are per-IP and daily caps, and the agent wallet keeps its floor. The drip refuses to run on mainnet.
 
 **Monad's reserve balance.** An account holding less than 10 MON can move value only in its first transaction within 3 blocks. Otherwise the transfer reverts and still pays gas. Nadeye's two value transfers (the drip, and the identity key's gas top-up for the scanner key) both handle this:
 - **Before sending,** they wait until the sender has sent nothing in the last 3 blocks. That is about a second on Monad.
@@ -178,7 +180,17 @@ The validator answers within seconds with `validationResponse(requestHash, authe
 
 **Optional public endpoint.** Run `cloudflared tunnel --url http://127.0.0.1:8787`, then re-run `register --public-url https://…`. That puts the MCP and HTTP endpoints into the agent's ERC-8004 registration file, and the server accepts the tunnel's host name automatically.
 
-### 7. List Nadeye in Monad's protocol registry (optional)
+### 7. Deploy the indexer to Envio Cloud
+
+The indexer feeds the site's **Activity** tab. Without it the site still works and reads the contracts directly, but there's no history.
+
+1. **Get a token.** Create a free HyperSync token at [envio.dev/app/api-tokens](https://envio.dev/app/api-tokens).
+2. **Check it locally (optional).** Run `cd indexer && npm install && npm test`, then `cp .env.example .env`, fill it in, and run `npm run dev`. That needs Docker and serves GraphQL at `http://localhost:8080/v1/graphql`.
+3. **Connect the repo.** In [Envio Cloud](https://envio.dev/app), sign in with GitHub, add an indexer from your public `nadeye` repository, and set the root directory to `indexer/`. The CLI does the same: `npx envio-cloud indexer add --name nadeye --repo safwaanDK/nadeye`, then `indexer settings set` to set the root directory.
+4. **Set the variables.** `ENVIO_NADEYE_ADDRESS` and `ENVIO_PASSKEYS_ADDRESS` are required. `ENVIO_START_BLOCK` (the deploy block) speeds up the first sync. `ENVIO_VERIFIER_ADDRESS` (your agent's wallet) restricts the answers to your verifier.
+5. **Deploy and copy the endpoint.** Once it has synced, copy the GraphQL endpoint (`envio-cloud deployment endpoint …`). Rebuild the site with `--indexer=<endpoint>` and redeploy `dist/`.
+
+### 8. List Nadeye in Monad's protocol registry (optional)
 
 Fill in the addresses and site URL in `ecosystem/monad-protocols/nadeye.jsonc`, then open a pull request to [monad-crypto/protocols](https://github.com/monad-crypto/protocols) under `testnet/` (or `mainnet/` once it's on mainnet). The steps are in `ecosystem/monad-protocols/README.md`.
 
@@ -264,6 +276,22 @@ The scanner key then calls `register(x, y, assertion)`. The contract checks:
 
 **For other apps.** `verifyFor(account, challenge, assertion)` lets any contract require that account's passkey to approve an action. See [docs/INTEGRATE.md](docs/INTEGRATE.md#4-passkey-approval).
 
+### History and analytics (Envio HyperIndex)
+
+The contract keeps totals, not history. `indexer/` replays Nadeye's events on Monad testnet through HyperSync and builds:
+- **Image:** reports, AI votes, score sum, majority verdict, and first and last seen. Every verdict and verifier answer that touched it is reachable from here.
+- **Scanner:** points, scans, firsts, signal and noise, handle, linked ERC-8004 agent, and whether it proved a passkey. That joins two contracts in one record.
+- **Attestation:** one row per verdict, with the time, consensus judgement and points: the history the contract never stores.
+- **VerifierAnswer:** the ERC-8004 Validation Registry is shared by every validator on Monad, so the indexer keeps only answers tagged `nadeye/ai-image`, optionally from one wallet. It also decodes the agent's `data:` JSON report, so each answer links to the image it judged.
+- **DailyStat and Totals:** aggregates per UTC day and overall, including passkey holders and verifier answers. Neither is cheap to compute from the contracts.
+
+**What the site does with it:** the **Activity** tab shows a 14-day chart and a live stream of verdicts. Each verdict carries the scanner's agent and passkey chips, and clicking one opens that image's community result. The tab also lists the verifier agent's answers, and it refreshes every 15 seconds.
+
+**How it's checked:**
+- **Unit tests** run the handlers on simulated events.
+- **A parity test** runs the real `Nadeye.sol` on anvil with several scanners over three UTC days. It feeds the actual logs through the handlers and requires every image and scanner to equal the contract's own `getImage` and `getScanner`.
+- **A runtime check** runs `envio start` against anvil over RPC (`config.local.yaml`) and confirms the Postgres tables match the chain.
+
 ### The detector
 
 The model is Sieve's ViT-S/16 fine-tune. Its preprocessing lives in `extension/src/pipeline.js`, which is shared by the extension and the agent.
@@ -327,7 +355,8 @@ cd contracts && forge test     # 50 incl. 6 invariants (30,720 calls each; FOUND
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
 cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF + DNS-rebinding guard, Host/Origin allow-lists, validator spend limits; drip caps, once-per-address across restarts, serialized sends, mainnet refusal
 cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner + WebAuthn proof registered on the P256 precompile (anvil, osaka); signing scope blocks other destinations; journal encrypt -> Monad -> fresh-device decrypt
-cd web && npm run e2e          # real Chromium + virtual passkey (PRF): create -> drip -> unlock journal -> save -> fresh device decrypts -> idle lock (npx playwright install chromium first)
+cd web && npm run e2e          # real Chromium + virtual passkey (PRF): Activity tab from the indexer -> create -> drip -> unlock journal -> save -> fresh device decrypts -> idle lock (npx playwright install chromium first)
+cd indexer && npm test         # typecheck + handlers on simulated events + parity with the real contract (anvil): every image and scanner tally equals getImage / getScanner
 cd sdk && npm test             # lookupImage finds a resized copy of an attested image; pHash parity with the extension
 cd contracts && forge test --evm-version osaka   # the same contracts on the native P256 precompile
 ```

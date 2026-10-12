@@ -70,6 +70,9 @@ export const journalAbi = [
   { type: "function", name: "count", stateMutability: "view", inputs: [{ name: "journalId", type: "bytes32" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "entries", stateMutability: "view", inputs: [{ name: "journalId", type: "bytes32" }, { name: "offset", type: "uint256" }, { name: "limit", type: "uint256" }], outputs: [{ type: "bytes[]" }] },
   { type: "function", name: "writerOf", stateMutability: "view", inputs: [{ name: "journalId", type: "bytes32" }], outputs: [{ type: "address" }] },
+  // errors, so viem decodes reverts by name (the page matches on them for its messages)
+  { type: "error", name: "NotWriter", inputs: [{ name: "writer", type: "address" }] },
+  { type: "error", name: "BadEntry", inputs: [] },
 ];
 
 /** read and decrypt a whole journal (newest first), skipping anything that fails to open */

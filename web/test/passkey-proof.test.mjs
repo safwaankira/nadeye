@@ -74,6 +74,10 @@ test("a passkey proof registers onchain through the P256 precompile", { skip, ti
   const [has] = await pub.readContract({ address: registry, abi: passkeyRegistryAbi, functionName: "hasPasskeys", args: [[scanner.account.address]] });
   assert.equal(has, true);
   // the same proof cannot be replayed: the challenge nonce moved on
-  await assert.rejects(scanner.writeContract({ address: registry, abi: passkeyRegistryAbi, functionName: "register", args: [...keyToArgs(key), toWebAuthnAuth(a2)] }), /BadAssertion|reverted/);
+  await assert.rejects(scanner.writeContract({ address: registry, abi: passkeyRegistryAbi, functionName: "register", args: [...keyToArgs(key), toWebAuthnAuth(a2)] }), /BadAssertion/);
+  // one passkey backs one scanner: another account (funded, so the contract decides) is refused by name
+  const other = createWalletClient({ account: privateKeyToAccount("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"), chain: foundry, transport: http(RPC) });
+  const c2 = await pub.readContract({ address: registry, abi: passkeyRegistryAbi, functionName: "registrationChallenge", args: [other.account.address] });
+  await assert.rejects(other.writeContract({ address: registry, abi: passkeyRegistryAbi, functionName: "register", args: [...keyToArgs(key), toWebAuthnAuth(sign(viemHexToBytes(c2)))] }), /KeyInUse/);
   console.log(`register gas with the native P256 precompile: ${rcpt.gasUsed}`);
 });

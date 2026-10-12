@@ -1,5 +1,6 @@
 // Builds the Nadeye site.
-//   node web/build.mjs [nadeyeAddress] [testnet|mainnet] [passkeyRegistryAddress] [journalAddress] [dripUrl]
+//   node web/build.mjs [nadeyeAddress] [testnet|mainnet] [passkeyRegistryAddress] [journalAddress]
+//                      [--drip=https://agent/drip] [--indexer=https://indexer/v1/graphql]
 // 1. bundles src/passkey.js (Mera + viem, pinned in package.json) -> web/passkey.js
 // 2. writes web/dist/ (index.html, passkey.js, ethers.umd.min.js) for static hosting
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
@@ -15,7 +16,10 @@ await build({
 });
 
 let src = readFileSync(join(here, "index.html"), "utf8");
-const [contract, network, passkeys, journal, drip] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const flag = (name) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+const [contract, network, passkeys, journal] = args.filter((a) => !a.startsWith("--"));
+const drip = flag("drip"), indexer = flag("indexer");
 if (contract) {
   if (!/^0x[0-9a-fA-F]{40}$/.test(contract)) throw new Error("contract must be 0x + 40 hex chars");
   src = src.replace(/contract: "0x[0-9a-fA-F]{40}"/, `contract: "${contract}"`);
@@ -32,9 +36,10 @@ if (journal) {
   if (!/^0x[0-9a-fA-F]{40}$/.test(journal)) throw new Error("NadeyeJournal must be 0x + 40 hex chars");
   src = src.replace(/journal: "0x[0-9a-fA-F]{40}"/, `journal: "${journal}"`);
 }
-if (drip) {
-  if (!/^https:\/\/[^"\s]+$/.test(drip)) throw new Error("drip must be an https URL");
-  src = src.replace(/drip: "[^"]*"/, `drip: ${JSON.stringify(drip)}`);
+for (const [name, value] of [["drip", drip], ["indexer", indexer]]) {
+  if (!value) continue;
+  if (!/^https:\/\/[^"\s]+$/.test(value)) throw new Error(`--${name} must be an https URL`);
+  src = src.replace(new RegExp(`${name}: "[^"]*"`), `${name}: ${JSON.stringify(value)}`);
 }
 mkdirSync(join(here, "dist"), { recursive: true });
 writeFileSync(join(here, "dist", "index.html"), `<!doctype html>

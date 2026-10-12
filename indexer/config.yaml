@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Nadeye indexer (Envio HyperIndex): verdict history, scanners, passkey proofs and the
+# verifier agent's ERC-8004 validation answers on Monad, behind one GraphQL API.
+# Addresses come from ENVIO_* variables (see .env.example), so the same config runs
+# locally (`envio dev`) and on Envio Cloud.
+name: nadeye-indexer
+description: Nadeye image-provenance registry on Monad
+disable_default_cross_chain: true
+# every handler records the transaction an event came from (block number and timestamp are always there)
+field_selection:
+  transaction_fields: [hash]
+contracts:
+  - name: Nadeye
+    events:
+      - event: "Attested(bytes32 indexed pHash, address indexed scanner, uint16 score, uint8 modelVersion, bool first, int8 consensus, uint64 pointsAwarded)"
+      - event: "HandleSet(address indexed scanner, string handle)"
+      - event: "AgentLinked(address indexed scanner, uint256 indexed agentId)"
+      - event: "AgentUnlinked(address indexed scanner, uint256 indexed agentId)"
+  - name: PasskeyRegistry
+    events:
+      - event: "PasskeyRegistered(address indexed account, bytes32 indexed keyHash, bytes32 x, bytes32 y)"
+      - event: "PasskeyRemoved(address indexed account, bytes32 indexed keyHash)"
+  - name: ValidationRegistry
+    events:
+      - event: "ValidationResponse(address indexed validatorAddress, uint256 indexed agentId, bytes32 indexed requestHash, uint8 response, string responseURI, bytes32 responseHash, string tag)"
+chains:
+  - id: 10143 # Monad testnet (HyperSync)
+    start_block: ${ENVIO_START_BLOCK:-0}
+    contracts:
+      - name: Nadeye
+        address: ${ENVIO_NADEYE_ADDRESS}
+      - name: PasskeyRegistry
+        address: ${ENVIO_PASSKEYS_ADDRESS}
+      - name: ValidationRegistry
+        address: "0x8004Cb1BF31DAf7788923b405b754f57acEB4272" # ERC-8004 Validation Registry, Monad testnet

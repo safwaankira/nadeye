@@ -1,0 +1,31 @@
+{
+  "name": "nadeye-indexer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "start": "envio start",
+    "test": "tsc --noEmit -p . && vitest run --test-timeout=20000",
+    "typecheck": "tsc --noEmit -p .",
+    "pretest": "ENVIO_NADEYE_ADDRESS=${ENVIO_NADEYE_ADDRESS:-0x5FbDB2315678afecb367f032d93F642f64180aa3} ENVIO_PASSKEYS_ADDRESS=${ENVIO_PASSKEYS_ADDRESS:-0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512} envio codegen"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.2",
+    "typescript": "6.0.3",
+    "viem": "2.56.8",
+    "vitest": "4.1.0"
+  },
+  "dependencies": {
+    "envio": "3.13.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "overrides": {
+    "express": "4.22.3",
+    "viem": "2.56.8",
+    "ws": "8.22.0",
+    "esbuild": "0.28.2"
+  }
+}

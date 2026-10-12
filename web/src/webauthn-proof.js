@@ -94,4 +94,8 @@ export const passkeyRegistryAbi = [
     ],
     outputs: [],
   },
+  // errors, so viem decodes reverts by name (the page matches on KeyInUse for its message)
+  { type: "error", name: "InvalidPublicKey", inputs: [] },
+  { type: "error", name: "KeyInUse", inputs: [{ name: "account", type: "address" }] },
+  { type: "error", name: "BadAssertion", inputs: [] },
 ];

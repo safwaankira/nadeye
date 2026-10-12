@@ -68,6 +68,7 @@ test("journal on Monad: write, then a fresh 'device' reads and decrypts it", { s
   const raw = await pub.readContract({ address: journal, abi: journalAbi, functionName: "entries", args: [keys.id, 0n, 10n] });
   assert.ok(raw.every((b) => !Buffer.from(b.slice(2), "hex").toString("utf8").includes("first") && !Buffer.from(b.slice(2), "hex").toString("utf8").includes("second")));
   // someone else can't write into this journal
-  const mallory = w("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a8d4ab8a7f41");
-  await assert.rejects(mallory.writeContract({ address: journal, abi: journalAbi, functionName: "append", args: [keys.id, "0x01"] }), /NotWriter|reverted/);
+  const mallory = w("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a");
+  // anvil account 2 is funded, so the refusal must come from the contract itself
+  await assert.rejects(mallory.writeContract({ address: journal, abi: journalAbi, functionName: "append", args: [keys.id, "0x01"] }), /NotWriter/);
 });

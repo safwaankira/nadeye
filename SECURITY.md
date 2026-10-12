@@ -258,3 +258,11 @@ Scope: `contracts/src/NadeyeJournal.sol`, `web/src/journal.js`, the session and 
 
 **Dependencies.** `onnxruntime-node` moved from 1.22.0 to 1.30.0, because the older version pulled vulnerable `adm-zip` and `sprintf-js` (through `global-agent`) into its install script. `npm audit --omit=dev` now reports 0 for `agent/` and `web/`. The detector gives the same verdict on the test fixture.
 
+## Indexer (Envio HyperIndex) review
+
+- **Read-only.** The indexer only reads public events and holds no keys. Its GraphQL API is read-only, so nothing it serves can move funds or change onchain state.
+- **Shared registry, untrusted input.** The ERC-8004 Validation Registry accepts answers from any validator. Answers count only with the `nadeye/ai-image` tag, and only from `ENVIO_VERIFIER_ADDRESS` when that is set. The agent's report is attacker-controlled input, so the handler decodes it with limits: `data:` JSON only, under 16 KB, the verdict cut to 16 characters, and the pHash checked against a strict pattern. A report that fails to parse is still recorded, just without the decoded fields (tested).
+- **Rendering.** Indexer data reaches the page through `textContent` only. In the browser e2e, a hostile scanner handle (`<img onerror>`) stays text.
+- **Availability.** The Activity tab is optional. If the indexer is down, the tab keeps the last good read and says so, while the leaderboard and lookups keep reading the contracts directly.
+- **Correctness.** A parity test compares every indexed image and scanner with the contract's own view functions after a multi-scanner, multi-day workload on the real contract.
+

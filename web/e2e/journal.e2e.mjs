@@ -55,7 +55,7 @@ cleanup.push(() => api.close());
 
 // build the site for these addresses and serve dist/
 await new Promise((ok, fail) => {
-  const b = spawn("node", ["build.mjs", nadeye, "testnet", passkeys, journal, "https://drip.test/drip"], { cwd: join(ROOT, "web"), stdio: "inherit" });
+  const b = spawn("node", ["build.mjs", nadeye, "testnet", passkeys, journal, "--drip=https://drip.test/drip", "--indexer=https://indexer.test/v1/graphql"], { cwd: join(ROOT, "web"), stdio: "inherit" });
   b.on("exit", (c) => (c ? fail(new Error("build failed")) : ok()));
 });
 const DIST = join(ROOT, "web/dist");
@@ -81,6 +81,25 @@ await ctx.route("https://drip.test/**", async (route) => {
   const r = await fetch("http://127.0.0.1:8573/drip", { method: req.method(), headers: { ...req.headers(), host: "drip.test" }, body: req.method() === "POST" ? req.postData() : undefined });
   await route.fulfill({ status: r.status, headers: Object.fromEntries(r.headers), body: await r.text() });
 });
+// the Envio indexer's GraphQL (Hasura shape: BigInt as strings), with a hostile handle
+const now = Math.floor(Date.now() / 1000), today = Math.floor(now / 86400);
+let indexerUp = true, indexerQueries = 0;
+const ACTIVITY = { data: {
+  Totals: [{ scans: 42, scanners: 5, passkeys: 2, verifierAnswers: 3 }],
+  DailyStat: [{ day: today, scans: 12, aiVotes: 7 }, { day: today - 1, scans: 30, aiVotes: 9 }],
+  Attestation: [
+    { timestamp: now - 30, isAI: true, consensus: 1, first: false, scanner: { id: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", handle: "<img src=x onerror=alert(2)>", passkey: true, agentId: "7" }, image: { pHash: "c3a1f00d12345678", reports: 3, aiVotes: 3, scoreSum: "28500" } },
+    { timestamp: now - 4000, isAI: false, consensus: 0, first: true, scanner: { id: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", handle: null, passkey: false, agentId: null }, image: { pHash: "00000000000000aa", reports: 1, aiVotes: 0, scoreSum: "1200" } },
+  ],
+  VerifierAnswer: [{ timestamp: now - 90, authenticity: 3, verdict: "ai", requesterAgentId: "42", image: { pHash: "c3a1f00d12345678" } }],
+} };
+await ctx.route("https://indexer.test/**", async (route) => {
+  indexerQueries++;
+  const body = JSON.parse(route.request().postData() || "{}");
+  if (!indexerUp) return route.fulfill({ status: 503, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify({ errors: [{ message: "down" }] }) });
+  assert.match(body.query, /Attestation\(order_by: \[\{block: desc\}, \{logIndex: desc\}\]/);
+  await route.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify(ACTIVITY) });
+});
 const page = await ctx.newPage();
 const logs = [];
 page.on("console", (m) => { if (m.type() === "error") logs.push(m.text()); });
@@ -96,6 +115,31 @@ const busyDone = async () => { await page.waitForFunction(() => !document.getEle
 const err = () => page.locator("#ppError").textContent();
 
 await page.goto(SITE + "/");
+
+// Activity tab (Envio indexer): totals, chart, feed, verifier answers, click-through, errors
+await page.click('nav button[data-view="activity"]');
+await page.waitForFunction(() => document.getElementById("aScans").textContent === "42");
+assert.equal(await page.locator("#aPasskeys").textContent(), "2");
+assert.equal(await page.locator("#actFeed li").count(), 2);
+assert.equal(await page.locator("#actFeed img").count(), 0, "a hostile handle stays text");
+assert.match(await page.locator("#actFeed li").first().textContent(), /<img src=x onerror=alert\(2\)> #7 passkey voted AI · agreed with the majority/);
+assert.match(await page.locator("#actAnswers li").first().textContent(), /AI-generated · asked by agent #42 · pHash c3a1f00d12345678/);
+assert.match(await page.locator("#actChart .bars").getAttribute("aria-label"), /42 in total, 16 of them AI votes/);
+await page.locator("#actFeed li").first().locator("button").click();
+await page.waitForSelector("#view-registry:not([hidden])");
+assert.match(await page.locator("#checkOut").textContent(), /3 of 3 scanners flagged it as AI/);
+indexerUp = false;
+await page.click('nav button[data-view="activity"]');
+await page.waitForFunction(() => /Could not refresh/.test(document.getElementById("actNote").textContent));
+assert.equal(await page.locator("#actFeed li").count(), 2, "a failed refresh keeps the last good data");
+indexerUp = true;
+await page.setViewportSize({ width: 390, height: 800 });
+await page.locator("#view-activity").screenshot({ path: join(SHOTS, "activity-mobile.png") });
+assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "activity: no horizontal scroll at phone width");
+await page.setViewportSize({ width: 1100, height: 900 });
+await page.locator("#view-activity").screenshot({ path: join(SHOTS, "activity.png") });
+console.log("activity tab ok:", indexerQueries, "indexer queries");
+
 await page.click('nav button[data-view="me"]');
 await page.fill("#ppName", "e2e");
 await page.click("#ppCreate");
@@ -175,7 +219,7 @@ await page.click('nav button[data-view="me"]');
 assert.ok(await page.locator("#ppJournalPanel").isHidden() || !(await page.locator("#ppSignedIn").isVisible()));
 
 await page.screenshot({ path: join(SHOTS, "journal-e2e.png"), fullPage: true });
-assert.deepEqual(logs.filter((l) => !/favicon|404|ERR_TUNNEL_CONNECTION_FAILED/.test(l)), []);
+assert.deepEqual(logs.filter((l) => !/favicon|404|ERR_TUNNEL_CONNECTION_FAILED|status of 503/.test(l)), []);
 console.log(`JOURNAL E2E PASS (screenshots in ${SHOTS})`);
 await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
 process.exit(0);
