@@ -321,6 +321,7 @@ cd contracts && forge test     # 50 incl. 6 invariants (30,720 calls each; FOUND
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
 cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF + DNS-rebinding guard, Host/Origin allow-lists, validator spend limits; drip caps, once-per-address across restarts, serialized sends, mainnet refusal
 cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner + WebAuthn proof registered on the P256 precompile (anvil, osaka); signing scope blocks other destinations; journal encrypt -> Monad -> fresh-device decrypt
+cd web && npm run e2e          # real Chromium + virtual passkey (PRF): create -> drip -> unlock journal -> save -> fresh device decrypts -> idle lock (npx playwright install chromium first)
 cd sdk && npm test             # lookupImage finds a resized copy of an attested image; pHash parity with the extension
 cd contracts && forge test --evm-version osaka   # the same contracts on the native P256 precompile
 ```
