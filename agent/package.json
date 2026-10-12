@@ -20,7 +20,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "onnxruntime-node": "^1.22.0",
+    "onnxruntime-node": "1.30.0",
     "sharp": "^0.35.5",
     "undici": "^6.28.1",
     "viem": "^2.57.4",

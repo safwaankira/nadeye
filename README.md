@@ -9,7 +9,7 @@ Nadeye is an open provenance protocol for images: three onchain primitives, plus
 - **Registry.** Each verdict is stored as a 64-bit perceptual hash plus a confidence score, never the image, so resized and recompressed copies still match.
 - **Reputation.** Each scanner's accuracy against the consensus is written to its **ERC-8004** agent reputation.
 - **Passkey proof.** `PasskeyRegistry` binds a scanner to a WebAuthn passkey, verified by Monad's **P256 precompile**, and any contract can require a passkey's approval through `verifyFor`.
-- **People** run a Chrome extension that detects AI-generated images on their own device, and sign in with a passkey (Mera, no seed phrase).
+- **People** run a Chrome extension that detects AI-generated images on their own device, and sign in with a passkey (Mera, no seed phrase). The same passkey keeps a **private journal** of images they checked, encrypted on their device and stored on Monad.
 - **AI agents** call the Nadeye Verifier over MCP, HTTP or the ERC-8004 Validation Registry, to check an image before they repost it or act on it.
 - **Developers** read it with `nadeye-sdk` or one `INadeye` call. See [docs/INTEGRATE.md](docs/INTEGRATE.md).
 
@@ -35,10 +35,10 @@ Built for **Monad Metropolis, Track 4: Trust, Identity & AI Infrastructure**, on
 
 | Path | What it is |
 | --- | --- |
-| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. `PasskeyRegistry.sol`: WebAuthn/P256 passkey proofs on the precompile. `interfaces/INadeye.sol` and `examples/ProvenanceGallery.sol` for integrators. 46 Foundry tests, including tests against the real ERC-8004 reference registries. |
+| `contracts/` | `Nadeye.sol`: verdict registry, points, active days, signal-to-noise, ERC-8004 agent linking, and consensus feedback to the ERC-8004 Reputation Registry. `PasskeyRegistry.sol`: WebAuthn/P256 passkey proofs on the precompile. `NadeyeJournal.sol`: append-only storage for passkey-encrypted journals. `interfaces/INadeye.sol` and `examples/ProvenanceGallery.sol` for integrators. 50 Foundry tests, including tests against the real ERC-8004 reference registries. |
 | `extension/` | Chrome MV3 extension. Detection is Sieve. Nadeye adds perceptual hashing, the Monad client, batching, community badges, the agent/reputation display and the passkey-site bridge. |
-| `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. |
-| `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera), including the onchain passkey proof. It has no backend and reads the chain directly. |
+| `agent/` | **Nadeye Verifier**: a Node agent that runs on a Mac. It runs the same model locally, serves an MCP server (stdio + HTTP), an HTTP API and an ERC-8004 registration file, and answers ERC-8004 validation requests onchain. On testnet it can also give new site accounts a little gas MON (`POST /drip`, opt-in). |
+| `web/` | Leaderboard, registry lookup and the **My scanner** passkey profile (Mera): the onchain passkey proof, the private journal and a time-limited, scoped signing session. It has no backend and reads the chain directly. |
 | `sdk/` | `nadeye-sdk`: hash an image, look up its community verdict, read scanners' reputation and passkey status, or ask a verifier agent. |
 | `docs/` | `INTEGRATE.md`: paste-ready integrations for apps, contracts and agents. |
 | `brand/` | The Nadeye eye mark (SVG and PNG): `nadeye-avatar` on night, with the verdict-colour pupil, and `nadeye-mark` on a transparent ground. |
@@ -59,7 +59,7 @@ Everything else in this repo was written during the Metropolis build window (see
 
 ## Runbook: Monad testnet (Mac, about an hour)
 
-You need Node ≥ 20, [Foundry](https://book.getfoundry.sh/getting-started/installation), Chrome, and about **1 testnet MON** from the [Monad faucet](https://faucet.monad.xyz). Deploying both contracts takes about 4.0M gas, which is about 0.4 MON at Monad's 100-gwei minimum base fee. The rest covers the verifier agent and your passkey profile. For mainnet, use `monad_mainnet` and `mainnet` wherever `testnet` appears below; the scripts pick the matching ERC-8004 registries by chain ID.
+You need Node ≥ 20, [Foundry](https://book.getfoundry.sh/getting-started/installation), Chrome, and about **1.5 testnet MON** from the [Monad faucet](https://faucet.monad.xyz). Deploying the three contracts uses about 4.6M gas. Monad charges for the gas limit, and Foundry sets that 30% above the estimate, so budget about 0.6 MON at Monad's 100-gwei minimum base fee. The rest covers the verifier agent, your passkey profile and, if you turn it on, the drip for new accounts. For mainnet, use `monad_mainnet` and `mainnet` wherever `testnet` appears below; the scripts pick the matching ERC-8004 registries by chain ID.
 
 ### 0. Publish the code with its history
 
@@ -86,17 +86,18 @@ Get testnet MON from the faucet for the deployer, and send about 0.3 MON to the 
 
 ```bash
 cd contracts
-forge build && forge test                    # 46 passing
+forge build && forge test                    # 50 passing
 forge script script/Deploy.s.sol --rpc-url monad_testnet --account deployer --broadcast
 ```
 
-The script deploys **Nadeye** and the **PasskeyRegistry**, and prints both addresses. Nadeye is wired to Monad testnet's ERC-8004 registries: Identity `0x8004A818…D9e` and Reputation `0x8004B663…713`. The script refuses to deploy if they aren't there. Verify both sources with Monad's [Foundry verification guide](https://docs.monad.xyz/guides/verify-smart-contract/foundry) (chain id 10143).
+The script deploys **Nadeye**, the **PasskeyRegistry** and the **NadeyeJournal**, and prints the three addresses. Nadeye is wired to Monad testnet's ERC-8004 registries: Identity `0x8004A818…D9e` and Reputation `0x8004B663…713`. The script refuses to deploy if they aren't there. Verify the sources with Monad's [Foundry verification guide](https://docs.monad.xyz/guides/verify-smart-contract/foundry) (chain id 10143).
 
 ### 3. Host the site
 
 ```bash
 cd web && npm install
-node build.mjs 0xNADEYE testnet 0xPASSKEYS   # writes web/dist/ (index.html, passkey.js, ethers.umd.min.js)
+node build.mjs 0xNADEYE testnet 0xPASSKEYS 0xJOURNAL [https://your-agent.example/drip]
+# writes web/dist/ (index.html, passkey.js, ethers.umd.min.js); the drip URL is optional
 npx vercel deploy dist --prod                # or Netlify / GitHub Pages: upload the whole dist/ folder
 ```
 
@@ -121,10 +122,13 @@ To share the extension with judges, zip the built `extension/` folder (without `
 On the site, open **My scanner**:
 
 1. Choose **Create passkey**.
-2. Send the identity address about 0.2 testnet MON.
+2. If the site has a drip URL, the agent sends the identity address gas MON on its own. Otherwise send it about 0.2 testnet MON from the faucet.
 3. Choose **Create ERC-8004 agent** and enter your handle. This takes 4–5 transactions. The identity key registers the agent, your scanner key becomes its `agentWallet` with its own EIP-712 consent, and the scanner links it in Nadeye.
 4. Choose **Prove with passkey** and answer two passkey prompts. Monad's P256 precompile verifies the proof, and your scanner gets the passkey chip on the leaderboard.
 5. Choose **Use in extension**, then confirm the dialog the extension shows.
+6. Optional: on **Registry**, check an image and choose **Unlock and save to my journal**. The entry shows up under **Private journal** on My scanner, on any device you sign in from.
+
+**Optional: gas for new accounts.** Run the agent with `NADEYE_DRIP=1`, add your site's origin to `NADEYE_CORS_ORIGINS`, and pass the agent's public `https://…/drip` URL to `build.mjs`. Each new address gets `NADEYE_DRIP_AMOUNT` (0.1 MON) once. There are per-IP and daily caps, and the agent wallet keeps its floor. The drip refuses to run on mainnet.
 
 In the extension popup, turn on **Contribute verdicts** and browse.
 
@@ -133,6 +137,7 @@ In the extension popup, turn on **Contribute verdicts** and browse.
 ```bash
 cd agent
 npm install                                   # macOS arm64 binaries for onnxruntime + sharp
+# on Linux x64 without CUDA: ONNXRUNTIME_NODE_INSTALL=skip npm install  (the CPU build is bundled)
 cp .env.example .env                          # set NADEYE_CONTRACT and AGENT_PRIVATE_KEY (network: testnet)
 npm run register -- --handle nadeye_verifier   # ERC-8004 agent + link; prints AGENT_ID
 echo "AGENT_ID=<id>" >> .env
@@ -218,6 +223,22 @@ The passkey's PRF output gives a 24-word mnemonic, from which BIP-44 derives:
 
 The same passkey re-derives the same accounts on any device. The recovery phrase is available from the page in case the domain ever changes.
 
+**The session.** These keys sign without a prompt, so the page limits them:
+- **Scope.** They only sign transactions to Nadeye's three contracts, the ERC-8004 Identity Registry, or your own scanner key (gas top-ups). Anything else is refused before signing.
+- **Lifetime.** They live only in this tab's memory and are wiped after 10 minutes without input, after an hour at most, or on **Lock now**. My scanner shows when the session ends.
+
+### Private journal (Mera PRF, not an account)
+
+The journal uses the same passkey for encryption, not for an account:
+1. **A separate PRF salt.** The passkey's PRF is evaluated under its own salt, `sha256("nadeye:journal:v1")`. Mera's account keys use a different one.
+2. **Two values from one output.** HKDF-SHA256 turns that output into an AES-256-GCM key and an opaque journal id. Neither is related to the account keys.
+3. **Encrypted before it leaves.** Each entry (image hash, registry verdict, counts, your note, time) is encrypted in the browser, with the journal id as associated data. The scanner key appends it to `NadeyeJournal`.
+4. **Readable from any device.** On a new device the passkey re-derives the id and key and decrypts every entry. Nothing secret is stored anywhere.
+
+**What's public:** the scanner address that writes a journal, how many entries it has, and when they were written. **What's private:** what each entry says.
+
+The first address to write a journal id becomes its only writer, so nobody can add entries to yours. Entries are at most 512 bytes, and notes are cut to fit by whole characters.
+
 ### Passkey proof (P256 precompile)
 
 `PasskeyRegistry` turns the same passkey into an onchain fact.
@@ -290,15 +311,16 @@ See [SECURITY.md](SECURITY.md).
 - **Signal-to-noise** judges each verdict against the majority at the time it was recorded. It is not recomputed later.
 - **pHash** doesn't survive heavy crops, rotation or mirroring.
 - **Mera's PRF requirement.** Desktop Chrome supports it only for passkeys saved in Google Password Manager.
+- **Journal metadata.** The journal hides what you saved, not that you saved something. Its writer is your scanner address, so the entry count and timing are linked to your public scanner.
 - **Upstream test.** One Sieve unit test (C2PA URI in head) also fails on Sieve's own `main`. Nadeye doesn't modify `forensics.js`.
 
 ## Tests
 
 ```bash
-cd contracts && forge test     # 46 incl. 6 invariants (30,720 calls each; FOUNDRY_PROFILE=deep for ~205,000) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation; passkey proofs (replay, UV, challenge, high-s, one key per account)
+cd contracts && forge test     # 50 incl. 6 invariants (30,720 calls each; FOUNDRY_PROFILE=deep for ~205,000) + hostile-registry tests; points, quorum, ties, cap, batching, paging, fuzz, ERC-8004 link/feedback/rotation; passkey proofs (replay, UV, challenge, high-s, one key per account); journal writer lock, size limits, paging
 cd extension && npm test       # pHash robustness, chain e2e on anvil, real service worker under mocked chrome incl. bridge origin checks
-cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF + DNS-rebinding guard, Host/Origin allow-lists, validator spend limits
-cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner + WebAuthn proof registered on the P256 precompile (anvil, osaka)
+cd agent && npm test           # register -> validationRequest -> validator answers onchain -> attest -> HTTP + MCP; SSRF + DNS-rebinding guard, Host/Origin allow-lists, validator spend limits; drip caps, once-per-address across restarts, serialized sends, mainnet refusal
+cd web && npm test             # passkey derivation + Mera sessions -> ERC-8004 agent with agentWallet -> linked scanner + WebAuthn proof registered on the P256 precompile (anvil, osaka); signing scope blocks other destinations; journal encrypt -> Monad -> fresh-device decrypt
 cd sdk && npm test             # lookupImage finds a resized copy of an attested image; pHash parity with the extension
 cd contracts && forge test --evm-version osaka   # the same contracts on the native P256 precompile
 ```

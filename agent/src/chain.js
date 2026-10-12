@@ -1,6 +1,6 @@
 // Monad side of the agent: Nadeye registry + the ERC-8004 registries.
 import { createPublicClient, createWalletClient, http, parseAbi, parseEventLogs, keccak256, toBytes, toHex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { privateKeyToAccount, nonceManager } from "viem/accounts";
 
 // Onchain vote bands, mirroring Nadeye.sol: >= 80% is an AI vote, < 50% a
 // real vote; the contract rejects anything in between as unsure.
@@ -55,7 +55,8 @@ export const toKey = (hex) => "0x" + hex.padStart(64, "0");
 export function createChainClient(cfg) {
   const transport = http(cfg.rpcUrl, { batch: { wait: 10 }, retryCount: 2 });
   const pub = createPublicClient({ chain: cfg.chain, transport });
-  const account = cfg.privateKey ? privateKeyToAccount(cfg.privateKey) : null;
+  // one nonce manager per wallet: the validator, attestations and the drip may send at once
+  const account = cfg.privateKey ? privateKeyToAccount(cfg.privateKey, { nonceManager }) : null;
   const wallet = account ? createWalletClient({ account, chain: cfg.chain, transport }) : null;
 
   async function send(address, abi, functionName, args) {

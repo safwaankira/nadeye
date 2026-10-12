@@ -4,6 +4,7 @@
 //   GET  /health
 //   GET  /.well-known/agent-registration.json   (ERC-8004 registration file)
 //   POST /mcp     (MCP over streamable HTTP, stateless)
+//   POST /drip    {"address": "0x…"} -> a little testnet MON for a new account (opt-in, testnet only)
 import { createServer } from "node:http";
 import { agentCard } from "./card.js";
 
@@ -34,7 +35,15 @@ function hostAllowList(cfg, publicUrl) {
 const hostOf = (h = "") => h.toLowerCase().replace(/^\[([^\]]+)\](:\d+)?$/, "$1").replace(/:\d+$/, "");
 const PUBLIC_PATHS = new Set(["/health", "/.well-known/agent-registration.json", "/agent-card.json"]);
 
-export function createApi({ verifier, cfg, mcpHandler = null, publicUrl = null }) {
+// Behind a local tunnel every request arrives from loopback, so take the client address from
+// the tunnel's header; a request that reaches us directly can't choose its own IP this way.
+function clientIp(req) {
+  const remote = req.socket.remoteAddress || "?";
+  if (!/^(127\.|::1$|::ffff:127\.)/.test(remote)) return remote;
+  return String(req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"] || remote).split(",")[0].trim();
+}
+
+export function createApi({ verifier, cfg, mcpHandler = null, publicUrl = null, drip = null }) {
   const hosts = hostAllowList(cfg, publicUrl);
   const origins = new Set(cfg.corsOrigins || []);
   const hits = new Map(); // ip -> [timestamps], 60 requests/minute
@@ -69,7 +78,17 @@ export function createApi({ verifier, cfg, mcpHandler = null, publicUrl = null }
         return send(200, agentCard(cfg, { agentId: cfg.agentId, publicUrl }));
       }
       if (url.pathname === "/mcp" && mcpHandler) return mcpHandler(req, res);
-      if (url.pathname !== "/verify") return send(404, { error: "not found", routes: ["/verify", "/health", "/mcp", "/.well-known/agent-registration.json"] });
+      if (url.pathname === "/drip" && drip?.enabled) {
+        if (req.method !== "POST") return send(405, { error: "use POST with {\"address\": \"0x…\"}" });
+        if (limited(clientIp(req))) return send(429, { error: "rate limited: 60 requests per minute" });
+        const body = await readBody(req);
+        if (body.length > 1024) return send(413, { error: "body too large" });
+        let address;
+        try { ({ address } = JSON.parse(body.toString("utf8") || "{}")); } catch { return send(400, { error: "Send JSON {\"address\": \"0x…\"}" }); }
+        try { return send(200, await drip.request(address, clientIp(req))); }
+        catch (e) { return send(e.status || 500, { error: e.status ? e.message : "drip failed" }); }
+      }
+      if (url.pathname !== "/verify") return send(404, { error: "not found", routes: ["/verify", "/health", "/mcp", "/.well-known/agent-registration.json", ...(drip?.enabled ? ["/drip"] : [])] });
       if (limited(req.socket.remoteAddress || "?")) return send(429, { error: "rate limited: 60 requests per minute" });
 
       if (req.method === "GET") {

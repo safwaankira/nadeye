@@ -15,6 +15,7 @@ import { createDetector } from "./detector.js";
 import { createChainClient, identityAbi, validationAbi } from "./chain.js";
 import { createVerifier } from "./verify.js";
 import { createApi } from "./server.js";
+import { createDrip } from "./drip.js";
 import { runStdio, httpMcpHandler } from "./mcp.js";
 import { createValidator } from "./validator.js";
 import { agentCard, toDataUri } from "./card.js";
@@ -50,7 +51,11 @@ async function main() {
     case "serve": {
       const { verifier } = await boot();
       const publicUrl = opt("public-url");
-      const api = createApi({ verifier, cfg, publicUrl, mcpHandler: httpMcpHandler({ verifier, chain }) });
+      const drip = cfg.drip.enabled && chain.wallet
+        ? createDrip({ cfg, pub: chain.pub, from: chain.account.address, send: (to, value) => chain.wallet.sendTransaction({ to, value, gas: 21_000n }) })
+        : null;
+      if (cfg.drip.enabled && cfg.network !== "testnet") err("NADEYE_DRIP is ignored on mainnet");
+      const api = createApi({ verifier, cfg, publicUrl, drip, mcpHandler: httpMcpHandler({ verifier, chain }) });
       api.listen(cfg.port, cfg.host, () => err(`Nadeye agent API on http://${cfg.host}:${cfg.port}  (GET /verify?url=…, POST /mcp)`));
       if (flag("validator")) createValidator({ cfg, chain, verifier }).run().catch((e) => err("validator stopped:", e));
       return;

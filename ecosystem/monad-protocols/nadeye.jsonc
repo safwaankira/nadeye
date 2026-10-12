@@ -11,7 +11,8 @@
         // verdict registry: attestations by perceptual hash, points, ERC-8004 agent links and consensus feedback
         "Nadeye": "0xYOUR_NADEYE_ADDRESS",
         // binds accounts to WebAuthn passkeys, verified with the P256 precompile; verifyFor() for passkey approval
-        "PasskeyRegistry": "0xYOUR_PASSKEYS_ADDRESS"
+        "PasskeyRegistry": "0xYOUR_PASSKEYS_ADDRESS",
+        "NadeyeJournal": "0xYOUR_JOURNAL_ADDRESS"
     },
     "links": {
         "project": "https://YOUR_SITE_URL",

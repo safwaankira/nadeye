@@ -10,7 +10,7 @@ Nadeye is an open registry of AI-image verdicts on Monad, keyed by a 64-bit perc
 | A contract that needs a human's passkey to approve an action | [`PasskeyRegistry.verifyFor`](#4-passkey-approval) | One `view` call: about 35k gas through the P256 precompile (measured on Foundry's Osaka EVM, which has the same precompile at `0x100`) |
 | Your own detector | [`attestBatch`](#5-write-verdicts) | Gas per batch |
 
-Addresses: Nadeye `<NADEYE_ADDRESS>` and PasskeyRegistry `<PASSKEYS_ADDRESS>` on Monad testnet (chain 10143). The README's runbook says where they come from.
+Addresses: Nadeye `<NADEYE_ADDRESS>`, PasskeyRegistry `<PASSKEYS_ADDRESS>` and NadeyeJournal `<JOURNAL_ADDRESS>` on Monad testnet (chain 10143). The README's runbook says where they come from.
 
 ## 1. JavaScript: nadeye-sdk
 
@@ -136,3 +136,21 @@ cd contracts && forge test --evm-version osaka     # the same suite on the nativ
 cd sdk && npm test                                 # SDK against a registry on anvil
 cd web && npm test                                 # passkey proof end to end on anvil
 ```
+
+## 5. Encrypted per-user storage with a passkey (NadeyeJournal pattern)
+
+`web/src/journal.js` is a small module any Mera app can reuse to keep private data on Monad:
+
+```js
+import { getPasskeyPrfOutput } from "@category-labs/mera";
+import { JOURNAL_SALT, journalKeys, makeEntry, seal, readJournal } from "./journal.js";
+
+const { prfOutput } = await getPasskeyPrfOutput({ rpId: location.hostname, prfSalt: JOURNAL_SALT });
+const keys = await journalKeys(prfOutput);                 // { id, key }: not an account
+const box = await seal(keys, makeEntry({ pHash, verdict: "ai", note: "seen in a thread" }));
+// any funded account appends it: NadeyeJournal.append(keys.id, box)
+const entries = await readJournal(publicClient, JOURNAL, keys); // newest first, on any device
+```
+
+Use your own salt string for your own app, so its namespace stays separate from Nadeye's and from Mera's account keys.
+

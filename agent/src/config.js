@@ -61,6 +61,14 @@ export function loadConfig(env = process.env) {
     corsOrigins: (env.NADEYE_CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean),
     // validator spend limits: answers per requesting agent per hour, and a wallet floor in wei
     validatorMaxPerHour: Number(env.NADEYE_VALIDATOR_MAX_PER_HOUR || 30),
+    // testnet gas drip for new site accounts (POST /drip); never on mainnet
+    drip: {
+      enabled: env.NADEYE_DRIP === "1",
+      amount: env.NADEYE_DRIP_AMOUNT || "0.1",
+      perIpPerDay: Number(env.NADEYE_DRIP_PER_IP || 3),
+      perDay: Number(env.NADEYE_DRIP_PER_DAY || 25),
+      file: join(env.NADEYE_CACHE || join(homedir(), ".nadeye"), "drip.json"),
+    },
     validatorMinBalanceWei: BigInt(Math.round(Number(env.NADEYE_VALIDATOR_MIN_BALANCE || "0.05") * 1e6)) * 10n ** 12n,
   };
 }

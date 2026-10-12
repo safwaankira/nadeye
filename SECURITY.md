@@ -213,3 +213,43 @@ The indexes are only trusted inside bytes the signature covers. A browser builds
 - The suite passes both on the Solidity fallback and with `--evm-version osaka`, which has the native precompile. A verify costs about 283k gas on the fallback and about 35k on the precompile.
 - `web/test/passkey-proof.test.mjs` simulates a browser authenticator (browser-shaped JSON, forced high-s). It recovers the key from two assertions and registers it on anvil with `--hardfork osaka`, through the precompile (175k gas). A replay is refused.
 - The real site was also driven in Chrome with a virtual P256 + PRF authenticator. Mera created the passkey, the two prompts produced the proof, and the precompile accepted it onchain. There were no page errors.
+
+## Private journal, signing session and drip review
+
+Scope: `contracts/src/NadeyeJournal.sol`, `web/src/journal.js`, the session and scope code in `web/src/passkey.js` and `web/src/profile-core.js`, and `agent/src/drip.js` with the `/drip` route.
+
+**Journal contract.**
+- It is storage only. It never decrypts, and the entries are opaque bytes from 1 to 512 bytes.
+- The first sender for a journal id becomes its only writer. Nobody else can append to your journal, and only the writer can grow it.
+- A squatter would have to guess a 256-bit HKDF output before you write, so squatting is not practical.
+- Reads are paged, so long journals don't run into RPC limits.
+
+**Journal crypto.**
+- The PRF runs under its own salt, `sha256("nadeye:journal:v1")`, which is separate from Mera's account salt. HKDF-SHA256 then derives the AES key and the id under different `info` strings, so neither one reveals the other.
+- The AES-256-GCM key is imported as non-extractable, and the raw bytes are zeroed. Each entry gets a random 96-bit nonce. With at most a few thousand entries per journal, nonce collisions are negligible.
+- The journal id is bound as associated data, so an entry copied into another journal fails to open. Tampering, a wrong key and a wrong id all return `null` (tested).
+- Decrypted notes are rendered with `textContent` only. In the browser e2e, an `<img onerror>` note stays text.
+
+**Accepted / by design.**
+- **Metadata is public.** That covers the writer (the scanner address), the entry count, timing and entry size. Contents are private.
+- **Losing the passkey loses the journal.** The recovery phrase restores the account keys, not the journal: the journal key comes from the PRF output under its own salt.
+
+**Signing scope.**
+- `createProfileClient({ allow })` checks every destination, for contract calls and for gas top-ups, before any signing.
+- The page allows only Nadeye, the PasskeyRegistry, the NadeyeJournal, the ERC-8004 Identity Registry, and the user's own scanner key.
+- `web/test/profile.test.mjs` shows that a blocked `send` and a blocked `fundScanner` both fail without changing the account's nonce.
+
+**Session lifetime.**
+- Keys exist only in tab memory. They are wiped, and the PRF buffer zeroed, after 10 idle minutes, after an hour at most, or on **Lock now**.
+- The browser e2e moves the clock forward and checks the lock.
+
+**Drip.**
+- It is off unless `NADEYE_DRIP=1`, and it refuses to run when the network is mainnet.
+- Each address is paid once, recorded on disk before sending and released if the send fails. Payment is skipped for contracts and for addresses that already hold gas.
+- Caps apply per client IP and per day. The agent wallet keeps its validator floor.
+- Requests are serialized, so concurrent calls can't double-pay (tested).
+- The client IP comes from `cf-connecting-ip` or `x-forwarded-for` only when the connection comes from loopback, which is the tunnel. A direct caller can't spoof it.
+- One viem nonce manager is shared by the validator, attestations and the drip.
+
+**Dependencies.** `onnxruntime-node` moved from 1.22.0 to 1.30.0, because the older version pulled vulnerable `adm-zip` and `sprintf-js` (through `global-agent`) into its install script. `npm audit --omit=dev` now reports 0 for `agent/` and `web/`. The detector gives the same verdict on the test fixture.
+

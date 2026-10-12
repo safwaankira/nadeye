@@ -6,7 +6,7 @@
 
 ## After you deploy
 
-1. In `nadeye.jsonc`, replace `0xYOUR_NADEYE_ADDRESS` and `0xYOUR_PASSKEYS_ADDRESS` with the two deployed contracts and `https://YOUR_SITE_URL` with the hosted site. Add a `"twitter"` link if Nadeye gets its own X account.
+1. In `nadeye.jsonc`, replace `0xYOUR_NADEYE_ADDRESS`, `0xYOUR_PASSKEYS_ADDRESS` and `0xYOUR_JOURNAL_ADDRESS` with the three deployed contracts and `https://YOUR_SITE_URL` with the hosted site. Add a `"twitter"` link if Nadeye gets its own X account.
 2. Verify both contracts' source on [testnet.monadvision.com](https://testnet.monadvision.com/) (or monadvision.com on mainnet). The registry asks for this and checks it.
 3. Fork `monad-crypto/protocols` to your GitHub account, then:
 

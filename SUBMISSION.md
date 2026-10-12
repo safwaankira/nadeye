@@ -37,7 +37,7 @@ AI has broken the default assumption that a picture shows something real. People
 - **The Chrome extension** runs Sieve's ViT detector on WebGPU, entirely on the device, and shows the community count on any image, on any site.
 - **The verifier agent** runs the same model for other agents, over MCP, HTTP, or onchain through the ERC-8004 Validation Registry.
 
-Accounts come from **Mera**: one passkey derives an identity key that owns the ERC-8004 agent and a scanner key that signs verdicts. There is no seed phrase and no custody backend, and the same passkey restores everything on a new device.
+Accounts come from **Mera**: one passkey derives an identity key that owns the ERC-8004 agent and a scanner key that signs verdicts. There is no seed phrase and no custody backend, and the same passkey restores everything on a new device. The same passkey, under a second PRF salt, also encrypts a **private journal** of the images you checked. The journal is stored on Monad as ciphertext and readable only with that passkey, on any device.
 
 **For developers:**
 - `nadeye-sdk` (hash an image, look it up, read reputation and passkey status).
@@ -63,8 +63,8 @@ Accounts come from **Mera**: one passkey derives an identity key that owns the E
 ## Traction and plan
 
 **Today:**
-- Working end to end on a local Monad-equivalent chain and on testnet: extension, site, verifier agent, SDK and both contracts.
-- 46 contract tests, a deep invariant campaign (about 205,000 calls per invariant) and a security review (SECURITY.md).
+- Working end to end on a local Monad-equivalent chain and on testnet: extension, site, verifier agent, SDK and the three contracts.
+- 50 contract tests, a deep invariant campaign (about 205,000 calls per invariant) and a security review (SECURITY.md).
 - The protocol-registry listing for `monad-crypto/protocols` is ready (`ecosystem/`).
 
 **During the hackathon:** offer the SDK and MCP server to other Metropolis teams, especially Track 3 social apps and Track 4 agent projects. One integration is worth more than any feature.
@@ -78,11 +78,12 @@ Accounts come from **Mera**: one passkey derives an identity key that owns the E
 
 Everything in the repo except Sieve (the detector model and the base extension, by Sriram Kiron, MIT) and the ERC-8004 registry copies vendored for tests. That covers:
 - the Nadeye contract;
-- the PasskeyRegistry;
+- the PasskeyRegistry and NadeyeJournal;
 - perceptual hashing and near-match lookup;
 - the chain client and batching in the extension;
 - the verifier agent: Node port of the detector, MCP, HTTP and the ERC-8004 validator;
-- Mera passkey identities and the WebAuthn proof flow;
+- Mera passkey identities, the WebAuthn proof flow, the encrypted journal and the scoped signing session;
+- the agent's testnet gas drip;
 - the site, the SDK, the Solidity interface and example, the docs, and all tests.
 
 The git history shows every commit.
@@ -94,9 +95,10 @@ The git history shows every commit.
 - **Registry:** drop any image to see its community verdict. It is hashed in your browser and never uploaded.
 - **My scanner:**
   1. Choose **Create passkey** (Touch ID, Windows Hello or a phone).
-  2. Get testnet MON from https://faucet.monad.xyz for the identity address shown.
+  2. The agent sends the new identity address a little testnet MON for gas. If it doesn't, use https://faucet.monad.xyz.
   3. Choose **Create ERC-8004 agent**, then **Prove with passkey**, which takes two passkey prompts.
   4. Your scanner now shows the passkey chip.
+  5. On **Registry**, check an image and choose **Unlock and save to my journal** with a note. Open the site on another device or in a private window, sign in with the same passkey, and choose **Unlock journal**: the entry decrypts there too.
 
 **Extension:** download `nadeye-extension.zip` from the repo's latest release.
 1. Unzip it, open `chrome://extensions`, turn on Developer mode and choose **Load unpacked**.
@@ -105,13 +107,14 @@ The git history shows every commit.
 
 **Agents:** the MCP config and HTTP examples are in `docs/INTEGRATE.md`.
 
-**Test credentials:** none needed. Passkeys are created on your own device, and testnet MON comes from the faucet.
+**Test credentials:** none needed. Passkeys are created on your own device, and testnet MON comes from the agent's drip or the faucet.
 
 ## Links
 - Repo: https://github.com/safwaanDK/nadeye
 - Live site: `<SITE_URL>`
 - Nadeye (testnet): `<NADEYE_ADDRESS>` · https://testnet.monadvision.com/address/<NADEYE_ADDRESS>
 - PasskeyRegistry (testnet): `<PASSKEYS_ADDRESS>`
+- NadeyeJournal (testnet): `<JOURNAL_ADDRESS>`
 - Verifier agent: ERC-8004 agent #`<id>` · wallet `<address>`
 - Demo video: `<link>` · Pitch video: `<link>`
 
@@ -122,11 +125,12 @@ The git history shows every commit.
 | Time | Show |
 | --- | --- |
 | 0:00–0:15 | **Problem.** Scroll a feed with a few AI images: "Can you tell with the naked eye? Can your agent?" |
-| 0:15–0:50 | **Passkey account and proof.** On the live site, open My scanner and choose Create passkey; show the two derived keys. Create the ERC-8004 agent. Choose **Prove with passkey**, answer the two prompts, and open the `PasskeyRegistered` transaction on the testnet explorer: "verified by Monad's P256 precompile". |
+| 0:15–0:50 | **Passkey account and proof.** On the live site, open My scanner and choose Create passkey; show the two derived keys. Create the ERC-8004 agent. Choose **Prove with passkey**, answer the two prompts, and open the `PasskeyRegistered` transaction on the testnet explorer: "verified by Monad's P256 precompile". Point at the session line: these keys only sign for Nadeye and expire. |
 | 0:50–1:25 | **Extension.** Browse. Badges appear and an AI image is blurred with `◆ AI 97%`. Open the popup (testnet, agent #id, queue sending) and the batch transaction on the explorer. |
 | 1:25–1:45 | **Survives re-encoding.** In a second Chrome profile, a resized copy of the same image shows `◆ AI 96% · 1/1 AI`. |
 | 1:45–2:15 | **Agents.** In Claude Desktop, ask "is this image AI-generated? <url>" and it calls `verify_image`. In a terminal, run `request <url>`; the validator answers onchain (`ValidationResponse`). |
-| 2:15–2:40 | **Primitive.** The leaderboard with agent and passkey chips. Show `docs/INTEGRATE.md` briefly and run `lookupImage` from the SDK in a Node prompt, or show `ProvenanceGallery` refusing a flagged image in `forge test`. |
+| 2:15–2:30 | **Private journal.** Check an image on Registry and save it with a note. In a private window, sign in with the same passkey and unlock the journal: the note decrypts. Show the `NadeyeJournal` transaction: only ciphertext. |
+| 2:30–2:40 | **Primitive.** The leaderboard with agent and passkey chips, and `docs/INTEGRATE.md` for a few seconds. |
 | 2:40–2:50 | **Close.** "Nadeye: see what the naked eye can't. An open record of what's real, on Monad." |
 
 ## Pitch video (about 1:35, 180 words plus your own sentence)
@@ -149,8 +153,17 @@ The git history shows every commit.
 
 ## Bounty notes
 
-- **Mera: One Passkey, Many Keys** (non-wallet use of PRF-derived keys). One passkey's PRF output derives an *identity* key that owns an ERC-8004 agent and a *scanner* key that signs provenance attestations, registered as the agent's `agentWallet` so it can be rotated without losing reputation. Neither key ever holds funds beyond gas. The same passkey also proves itself onchain through the P256 precompile.
-- **Best Mera-Powered UX on Monad** (Mera as the entire account layer). The site's account is only a passkey: no seed phrase, no wallet extension, no custody backend. Creating the agent, linking the scanner and proving the passkey all run from it.
+- **Mera: One Passkey, Many Keys** (PRF key material used beyond an account). The non-account use is the **private journal**:
+  - **Its own namespace.** The passkey's PRF is evaluated under a separate salt, `sha256("nadeye:journal:v1")`. Mera's account salt is different.
+  - **Encryption only.** HKDF turns the output into an AES-256-GCM key and an opaque journal id. Neither is a signing key, and neither is linked to the account keys.
+  - **On Monad, readable only with the passkey.** Entries are sealed in the browser with the journal id as associated data, then appended to `NadeyeJournal`. A fresh device with only the passkey re-derives both values and decrypts everything (tested in Chromium with a virtual authenticator).
+  - **Agent identity too.** In the account namespace, one passkey also derives an *identity* key that owns an ERC-8004 agent and a *scanner* key that is that agent's `agentWallet`. That is two roles from one passkey, not a wallet.
+- **Best Mera-Powered UX on Monad.** Mera is the whole account layer: no seed phrase, wallet extension or custody backend. On top of that:
+  - **Prompts stay rare.** Signing in is one prompt, and agent setup runs in 4–5 transactions with no further prompts. Only the journal unlock and the passkey proof ask again, and the page says why each time.
+  - **Signing is scoped.** The prompt-free keys can only sign for Nadeye's contracts, the ERC-8004 Identity Registry and your own scanner key. Anything else is refused before it is signed (tested).
+  - **The session expires visibly.** Keys live in tab memory and are wiped after 10 idle minutes, after an hour at most, or on **Lock now**. The page shows when the session ends.
+  - **No faucet detour.** New testnet accounts get gas from the agent's drip, which pays each address once and has per-IP and daily caps.
+  - **Errors say what to do,** for example: no PRF support, a dismissed prompt, or no gas.
 
 ## Launch post (X)
 

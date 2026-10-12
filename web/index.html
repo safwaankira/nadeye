@@ -197,7 +197,9 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .status { font-size: 13px; border-radius: 8px; padding: 9px 12px; }
 .status:empty, .banner:has(#ppToastText:empty) { display: none; }
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-#view-me [aria-disabled="true"] { opacity: .5; cursor: default; }
+#view-me [aria-disabled="true"], #journalSlot [aria-disabled="true"] { opacity: .5; cursor: default; }
+.journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 360px; overflow: auto; }
+.journal li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; }
 .status.busy { background: var(--accent-soft); color: var(--accent-ink); }
 .status.err { background: color-mix(in srgb, var(--ai) 12%, transparent); color: var(--ai); }
 .status.ok { background: color-mix(in srgb, var(--real) 12%, transparent); color: var(--real); }
@@ -368,11 +370,25 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
           </div>
           <p class="small" style="margin:0">Binds your scanner to this passkey onchain. Your passkey signs a challenge, and Monad's P256 precompile checks the signature, so anyone can see that a passkey stands behind this scanner. One passkey can back only one scanner. It takes two passkey prompts: the first reads the passkey's public key, the second signs the proof.</p>
         </div>
-        <div class="row-actions">
-          <button class="btn" id="ppReveal">Show recovery phrase</button>
-          <button class="btn" id="ppSignOut">Sign out</button>
+        <div class="panel" id="ppJournalPanel" hidden>
+          <h3>Private journal</h3>
+          <dl class="kv"><dt>Status</dt><dd id="ppJStatus">Locked</dd></dl>
+          <div class="row-actions">
+            <button class="btn primary" id="ppJUnlock">Unlock journal</button>
+            <button class="btn" id="ppJLock" hidden>Lock journal</button>
+          </div>
+          <ul class="journal" id="ppJList" hidden aria-label="Journal entries, newest first"></ul>
+          <p class="small" style="margin:0">Images you check on the Registry tab can be saved here with a note. Your passkey derives a separate encryption key just for the journal, entries are encrypted on this device and stored on Monad, and the same passkey reads them on any device. Anyone can see that your scanner key wrote an entry and when. Only your passkey can read what it says.</p>
         </div>
-        <div class="phrase" id="ppPhrase" hidden></div>
+        <div class="panel">
+          <h3>This session</h3>
+          <p class="small" id="ppSession" style="margin:0"></p>
+          <div class="row-actions">
+            <button class="btn" id="ppReveal">Show recovery phrase</button>
+            <button class="btn" id="ppSignOut">Lock now</button>
+          </div>
+          <div class="phrase" id="ppPhrase" hidden></div>
+        </div>
       </div>
     </section>
 
@@ -421,6 +437,8 @@ const CONFIG = {
   network: "testnet",
   contract: "0x0000000000000000000000000000000000000000", // set after deploying
   passkeys: "0x0000000000000000000000000000000000000000", // PasskeyRegistry, set after deploying
+  journal: "0x0000000000000000000000000000000000000000",  // NadeyeJournal, set after deploying
+  drip: "", // optional: the agent's https://…/drip URL, so new testnet accounts get gas MON
 };
 const NETWORKS = {
   testnet: { label: "Monad Testnet", rpc: "https://testnet-rpc.monad.xyz", explorer: "https://testnet.monadvision.com" },
@@ -430,6 +448,7 @@ try {
   const p = new URLSearchParams(location.search);
   if (/^0x[0-9a-fA-F]{40}$/.test(p.get("contract") || "")) CONFIG.contract = p.get("contract");
   if (/^0x[0-9a-fA-F]{40}$/.test(p.get("passkeys") || "")) CONFIG.passkeys = p.get("passkeys");
+  if (/^0x[0-9a-fA-F]{40}$/.test(p.get("journal") || "")) CONFIG.journal = p.get("journal");
   if (p.get("network") in NETWORKS) CONFIG.network = p.get("network");
 } catch {}
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(a || "") && !/^0x0{40}$/.test(a);
@@ -722,8 +741,13 @@ function showResult(imgUrl, hex, v, nCandidates) {
     right.append(m);
   }
   if (imgUrl) right.prepend(hashTile(hex, 40));
+  const slot = document.createElement("div");
+  slot.id = "journalSlot";
+  right.append(slot);
   box.append(left, right);
   out.append(box);
+  // the passkey module offers "Save to my journal" for this result
+  document.dispatchEvent(new CustomEvent("nadeye:result", { detail: { hex, verdict: vd.cls, reports: v.reports || 0, aiVotes: v.aiVotes || 0 } }));
 }
 
 async function checkFile(file) {

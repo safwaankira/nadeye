@@ -64,11 +64,18 @@ export function scannerCard({ chainId, identity, scanner, handle, agentId = null
   return "data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(card))));
 }
 
-export function createProfileClient({ chain, rpcUrl, contract, identity, reputation }) {
+/**
+ * `allow(address)` scopes what the passkey-derived keys may sign: every transaction's
+ * destination must pass it, so a bug or a hostile script on the page can't route a
+ * prompt-free signature to an arbitrary contract or recipient.
+ */
+export function createProfileClient({ chain, rpcUrl, contract, identity, reputation, allow = null }) {
   const transport = http(rpcUrl);
   const pub = createPublicClient({ chain, transport });
+  const guard = (to) => { if (allow && !allow(to)) throw new Error(`Blocked: ${to} is outside this session's signing scope`); };
 
   async function send(account, address, abi, functionName, args) {
+    guard(address);
     const wallet = createWalletClient({ account, chain, transport });
     const gas = await pub.estimateContractGas({ account, address, abi, functionName, args });
     const hash = await wallet.writeContract({ address, abi, functionName, args, gas: GAS_PAD(gas) });
@@ -93,6 +100,7 @@ export function createProfileClient({ chain, rpcUrl, contract, identity, reputat
 
   /** move a little MON from the identity key to the scanner key for gas */
   async function fundScanner(identityAccount, scannerAddr, amount = "0.05") {
+    guard(scannerAddr);
     const wallet = createWalletClient({ account: identityAccount, chain, transport });
     const hash = await wallet.sendTransaction({ to: scannerAddr, value: parseEther(amount), gas: 21_000n });
     await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });

@@ -55,7 +55,13 @@ test("one passkey -> ERC-8004 identity + Nadeye scanner", { skip, timeout: 120_0
   t.after(() => { idSession.end(); scSession.end(); });
 
   await pub.waitForTransactionReceipt({ hash: await w.sendTransaction({ to: identityAccount.address, value: parseEther("1") }) });
-  const client = createProfileClient({ chain: foundry, rpcUrl: RPC, contract, identity, reputation });
+  // the page's signing scope: only Nadeye's contracts and the user's own scanner key
+  const scope = new Set([contract, identity, scannerAccount.address].map((a) => a.toLowerCase()));
+  const client = createProfileClient({ chain: foundry, rpcUrl: RPC, contract, identity, reputation, allow: (a) => scope.has(a.toLowerCase()) });
+  const before = await pub.getTransactionCount({ address: identityAccount.address });
+  await assert.rejects(client.fundScanner(identityAccount, w.account.address, "0.1"), /outside this session's signing scope/);
+  await assert.rejects(client.send(identityAccount, w.account.address, identityAbi, "register", ["x"]), /outside this session's signing scope/);
+  assert.equal(await pub.getTransactionCount({ address: identityAccount.address }), before, "nothing was signed or sent");
   await client.fundScanner(identityAccount, scannerAccount.address, "0.1");
 
   const steps = [];
