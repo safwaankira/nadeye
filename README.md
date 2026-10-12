@@ -187,8 +187,8 @@ On Sieve's 36,355-image benchmark, flagged scores between 65% and 80% are wrong 
 ### Passkeys (Mera)
 
 The passkey's PRF output gives a 24-word mnemonic, from which BIP-44 derives:
-- `m/44'/60'/0'/0/0` — the **identity key**. It lives only in page memory, inside Mera signing sessions that are ended after every action.
-- `m/44'/60'/0'/0/1` — the **scanner key**. It is handed to the extension through a content-script bridge that only trusted origins can use, and the user confirms each time.
+- `m/44'/60'/0'/0/0`: the **identity key**. It lives only in page memory, inside Mera signing sessions that are ended after every action.
+- `m/44'/60'/0'/0/1`: the **scanner key**. It is handed to the extension through a content-script bridge that only trusted origins can use, and the user confirms each time.
 
 The same passkey re-derives the same accounts on any device. The recovery phrase is available from the page in case the domain ever changes.
 

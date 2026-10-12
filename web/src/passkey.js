@@ -23,9 +23,7 @@ const client = configured ? createProfileClient({ chain: net.chain, rpcUrl: NET.
 let prf = null;      // passkey PRF output, memory only
 let addrs = null;    // { identity, scanner }
 
-// ----------------------------------------------------------- key handling
-// Keys are derived on demand and wrapped in Mera signing sessions that are
-// ended (zeroed) right after each action.
+// Keys live only inside Mera signing sessions, ended (zeroed) after each action.
 async function withAccounts(fn) {
   const idSession = createSecp256k1SigningSession({ privateKey: deriveEvmKey(prf, IDENTITY_INDEX) });
   const scSession = createSecp256k1SigningSession({ privateKey: deriveEvmKey(prf, SCANNER_INDEX) });
@@ -52,7 +50,6 @@ function explain(e) {
   return msg;
 }
 
-// ------------------------------------------------------- extension bridge
 let extReady = !!document.documentElement.dataset.nadeyeExtension;
 const pending = new Map();
 window.addEventListener("message", (ev) => {
@@ -70,7 +67,6 @@ function askExtension(msg, timeout = 60_000) {
   });
 }
 
-// --------------------------------------------------------------- actions
 async function signIn(create) {
   setBusy(create ? "Creating your passkey…" : "Waiting for your passkey…");
   try {
@@ -130,7 +126,6 @@ async function saveHandle() {
   await refresh();
 }
 
-// --------------------------------------------------------------- render
 let last = null, extScanner = null;
 async function refresh() {
   if (!addrs) return render();

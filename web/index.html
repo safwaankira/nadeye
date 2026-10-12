@@ -1,5 +1,5 @@
 <title>Nadeye Leaderboard</title>
-<meta name="description" content="Nadeye — scanners detect AI-generated images locally and record verdicts on Monad. Leaderboard and registry, read straight from the chain.">
+<meta name="description" content="Nadeye: scanners detect AI-generated images on their own device and record verdicts on Monad. Leaderboard and registry, read straight from the chain.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap">
@@ -64,13 +64,25 @@ h1 em { font-style: normal; color: var(--accent-ink); }
 .vh { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 th .sort { all: unset; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; }
 th .sort:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
-th .sort .arrow { font-size: 10px; opacity: .35; }
+th .sort .arrow { font-size: 10px; }
+th .sort .arrow::before { content: "\25BD" / ""; } /* outline: sortable, not active */
+th[aria-sort] .sort .arrow::before { content: "\25BC" / ""; } /* filled: the active sort */
 th[aria-sort] .sort { color: var(--ink); }
 th[aria-sort] .sort .arrow { opacity: 1; color: var(--accent-ink); }
 tbody th { text-align: left; font-weight: inherit; }
 .pager ul { list-style: none; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 0; padding: 0; }
 .pager li { display: contents; }
 .pager button { min-width: 36px; min-height: 36px; }
+.empty { text-align: center; padding: 28px 14px; color: var(--muted); }
+.feed .empty { grid-column: 1 / -1; margin: 0; }
+/* touch and narrow screens: every control is at least 44px tall */
+@media (pointer: coarse), (max-width: 640px) {
+  nav button, .btn, .pager button, input[type="search"], select, .row-actions input { min-height: 44px; }
+  .pager button { min-width: 44px; }
+  th .sort { min-height: 44px; }
+  /* standalone address links get a 44px hit area; negative margins keep row height */
+  td .a, th .a, .pod .addr { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
+}
 @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .notice { border: 1px dashed color-mix(in srgb, var(--warn) 50%, transparent); color: var(--muted); border-radius: 8px;
@@ -80,7 +92,7 @@ tbody th { text-align: left; font-weight: inherit; }
 /* podium */
 .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-block: 8px 22px; }
 .pod { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
-.pod.r1 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%); }
+.pod.r1 { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: var(--accent-soft); }
 .pod .who { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .pod .rank { font: 700 28px/1 var(--display); color: var(--accent-ink); width: 34px; flex: none; }
 .pod .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -170,11 +182,9 @@ td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .meter i { display: block; height: 100%; }
 
 /* how it works */
-.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-block: 18px; }
-.step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 6px; align-content: start; }
-.step .n { font: 600 12px var(--mono); color: var(--accent-ink); letter-spacing: .1em; }
-.step h3 { font: 600 17px var(--display); margin: 0; }
-.step p { margin: 0; color: var(--muted); font-size: 14px; }
+.flow { margin: 0; padding-left: 1.6em; display: grid; gap: 10px; }
+.flow li { color: var(--muted); padding-left: 4px; }
+.flow li::marker { font: 600 14px var(--mono); color: var(--accent-ink); }
 .prose { max-width: 70ch; display: grid; gap: 12px; }
 .prose h2 { font: 600 22px var(--display); margin: 18px 0 0; }
 .prose p, .prose li { color: var(--muted); }
@@ -185,7 +195,6 @@ td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .points b { font: 600 15px var(--display); color: var(--accent-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 code { font: 13px var(--mono); background: var(--raised); padding: 1px 5px; border-radius: 4px; }
 footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-@media (prefers-reduced-motion: no-preference) { .fade { animation: fade .35s ease both; } @keyframes fade { from { opacity: .4; } to { opacity: 1; } } }
 </style>
 
 <div class="wrap">
@@ -202,7 +211,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
   <section class="hero">
     <div class="eyebrow"><span id="netLabel">Monad Testnet</span><span class="pill" id="modePill">loading</span></div>
     <h1>See what the <em>naked eye</em> can't.</h1>
-    <p class="lede">People and AI agents scan the web for AI-generated images. Detection runs on their own device; each verdict lands on Monad as a 64-bit perceptual hash and a confidence score, and every scanner's track record accrues to its ERC-8004 agent identity. The image never leaves the device.</p>
+    <p class="lede">People and AI agents scan the web for AI-generated images. Detection runs on their own device. Confident verdicts land on Monad as a 64-bit perceptual hash and a score, and scanners that link an ERC-8004 agent build a public track record. The image never leaves the device.</p>
   </section>
 
   <dl class="stats" aria-label="Network totals">
@@ -213,10 +222,10 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
   </dl>
   <p class="vh" id="announce" role="status" aria-live="polite"></p>
 
-  <div class="notice" id="demoNote" hidden><b>Example data.</b> No Nadeye contract is configured for this page, or the network could not be reached, so these rows are generated samples. Set <code>CONFIG.contract</code> (or open the hosted page with <code>?contract=0x…</code>) to read the live registry.</div>
+  <div class="notice" id="demoNote" hidden><b>Example data.</b> No Nadeye contract is configured for this page, so these rows are generated samples. Set <code>CONFIG.contract</code> (or open the hosted page with <code>?contract=0x…</code>) to read the live registry.</div>
 
   <main>
-    <section id="view-board" class="fade">
+    <section id="view-board">
       <div class="podium" id="podium"></div>
       <div class="toolbar">
         <h2>Global rankings</h2>
@@ -236,11 +245,11 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
           <caption class="vh" id="tableCaption">Scanner leaderboard, sorted by total points, descending</caption>
           <thead><tr>
             <th scope="col">Rank</th><th scope="col">Scanner</th><th scope="col">Agent</th>
-            <th scope="col" class="num" data-key="points"><button type="button" class="sort">Total points<span class="arrow" aria-hidden="true">&#9660;</span></button></th>
-            <th scope="col" class="num" data-key="activeDays"><button type="button" class="sort">Active days<span class="arrow" aria-hidden="true">&#9660;</span></button></th>
-            <th scope="col" class="num" data-key="snr"><button type="button" class="sort">Signal to noise<span class="arrow" aria-hidden="true">&#9660;</span></button></th>
-            <th scope="col" class="num" data-key="scans"><button type="button" class="sort">Scans<span class="arrow" aria-hidden="true">&#9660;</span></button></th>
-            <th scope="col" class="num" data-key="firsts"><button type="button" class="sort">First finds<span class="arrow" aria-hidden="true">&#9660;</span></button></th>
+            <th scope="col" class="num" data-key="points"><button type="button" class="sort">Total points<span class="arrow" aria-hidden="true"></span></button></th>
+            <th scope="col" class="num" data-key="activeDays"><button type="button" class="sort">Active days<span class="arrow" aria-hidden="true"></span></button></th>
+            <th scope="col" class="num" data-key="snr"><button type="button" class="sort">Signal to noise<span class="arrow" aria-hidden="true"></span></button></th>
+            <th scope="col" class="num" data-key="scans"><button type="button" class="sort">Scans<span class="arrow" aria-hidden="true"></span></button></th>
+            <th scope="col" class="num" data-key="firsts"><button type="button" class="sort">First finds<span class="arrow" aria-hidden="true"></span></button></th>
             <th scope="col" class="num">Joined</th>
           </tr></thead>
           <tbody id="rows"></tbody>
@@ -250,7 +259,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
       <p class="small" style="text-align:center" id="updated"></p>
     </section>
 
-    <section id="view-registry" class="fade" hidden>
+    <section id="view-registry" hidden>
       <div class="split">
         <div class="panel">
           <h3>Check an image</h3>
@@ -268,7 +277,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
       </div>
     </section>
 
-    <section id="view-me" class="fade" hidden>
+    <section id="view-me" hidden>
       <div class="panel" style="margin-bottom:14px">
         <h3>One passkey, every key you need</h3>
         <p class="small" style="margin:0;max-width:72ch">Sign in with a passkey instead of a seed phrase. Your passkey derives two Monad accounts on this device: an <strong>identity key</strong> that owns your ERC-8004 agent, where your reputation lives, and a <strong>scanner key</strong> the extension uses to sign verdicts. The same passkey gives you the same accounts on any device. Powered by Mera.</p>
@@ -328,14 +337,15 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
       </div>
     </section>
 
-    <section id="view-how" class="fade" hidden>
-      <div class="steps">
-        <div class="step"><span class="n">STEP 1</span><h3>Detect locally</h3><p>A ViT-S/16 model runs in the browser on WebGPU, with WASM as a fallback. Pixels are never uploaded.</p></div>
-        <div class="step"><span class="n">STEP 2</span><h3>Hash the pixels</h3><p>A 64-bit DCT perceptual hash summarizes the image. It survives resizing and recompression and cannot be turned back into the picture.</p></div>
-        <div class="step"><span class="n">STEP 3</span><h3>Batch to Monad</h3><p>Verdicts queue up and go out as one <code>attestBatch</code> transaction of up to 100, signed by a burner key that lives in the extension.</p></div>
-        <div class="step"><span class="n">STEP 4</span><h3>Everyone benefits</h3><p>The next person to meet that image sees the community count on its badge, on any site.</p></div>
-      </div>
+    <section id="view-how" hidden>
       <div class="prose">
+        <h2>From an image to a record</h2>
+        <ol class="flow">
+          <li><strong>The extension scores the image on your device.</strong> A ViT-S/16 model runs in the browser on WebGPU, with WASM as a fallback. Pixels are never uploaded.</li>
+          <li><strong>It hashes the pixels.</strong> A 64-bit DCT perceptual hash summarizes the image. It survives resizing and recompression and cannot be turned back into the picture.</li>
+          <li><strong>Confident verdicts go to Monad in batches.</strong> Once a minute, or as soon as 25 are waiting, up to 50 go out in one <code>attestBatch</code> transaction signed by the scanner key in the extension.</li>
+          <li><strong>The next person sees the count.</strong> Anyone who meets that image again, on any site, gets the community count on its badge.</li>
+        </ol>
         <h2>How points work</h2>
         <div class="points">
           <div><span>Each verdict recorded</span><b>+10</b></div>
@@ -364,7 +374,6 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
 </div>
 
 <script>
-// ------------------------------------------------------------------ config
 const CONFIG = {
   network: "mainnet",
   contract: "0x0000000000000000000000000000000000000000", // set after deploying
@@ -396,7 +405,7 @@ const ago = (ts) => {
   return d === 0 ? "today" : d === 1 ? "1 day ago" : `${d} days ago`;
 };
 
-// ------------------------------------------------------------ pHash (same as extension/src/phash.js)
+// pHash, kept identical to extension/src/phash.js so lookups match the extension's attestations
 const PN = 32, PK = 8;
 const COS = (() => { const t = new Float64Array(PK * PN); for (let u = 0; u < PK; u++) for (let x = 0; x < PN; x++) t[u * PN + x] = Math.cos(((2 * x + 1) * u * Math.PI) / (2 * PN)); return t; })();
 function pHashDetail({ data, width, height }) {
@@ -445,7 +454,6 @@ function hashTile(hex, size = 40, onColor, offColor) {
   return c;
 }
 
-// ------------------------------------------------------------------ data
 function seeded(seed) { let s = seed >>> 0; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 2 ** 32); }
 function demoData() {
   const r = seeded(20261011);
@@ -496,7 +504,6 @@ async function liveData() {
 const normImg = (v) => ({ pHash: v.pHash, reports: Number(v.reports), aiVotes: Number(v.aiVotes), meanScore: Number(v.meanScore),
   firstScanner: v.firstScanner, firstSeen: Number(v.firstSeen) });
 
-// ------------------------------------------------------------------ render
 let DATA = null, page = 0;
 const PER = 25;
 const snr = (s) => (s.signal + s.noise ? (100 * s.signal) / (s.signal + s.noise) : null);
@@ -541,7 +548,17 @@ function renderBoard() {
     tr.querySelector(".h").textContent = s.handle ? `@${s.handle}` : "";
     rows.append(tr);
   }
-  if (!list.length) rows.innerHTML = `<tr><td colspan="9" class="small" style="text-align:center;padding:28px">No scanners match that search.</td></tr>`;
+  if (!list.length) {
+    rows.innerHTML = `<tr><td colspan="9" class="small empty"></td></tr>`;
+    const cell = rows.querySelector("td");
+    cell.textContent = emptyBoardText();
+    if (DATA.state === "error" && !$("q").value) {
+      const retry = document.createElement("button");
+      retry.type = "button"; retry.className = "btn"; retry.textContent = "Try again";
+      retry.onclick = () => { DATA = blank("loading"); renderAll(); load(); };
+      cell.append(" ", retry);
+    }
+  }
   const pager = $("pager");
   pager.innerHTML = "";
   const ul = document.createElement("ul");
@@ -567,7 +584,16 @@ function renderBoard() {
   $("tableCaption").textContent = `Scanner leaderboard, sorted by ${colName}, descending`;
   lastBoardSummary = list.length
     ? `Sorted by ${colName}, descending. Showing ${page * PER + 1} to ${Math.min(list.length, page * PER + PER)} of ${list.length} scanners.`
-    : "No scanners match that search.";
+    : emptyBoardText();
+}
+function emptyBoardText() {
+  if ($("q").value.trim()) return "No scanners match that search.";
+  return {
+    loading: "Reading the leaderboard from Monad…",
+    error: `Could not read the registry from Monad (${DATA.error}). It retries every minute.`,
+    live: "No scanners yet. Turn on Contribute verdicts in the extension to be the first.",
+    demo: "No example rows.",
+  }[DATA.state];
 }
 let lastBoardSummary = "", announceTimer = null;
 function announceBoard(delay = 0) {
@@ -602,14 +628,20 @@ function renderFeed() {
     card.onclick = () => showResult(null, v.pHash.slice(-16), v, 0);
     feed.append(card);
   }
-  $("feedNote").textContent = DATA.live ? "live" : "examples";
+  if (!DATA.images.length) {
+    const p = document.createElement("p");
+    p.className = "small empty";
+    p.textContent = { loading: "Reading recent finds from Monad…", error: "Could not read recent finds. The leaderboard tab has a retry.", live: "No images recorded yet.", demo: "No example images." }[DATA.state];
+    feed.append(p);
+  }
+  $("feedNote").textContent = { loading: "", live: "live", error: "offline", demo: "examples" }[DATA.state];
 }
 
 function showResult(imgUrl, hex, v, nCandidates) {
   const out = $("checkOut");
   out.innerHTML = "";
   const box = document.createElement("div");
-  box.className = "result fade";
+  box.className = "result";
   const left = document.createElement("div");
   if (imgUrl) { const im = new Image(); im.src = imgUrl; im.alt = "Checked image"; left.append(im); }
   else left.append(hashTile(hex, 96));
@@ -667,7 +699,6 @@ async function checkFile(file) {
   }
 }
 
-// ------------------------------------------------------------------ wiring
 document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
   for (const v of ["board", "registry", "me", "how"]) $(`view-${v}`).hidden = v !== b.dataset.view;
@@ -695,30 +726,43 @@ drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove
 
 function renderAll() {
   const s = DATA.stats;
-  $("sScans").textContent = fmt(s.scans);
-  $("sImages").textContent = fmt(s.images);
-  $("sFlagged").textContent = fmt(s.flagged);
-  $("sScanners").textContent = fmt(s.scanners);
+  $("sScans").textContent = s ? fmt(s.scans) : "–";
+  $("sImages").textContent = s ? fmt(s.images) : "–";
+  $("sFlagged").textContent = s ? fmt(s.flagged) : "–";
+  $("sScanners").textContent = s ? fmt(s.scanners) : "–";
   $("netLabel").textContent = NET.label;
-  $("modePill").textContent = DATA.live ? "live" : "example data";
-  $("modePill").className = `pill ${DATA.live ? "live" : "demo"}`;
-  $("demoNote").hidden = DATA.live;
-  $("contractLink").textContent = /^0x0{40}$/.test(CONFIG.contract) ? "not set" : short(CONFIG.contract);
+  $("modePill").textContent = { loading: "loading", live: DATA.stale ? "live, not refreshed" : "live", error: "offline", demo: "example data" }[DATA.state];
+  $("modePill").className = `pill ${DATA.state === "live" ? "live" : DATA.state === "loading" ? "" : "demo"}`;
+  $("demoNote").hidden = DATA.state !== "demo";
+  $("contractLink").textContent = configured() ? short(CONFIG.contract) : "not set";
   $("contractLink").href = addrLink(CONFIG.contract);
-  $("updated").textContent = DATA.live ? `Read from ${NET.label} at ${new Date().toLocaleTimeString()} · refreshes every minute` : "";
+  $("updated").textContent = DATA.state !== "live" ? ""
+    : DATA.stale ? `Could not refresh. Showing the read from ${DATA.readAt.toLocaleTimeString()}; retrying every minute.`
+    : `Read from ${NET.label} at ${DATA.readAt.toLocaleTimeString()} · refreshes every minute`;
   renderBoard();
   renderFeed();
 }
 
+// state: "loading" (first chain read), "live", "error" (read failed), "demo" (no contract set)
+const configured = () => /^0x[0-9a-fA-F]{40}$/.test(CONFIG.contract) && !/^0x0{40}$/.test(CONFIG.contract);
+const blank = (state) => ({ state, live: false, scanners: [], images: [], stats: null });
 async function load() {
-  let d = null;
-  try { d = await liveData(); } catch (e) { console.warn("live read failed", e); contract = null; }
-  DATA = d || demoData();
+  if (!configured()) { DATA = { ...demoData(), state: "demo" }; renderAll(); return; }
+  try {
+    const d = await liveData();
+    if (!d) throw new Error("the ethers library did not load");
+    DATA = { ...d, state: "live", readAt: new Date() };
+  } catch (e) {
+    console.warn("live read failed", e);
+    // a failed refresh keeps the last good read on screen and says so
+    DATA = DATA && DATA.readAt ? { ...DATA, stale: true } : { ...blank("error"), error: e.shortMessage || e.message || String(e) };
+  }
   renderAll();
 }
-DATA = demoData(); renderAll(); // complete first frame
+DATA = configured() ? blank("loading") : { ...demoData(), state: "demo" };
+renderAll();
 try { const v = localStorage.getItem("pp-view"); if (v && v !== "board") document.querySelector(`nav button[data-view="${v}"]`)?.click(); } catch {}
 load();
-setInterval(() => { if (DATA.live) load(); }, 60_000);
+setInterval(() => { if (configured()) load(); }, 60_000);
 </script>
 <script type="module" src="passkey.js"></script>

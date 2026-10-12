@@ -28,18 +28,12 @@ export const LEADERBOARD_URL = "https://nadeye.example/"; // set to your hosted 
 // (editable on the options page). Add your hosted site's origin.
 export const SITE_ORIGINS = ["http://localhost:8080", "http://localhost:5173"];
 
-// Onchain vote bands, mirroring Nadeye.sol. The badge still flags at 65%, but
-// a public, permanent vote uses only the confident bands: >= 80% is an AI
-// vote, < 50% a real vote. Scores in between stay local as "unsure" and are
-// never sent (the contract would skip them in a batch anyway).
+// Onchain vote bands, same as Nadeye.sol; scores in between are never sent.
 export const AI_THRESHOLD_BPS = 8000;
 export const REAL_CEILING_BPS = 5000;
 export const isRecordable = (bps) => bps < REAL_CEILING_BPS || bps >= AI_THRESHOLD_BPS;
-// The contract accepts 100, but verdicts that get a consensus judgement also
-// write ERC-8004 reputation feedback, so keep batches well inside the
-// per-transaction gas limit.
+// Half the contract's 100: judged verdicts also write ERC-8004 feedback, which costs more gas.
 export const MAX_BATCH = 50;
 export const AUTO_FLUSH_AT = 25; // queue size that triggers an immediate batch
-// Monad bills the gas *limit*, not gas used — so keep the buffer over the
-// estimate small instead of the usual 2x padding.
+// Monad bills the gas limit, not gas used, so pad the estimate by 15% instead of 2x.
 export const GAS_BUFFER = 1.15;

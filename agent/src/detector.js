@@ -29,7 +29,7 @@ export async function ensureModel({ cacheDir, modelPath }) {
   const resp = await fetch(MANIFEST.model_url);
   if (!resp.ok) throw new Error(`model download failed: HTTP ${resp.status}`);
   const buf = Buffer.from(await resp.arrayBuffer());
-  if (sha256(buf) !== MANIFEST.sha256) throw new Error("model checksum mismatch — refusing to use it");
+  if (sha256(buf) !== MANIFEST.sha256) throw new Error("model checksum mismatch, refusing to use it");
   writeFileSync(path + ".part", buf);
   renameSync(path + ".part", path);
   return path;

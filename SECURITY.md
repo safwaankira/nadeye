@@ -9,7 +9,7 @@ Method: the Ultrafuzz approach, run directly in Foundry. It has four steps:
 
 ## Findings
 
-### F1 — Medium — A heavy or hostile reputation registry could block attestations (fixed)
+### F1 (Medium): A heavy or hostile reputation registry could block attestations (fixed)
 
 **Problem.** `_attest` forwarded all remaining gas to `ReputationRegistry.giveFeedback`. The ERC-8004 registry is an upgradeable proxy that Nadeye doesn't control. If an implementation burns gas, the call consumes 63/64 of what's left. The catch path then runs out, and the whole attestation reverts. A batch fails on its second judged verdict. The result: every scanner with a linked agent loses the ability to attest.
 
@@ -19,7 +19,7 @@ Method: the Ultrafuzz approach, run directly in Foundry. It has four steps:
 
 **Tests.** `test_gasBurningRegistryCannotBlockAttest` and `test_gasBurningRegistryCannotBlockBatch` fail on the old code and pass on the fixed code.
 
-### F2 — Informational — External call made before state was final (hardened)
+### F2 (Informational): External call made before state was final (hardened)
 
 **Problem.** The reputation call ran in the middle of `_attest`, before the image tallies and points were updated.
 
@@ -45,13 +45,13 @@ Nadeye calls three registries it doesn't control: Identity `0x8004A169…a432`, 
 
 The sandbox can't reach a Monad RPC, so live bytecode was not hashed. D1 rests on source history, not a bytecode match.
 
-### D1 — Pass — Interface compatibility
+### D1 (Pass): Interface compatibility
 
 - **Source matches the deployment.** The last change to any registry contract upstream was on 2026-01-24 (`27caef9`). All three proxies were created and upgraded on 2026-02-03, and the registries report version 2.0.0. The vendored copies in `contracts/test/erc8004/` are byte-identical to upstream at that point, so the 31 earlier tests ran against the deployed source.
 - **giveFeedback.** Nadeye calls `giveFeedback(uint256,int128,uint8,string,string,string,string,bytes32)`, selector `0x3c036a7e`. REA recovers that selector from the compiled implementation as nonpayable, with matching leading arguments.
 - **Identity registry.** REA finds all five selectors Nadeye uses: `ownerOf` and `getAgentWallet` from the contract, and `register`, `setAgentURI` and `setAgentWallet` from the agent. The reputation registry's `getSummary` (`0x81bbba58`) is found as a view.
 
-### D2 — Pass — `REPUTATION_GAS` covers Monad pricing
+### D2 (Pass): `REPUTATION_GAS` covers Monad pricing
 
 **Concern.** Live giveFeedback transactions on Monadscan carry gas limits from about 181k to 391k, three of the latest 50 are above 300k, and one used 298,989. Monad bills the gas limit, so these figures mean each sender's limit. They include the 21k base transaction cost and the caller's own strings.
 
@@ -67,7 +67,7 @@ The sandbox can't reach a Monad RPC, so live bytecode was not hashed. D1 rests o
 
 Nadeye always sends the same two short tags and empty URIs, so its cost can't grow with input. The test fails if a future registry or pricing change pushes the bound past the stipend.
 
-### D3 — Medium (accepted, external) — A single key can upgrade all three registries
+### D3 (Medium, accepted, external): A single key can upgrade all three registries
 
 All three are UUPS proxies. The only upgrades so far came from one EOA, `0x547289319C3e6aedB179C0b8e8aF0B5ACd062603`, on 2026-02-03. Upstream's upgrade script reads `OWNER_PRIVATE_KEY` from `.env`. Whoever holds that key can replace any registry's logic at any time.
 

@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Sieve Options</title>
+    <title>Nadeye options</title>
     <style>
       body { font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
              max-width: 560px; margin: 40px auto; padding: 0 20px; color: #1c2430; }
@@ -28,7 +28,7 @@
         <option value="hide">Hide it entirely (slopblocker)</option>
       </select>
     </div>
-    <p class="hint">Hide mode removes flagged images without a trace — including the ~1 in 25 real images the model gets wrong. Blur keeps mistakes visible and reversible.</p>
+    <p class="hint">Hide mode removes flagged images without a trace, including the ~1 in 25 real images the model gets wrong. Blur keeps mistakes visible and reversible.</p>
     <div class="row">
       <label for="badgeDisplay">Badges</label>
       <select id="badgeDisplay">
@@ -51,8 +51,8 @@
       <input type="number" id="minDisplaySize" min="40" max="400" step="10" style="width: 70px" />
     </div>
     <p class="hint">
-      Images displayed smaller than this (profile pictures, thumbnails) are left alone —
-      right-click any image → “Sieve: check this image” to score one on demand.
+      Images displayed smaller than this (profile pictures, thumbnails) are left alone.
+      Right-click any image and choose “Nadeye: check this image” to score one on demand.
       They are analyzed automatically if expanded.
     </p>
     <script src="options.js"></script>
@@ -65,7 +65,7 @@
       </form>
     </dialog>
     <h2>Scanner wallet (Monad)</h2>
-    <p>Nadeye signs attestations with a burner key generated and stored only in this browser profile. It pays gas, earns your leaderboard points, and holds nothing else — keep only a little MON in it.</p>
+    <p>Nadeye signs attestations with a burner key generated and stored only in this browser profile. It pays gas, earns your leaderboard points, and holds nothing else, so keep only a little MON in it.</p>
     <p>
       <button id="revealKey">Reveal private key</button>
       <code id="keyOut" style="word-break:break-all"></code>

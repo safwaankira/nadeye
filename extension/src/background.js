@@ -116,7 +116,7 @@ async function analyze(url) {
   return p;
 }
 
-// ------------------------------------------------------------- Nadeye
+// Nadeye additions below; the code above is Sieve's.
 
 const PP_DEFAULTS = { ppContribute: false, ppNetwork: "mainnet" };
 let ppSettings = { ...PP_DEFAULTS };
@@ -353,12 +353,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: "aid-check-image",
-      title: "Sieve: check this image",
+      title: "Nadeye: check this image",
       contexts: ["image"],
     });
     chrome.contextMenus.create({
       id: "aid-report",
-      title: "Sieve: report misclassification…",
+      title: "Nadeye: report a misclassification to Sieve…",
       contexts: ["image"],
     });
   });
@@ -389,7 +389,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       title: "[misclassification] ",
       "image-url": info.srcUrl,
       "sieve-verdict": cached
-        ? `${band} — score ${(cached.score * 100).toFixed(1)}%${cached.tta ? " (TTA)" : ""}`
+        ? `${band}, score ${(cached.score * 100).toFixed(1)}%${cached.tta ? " (TTA)" : ""}`
         : "not analyzed",
       "model-version": chrome.runtime.getManifest().version,
     };

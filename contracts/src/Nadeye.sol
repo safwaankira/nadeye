@@ -36,18 +36,11 @@ interface IERC8004Reputation {
 ///         disagreed, tag1 "nadeye", tag2 "consensus"), so any app can read
 ///         a detector's track record without trusting Nadeye's own UI.
 contract Nadeye {
-    // ---------------------------------------------------------------- config
-
     /// score is basis points of AI confidence (0 = surely real, 10000 = surely AI)
     uint16 public constant MAX_SCORE = 10_000;
-    /// a report is an "AI" vote at or above this score. Stricter than the
-    /// extension's 65% badge threshold: on Sieve's 36k-image benchmark, flagged
-    /// scores in [0.65, 0.80) are wrong ~10-12% of the time, scores >= 0.80
-    /// only ~1-2%. An onchain vote is public and permanent, so it uses the
-    /// confident band only.
+    /// an "AI" vote; stricter than the badge's 65% because Sieve's 0.65-0.80 band is wrong ~1 in 9
     uint16 public constant AI_THRESHOLD = 8_000;
-    /// a report is a "real" vote below this score. Scores in
-    /// [REAL_CEILING, AI_THRESHOLD) are unsure and are not recorded.
+    /// a "real" vote is below this; scores in [REAL_CEILING, AI_THRESHOLD) are not recorded
     uint16 public constant REAL_CEILING = 5_000;
     /// prior reports needed before agreement/disagreement is judged
     uint32 public constant QUORUM = 2;
@@ -59,12 +52,8 @@ contract Nadeye {
     /// still recorded, they just score zero
     uint32 public constant DAILY_POINT_CAP = 300;
     uint256 public constant MAX_BATCH = 100;
-    /// gas forwarded to ERC-8004 giveFeedback. The reference registry uses
-    /// 72k-174k; the cap stops a heavy or hostile (the registry is an
-    /// upgradeable proxy) implementation from making attestations revert.
+    /// gas cap for giveFeedback, so an upgraded or hostile registry cannot make attestations revert
     uint256 public constant REPUTATION_GAS = 300_000;
-
-    // ----------------------------------------------------------------- state
 
     IERC8004Identity public immutable identityRegistry;
     IERC8004Reputation public immutable reputationRegistry;
@@ -103,8 +92,6 @@ contract Nadeye {
     uint256 public totalScans;
     uint256 public totalFlagged; // images whose current majority is AI
 
-    // ---------------------------------------------------------------- events
-
     event Attested(
         bytes32 indexed pHash,
         address indexed scanner,
@@ -135,8 +122,6 @@ contract Nadeye {
         identityRegistry = IERC8004Identity(identity);
         reputationRegistry = IERC8004Reputation(reputation);
     }
-
-    // ------------------------------------------------------------- ERC-8004
 
     /// @notice link the caller's verdicts to an ERC-8004 agent. The caller must
     ///         be the agent's owner or its registered agentWallet, so nobody can
@@ -190,8 +175,6 @@ contract Nadeye {
             emit ReputationSkipped(scanner, agentId, pHash);
         }
     }
-
-    // ------------------------------------------------------------ attesting
 
     /// @notice attest one verdict; reverts on a duplicate from the same scanner
     ///         and on an unsure score (REAL_CEILING <= score < AI_THRESHOLD)
@@ -294,8 +277,6 @@ contract Nadeye {
         handleOf[msg.sender] = handle;
         emit HandleSet(msg.sender, handle);
     }
-
-    // ----------------------------------------------------------------- views
 
     struct ImageView {
         bytes32 pHash;

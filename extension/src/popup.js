@@ -16,7 +16,7 @@ $("blur").addEventListener("change", (e) => chrome.storage.sync.set({
 }));
 $("threshold").addEventListener("input", (e) => {
   $("thval").textContent = `${Math.round(e.target.value * 100)}%`;
-  e.target.setAttribute("aria-valuetext", `${Math.round(e.target.value * 100)}% — images at or above this AI confidence are flagged`);
+  e.target.setAttribute("aria-valuetext", `${Math.round(e.target.value * 100)}%: images at or above this AI confidence are flagged`);
   chrome.storage.sync.set({ threshold: Number(e.target.value) });
 });
 
@@ -26,13 +26,13 @@ $("options").addEventListener("click", () => chrome.runtime.openOptionsPage());
 chrome.runtime.sendMessage({ kind: "aid:model-status" }, async (st) => {
   $("ep").textContent = st && st.ready
     ? (st.selftest || "").startsWith("fallback")
-      ? "ready (wasm — gpu numerics fallback)"
+      ? "ready (WASM, because the GPU's numbers didn't match)"
       : `ready (${st.ep})`
     : "not set up";
   try {
     const manifest = await (await fetch(chrome.runtime.getURL("model_manifest.json"))).json();
     if (st && st.ready && manifest.version && st.version !== manifest.version) {
-      $("ep").textContent = "model update available — open Model setup";
+      $("ep").textContent = "model update available: open Model setup";
     }
   } catch {}
 });
@@ -59,7 +59,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   });
 });
 
-// ------------------------------------------------------------- Nadeye
+// Nadeye additions below; the code above is Sieve's.
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "–");
 let pp = null;
@@ -75,7 +75,7 @@ async function refreshPP() {
   $("contribute").checked = !!st.settings.ppContribute;
   $("unconfigured").hidden = st.configured;
   $("addr").textContent = short(st.address);
-  $("addr").title = `${st.address} — click to copy`;
+  $("addr").title = `${st.address} (click to copy)`;
   $("balance").textContent = st.balance != null ? `${Number(st.balance).toFixed(3)} MON` : "–";
   $("queued").textContent = st.queued;
   $("flush").disabled = !st.configured || st.queued === 0;
@@ -88,7 +88,7 @@ async function refreshPP() {
   $("snr").textContent = me && me.snr != null ? `${me.snr.toFixed(0)}%` : "–";
   $("agent").textContent = me && me.agentId != null
     ? `#${me.agentId}${me.reputation && me.reputation.count ? ` · ${me.reputation.agreement.toFixed(0)}% agree (${me.reputation.count})` : ""}`
-    : "not linked — sign in on the site";
+    : "not linked: sign in on the site";
   if (me && me.handle && document.activeElement !== $("handle")) $("handle").value = `@${me.handle}`;
   $("lasttx").innerHTML = "";
   if (st.lastTx) {

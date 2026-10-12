@@ -294,6 +294,8 @@ The look is Monad's own brand kit applied to forensic work:
 
 The feeling is calm and exact, like a lab instrument with a bit of Monad's community color. Nadeye reports evidence; it never accuses.
 
+Dial: ENERGY 1 / RHYTHM 2 / MOTION 1. Calm surfaces; sections vary only where the content differs (a podium, a table, a lookup, a numbered flow); motion is limited to hover and focus states, and views swap instantly.
+
 **Voice**
 - Sentence case. Uppercase only through the `label-md` style.
 - Lead with the action or the result: "Create passkey", "Extension now scans as 0x31F5…61eA".

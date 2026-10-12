@@ -31,7 +31,7 @@ async function finishInstall(buf, manifest) {
   const resp = await chrome.runtime.sendMessage({ kind: "aid:model-updated" });
   const st = await chrome.runtime.sendMessage({ kind: "aid:model-status" });
   if (st && st.ready) {
-    statusEl.textContent = `Done. Inference backend: ${st.ep}. You can close this tab — Sieve is active.`;
+    statusEl.textContent = `Done. Inference backend: ${st.ep}. Nadeye is active, and you can close this tab.`;
   } else {
     statusEl.textContent = `Model stored, but inference init failed: ${st && st.error}`;
   }
@@ -83,7 +83,7 @@ btn.addEventListener("click", async () => {
     const meta = JSON.parse(await (await fh.getFile()).text());
     if (manifest.version && meta.version !== manifest.version) {
       statusEl.textContent = `Model update ready: ${meta.version} → ${manifest.version}. ` +
-        "Press Download model to switch; Sieve keeps using the old model until then.";
+        "Press Download model to switch; Nadeye keeps using the old model until then.";
     }
   } catch {}
 })();

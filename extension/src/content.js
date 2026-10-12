@@ -194,8 +194,8 @@
   // (audit #49). Only in the "all badges" display mode.
   const NA_TEXT = {
     "too-small": "Image too small to analyse",
-    "degenerate-flat": "Flat / solid image — nothing to analyse",
-    "degenerate-noise": "Noise-like image — nothing to analyse",
+    "degenerate-flat": "Flat or solid image, nothing to analyse",
+    "degenerate-noise": "Noise-like image, nothing to analyse",
     "error": "Analysis failed repeatedly (see the extension log)",
   };
   function applyNotAnalysed(img, reason) {
@@ -243,12 +243,12 @@
     st.badge.classList.toggle("aid-quiet", !flagged && settings.badgeDisplay === "flags");
     st.badge.title = flagged
       ? (score < thr + 0.10
-          ? `Likely AI-generated (confidence ${pct}% — near the ${Math.round(thr * 100)}% threshold: about 1 in 8 verdicts in this band are wrong on our benchmark). Click to toggle blur.`
+          ? `Likely AI-generated (confidence ${pct}%, near the ${Math.round(thr * 100)}% threshold: about 1 in 8 verdicts in this band are wrong on Sieve's benchmark). Click to toggle blur.`
           : `Likely AI-generated (confidence ${pct}%). Click to toggle blur.`)
       : st.degraded && score >= thr
-        ? `Low-quality input (heavy recompression or upscaling) — AI confidence ${pct}%, shown as unsure because degraded images are not evidence-backed`
+        ? `Low-quality input (heavy recompression or upscaling). AI confidence ${pct}%, shown as unsure because a degraded image is not reliable evidence`
         : isUnsure
-          ? `Uncertain — AI confidence ${pct}%, below the ${Math.round(thr * 100)}% flag threshold`
+          ? `Uncertain: AI confidence ${pct}%, below the ${Math.round(thr * 100)}% flag threshold`
           : `Likely real (AI confidence ${pct}%)`;
     // Nadeye: community verdict from the Monad registry, if any
     const verdictWord = flagged ? "likely AI-generated" : isUnsure ? "unsure" : "likely real";
@@ -405,7 +405,7 @@
   }
 })();
 
-// ---------------------------------------------------------------- Nadeye
+// Nadeye additions below; the code above is Sieve's.
 // Passkey site bridge. On a trusted Nadeye site (options page list), the
 // page can hand the extension the scanner key it derived from the user's
 // passkey (Mera). The user confirms in a dialog before anything changes.

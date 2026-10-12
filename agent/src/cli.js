@@ -90,7 +90,7 @@ async function main() {
       if (requesterAgent == null) {
         const r = await requester.register(toDataUri({ type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1", name: "Nadeye demo requester", description: "Asks validators whether images are AI-generated.", services: [], active: true, registrations: [] }));
         requesterAgent = r.agentId;
-        err(`registered requester agent #${requesterAgent} — set REQUESTER_AGENT_ID=${requesterAgent} to reuse it`);
+        err(`registered requester agent #${requesterAgent}; set REQUESTER_AGENT_ID=${requesterAgent} to reuse it`);
       }
       const requestHash = keccak256(toBytes(`${image}|${Date.now()}`));
       const rc = await requester.send(cfg.validation, validationAbi, "validationRequest", [validator, requesterAgent, image, requestHash]);

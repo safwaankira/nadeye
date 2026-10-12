@@ -1,4 +1,4 @@
-# Monad Metropolis submission — Nadeye
+# Monad Metropolis submission: Nadeye
 
 **Track:** 04 · Trust, Identity & AI Infrastructure
 **Bounties to tag:** Monad Foundation "Mera: One Passkey, Many Keys" · Monad Foundation "Best Mera-Powered UX on Monad"
@@ -21,15 +21,15 @@ Nadeye makes "is this image AI-generated?" a question with a public, verifiable 
 **People** install the Nadeye Chrome extension. It runs a ViT detector entirely in the browser on WebGPU, so images are never uploaded. Users sign in with a passkey instead of a seed phrase. When they opt in, each verdict goes to Monad as a 64-bit perceptual hash plus a confidence score. Only confident verdicts become votes: 80% and above counts as AI, below 50% as real, and the uncertain middle never leaves the device. Anyone who later meets the same picture on any site, even resized or recompressed, sees how many scanners flagged it, right on the image.
 
 **Agents** call the Nadeye Verifier. It runs the same model on a laptop and offers three ways in:
-- an **MCP tool** (`verify_image`), for agents to check an image before they post or act on it;
-- an **HTTP API**;
-- the **ERC-8004 Validation Registry**: any agent can send a `validationRequest`, and the verifier answers onchain with an authenticity score from 0 to 100 and a hashed report.
+- an MCP tool (`verify_image`), for agents to check an image before they post or act on it;
+- an HTTP API;
+- the ERC-8004 Validation Registry: any agent can send a `validationRequest`, and the verifier answers onchain with an authenticity score from 0 to 100 and a hashed report.
 
-**Trust accrues onchain.** Every scanner, human or agent, can link an **ERC-8004 identity**. When a verdict meets the consensus check, the Nadeye contract writes the outcome to the **ERC-8004 Reputation Registry**: 100 for agreement, 0 for disagreement. Each detector's accuracy becomes a portable, queryable track record. Points, active days and signal-to-noise rank scanners on a leaderboard that reads straight from the contract, with no backend.
+**Trust accrues onchain.** Every scanner, human or agent, can link an ERC-8004 identity. When a linked scanner's verdict meets the consensus check, the Nadeye contract writes the outcome to the ERC-8004 Reputation Registry: 100 for agreement, 0 for disagreement. Each detector's accuracy becomes a portable, queryable track record. Points, active days and signal-to-noise rank scanners on a leaderboard that reads straight from the contract, with no backend.
 
-**One passkey, many keys (Mera).** One passkey derives two keys:
-- an **identity key** that owns the ERC-8004 agent. It lives only in page memory, inside Mera signing sessions that are zeroed after each action.
-- a **scanner key** the extension uses to sign. It is registered as the agent's `agentWallet` with its own EIP-712 consent, so a leaked hot key can be rotated without losing reputation.
+**Mera: one passkey, many keys.** Nadeye derives two keys from one passkey:
+- an identity key that owns the ERC-8004 agent. It lives only in page memory, inside Mera signing sessions that are zeroed after each action.
+- a scanner key the extension uses to sign. It is registered as the agent's `agentWallet` with its own EIP-712 consent, so a leaked hot key can be rotated without losing reputation.
 
 The same passkey restores everything on a new device.
 
@@ -42,7 +42,7 @@ The same passkey restores everything on a new device.
 
 ## What was built during Metropolis
 
-Everything in the repo except the detector:
+Everything in the repo except Sieve (the detector and the base extension) and the ERC-8004 registry copies vendored for tests:
 - the Nadeye contract with ERC-8004 integration;
 - perceptual hashing and near-match lookup;
 - the Monad chain client and batching in the extension;
@@ -51,7 +51,7 @@ Everything in the repo except the detector:
 - the leaderboard and registry site;
 - all tests.
 
-The detector model and base extension are **Sieve** by Sriram Kiron (MIT, open source), credited in the README, NOTICE and the app.
+The detector model and base extension are Sieve by Sriram Kiron (MIT, open source), credited in the README, NOTICE and the app.
 
 ## Verification (for judges)
 
@@ -84,13 +84,13 @@ The detector model and base extension are **Sieve** by Sriram Kiron (MIT, open s
 
 ## Launch post (X)
 
-> Nadeye is live on @monad mainnet for #MonadMetropolis 🟣
+> Nadeye is live on @monad mainnet for #MonadMetropolis.
 >
 > See what the naked eye can't. Detect AI-generated images on-device, then put the verdict onchain. No uploads, and no seed phrase thanks to passkeys via Mera.
 >
-> Agents can ask too, through MCP or ERC-8004 validation. Every verifier earns an ERC-8004 reputation.
+> Agents can ask too, through MCP or ERC-8004 validation. Verifiers that link an ERC-8004 agent build a public track record.
 >
-> Detector: Sieve by @sriramkiron · repo + demo ⬇️
+> Detector: Sieve by @sriramkiron. Repo and demo below.
 
 ---
 
