@@ -1,0 +1,18 @@
+{
+    "name": "Nadeye",
+    "description": "Detects AI-generated images on the user's own device and records each confident verdict on Monad as a 64-bit perceptual hash. A Chrome extension shows the community count on any image, and a verifier agent answers other agents through MCP, HTTP and the ERC-8004 Validation Registry, building ERC-8004 reputation.",
+    "live": true,
+    "categories": [
+        "AI::Consumer AI",
+        "AI::Infrastructure"
+    ],
+    "addresses": {
+        // verdict registry: attestations by perceptual hash, points, ERC-8004 agent links and consensus feedback
+        "Nadeye": "0xYOUR_NADEYE_ADDRESS"
+    },
+    "links": {
+        "project": "https://YOUR_SITE_URL",
+        "github": "https://github.com/safwaanDK/nadeye",
+        "docs": "https://github.com/safwaanDK/nadeye#readme"
+    }
+}

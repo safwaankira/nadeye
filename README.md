@@ -145,6 +145,10 @@ The validator answers within seconds with `validationResponse(requestHash, authe
 
 **Optional public endpoint.** Run `cloudflared tunnel --url http://127.0.0.1:8787`, then re-run `register --public-url https://…`. That puts the MCP and HTTP endpoints into the agent's ERC-8004 registration file.
 
+### 7. List Nadeye in Monad's protocol registry
+
+Fill in the contract address and site URL in `ecosystem/monad-protocols/nadeye.jsonc`, then open a pull request to [monad-crypto/protocols](https://github.com/monad-crypto/protocols). The steps are in `ecosystem/monad-protocols/README.md`.
+
 ---
 
 ## How it works
