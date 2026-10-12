@@ -2,28 +2,31 @@
 <meta name="description" content="Nadeye — scanners detect AI-generated images locally and record verdicts on Monad. Leaderboard and registry, read straight from the chain.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <style>
-/* Layout: a darkroom light-table — one centered column; stats strip, podium,
-   ranked table; the registry shows every image as its 8x8 pHash bit tile. */
+/* Layout: one centered column; stats strip, podium, ranked table; the registry
+   shows every image as its 8x8 pHash tile. Tokens follow the Nadeye design
+   system, built on Monad's brand kit (night theme first, day second). */
 :root {
-  --bg: #0d0c12; --surface: #16141f; --raised: #1f1c2b; --line: #2a2638;
-  --ink: #ece9f5; --muted: #8f89a6; --accent: #8b77ff; --accent-ink: #b7aaff; --accent-soft: rgba(139,119,255,.14);
-  --ai: #ff6a55; --real: #5fd39a; --warn: #f2b84b;
-  --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bg: #0e091c; --surface: #18112e; --raised: #221a3b; --line: #3a2f5c; --line-strong: #7a6cae;
+  --ink: #f3f0ff; --muted: #a99fcc; --brand: #6e54ff; --on-brand: #ffffff; --accent: #6e54ff; --accent-ink: #a797ff; --accent-soft: rgba(110,84,255,.16);
+  --night: #0e091c; --lavender: #ddd7fe; --ice: #b9e3f9; --focus: #ddd7fe;
+  --fill-ai: #ff8ee4; --fill-real: #85e6ff; --fill-unsure: #ffae45;
+  --ai: #ff8ee4; --real: #85e6ff; --warn: #ffae45;
+  --display: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
-  --bg: #f6f5fa; --surface: #ffffff; --raised: #f0eef8; --line: #e1ddee;
-  --ink: #17151f; --muted: #6a6480; --accent: #6a52f0; --accent-ink: #4d36d4; --accent-soft: rgba(106,82,240,.10);
-  --ai: #d9402b; --real: #1f9a62; --warn: #b67a0c; color-scheme: light } }
+  --bg: #f8f6ff; --surface: #ffffff; --raised: #eeeafe; --line: #ddd7fe; --line-strong: #8a7ec0;
+  --ink: #0e091c; --muted: #5a5277; --accent-ink: #5b40f2; --accent-soft: rgba(110,84,255,.10); --focus: #6e54ff;
+  --ai: #a3166f; --real: #00708f; --warn: #8f5100; color-scheme: light } }
 :root[data-theme="light"] {
-  --bg: #f6f5fa; --surface: #ffffff; --raised: #f0eef8; --line: #e1ddee;
-  --ink: #17151f; --muted: #6a6480; --accent: #6a52f0; --accent-ink: #4d36d4; --accent-soft: rgba(106,82,240,.10);
-  --ai: #d9402b; --real: #1f9a62; --warn: #b67a0c; color-scheme: light }
+  --bg: #f8f6ff; --surface: #ffffff; --raised: #eeeafe; --line: #ddd7fe; --line-strong: #8a7ec0;
+  --ink: #0e091c; --muted: #5a5277; --accent-ink: #5b40f2; --accent-soft: rgba(110,84,255,.10); --focus: #6e54ff;
+  --ai: #a3166f; --real: #00708f; --warn: #8f5100; color-scheme: light }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -31,14 +34,14 @@ body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
 .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 0 64px; }
 a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 
 header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   padding-block: 18px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 20px/1 var(--display); letter-spacing: .02em; }
 .brand canvas { width: 28px; height: 28px; image-rendering: pixelated; border-radius: 4px; }
 nav { display: flex; gap: 4px; flex-wrap: wrap; }
-nav button { font: 500 14px var(--body); color: var(--muted); background: none; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; }
+nav button { font: 500 13px var(--mono); letter-spacing: .02em; color: var(--muted); background: none; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer; }
 nav button[aria-selected="true"] { color: var(--ink); background: var(--raised); }
 nav button:hover { color: var(--ink); }
 
@@ -47,7 +50,7 @@ nav button:hover { color: var(--ink); }
 .pill { font: 500 11px var(--mono); padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); letter-spacing: .06em; }
 .pill.live { color: var(--real); border-color: color-mix(in srgb, var(--real) 45%, transparent); }
 .pill.demo { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
-h1 { font: 700 clamp(30px, 5vw, 50px)/1.05 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h1 { font: 700 clamp(32px, 5.4vw, 56px)/1.04 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.02em; }
 h1 em { font-style: normal; color: var(--accent-ink); }
 .lede { color: var(--muted); max-width: 62ch; margin: 0; }
 
@@ -94,12 +97,13 @@ td .h { font-weight: 600; }
 td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .snr { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .bar { width: 54px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--real); }
+.bar i { display: block; height: 100%; background: var(--fill-real); }
 .pager { display: flex; gap: 6px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
-.pager button, .btn { font: 500 13px var(--body); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 6px 11px; cursor: pointer; }
-.pager button[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pager button, .btn { font: 500 13px var(--mono); letter-spacing: .02em; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+.pager button:hover, .btn:hover { border-color: var(--accent-ink); }
+.pager button[aria-current="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
 .pager button:disabled { opacity: .4; cursor: default; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
 
 /* registry */
 .split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
@@ -120,11 +124,14 @@ td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .card:hover { border-color: var(--accent); }
 .card .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .card .meta { font: 11px var(--mono); color: var(--muted); }
-.chip { font: 600 11px var(--mono); padding: 2px 7px; border-radius: 99px; letter-spacing: .04em; }
-.chip.ai { color: var(--ai); background: color-mix(in srgb, var(--ai) 14%, transparent); }
-.chip.real { color: var(--real); background: color-mix(in srgb, var(--real) 14%, transparent); }
-.chip.split { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
-.chip.agent { color: var(--accent-ink); background: var(--accent-soft); }
+.chip { font: 500 11px var(--mono); padding: 2px 10px; border-radius: 999px; letter-spacing: .04em; display: inline-flex; align-items: center; gap: 6px; color: var(--night); }
+.chip.ai, .chip.real, .chip.split { }
+.chip.ai::before, .chip.real::before, .chip.split::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--night); }
+.chip.ai { background: var(--fill-ai); }
+.chip.real { background: var(--fill-real); }
+.chip.split { background: var(--fill-unsure); }
+.chip.agent { color: var(--accent-ink); background: var(--surface); border: 1px solid var(--line-strong); padding: 1px 8px 1px 4px; }
+.chip.agent::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--brand); }
 .me-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 760px) { .me-grid { grid-template-columns: 1fr; } }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; align-items: baseline; }
@@ -139,7 +146,7 @@ td .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .phrase { font: 13px/1.8 var(--mono); background: var(--raised); border: 1px dashed var(--warn); border-radius: 8px; padding: 10px 12px; word-spacing: 6px; }
 .keyline { display: flex; gap: 10px; align-items: center; }
 .btn:disabled { opacity: .5; cursor: default; }
-.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex; }
+.meter { height: 8px; border-radius: 999px; background: var(--raised); overflow: hidden; display: flex; gap: 2px; }
 .meter i { display: block; height: 100%; }
 
 /* how it works */
@@ -402,7 +409,7 @@ function hashTile(hex, size = 40, onColor, offColor) {
   const ctx = c.getContext("2d");
   const cs = getComputedStyle(document.documentElement);
   ctx.fillStyle = offColor || cs.getPropertyValue("--raised"); ctx.fillRect(0, 0, 8, 8);
-  ctx.fillStyle = onColor || cs.getPropertyValue("--accent");
+  ctx.fillStyle = onColor || cs.getPropertyValue("--brand");
   const h = hex.replace(/^0x/, "").slice(-16);
   for (let i = 0; i < 64; i++) if ((parseInt(h[i >> 2], 16) >> (3 - (i & 3))) & 1) ctx.fillRect(i % 8, i >> 3, 1, 1);
   c.setAttribute("aria-label", `hash ${h}`);
@@ -533,10 +540,10 @@ function renderFeed() {
     const pct = Math.round((v.aiVotes / v.reports) * 100);
     card.innerHTML = `<div class="row"></div>
       <div class="row"><span class="chip ${vd.cls}">${vd.text}</span><span class="meta">${v.aiVotes}/${v.reports} AI</span></div>
-      <div class="meter" title="${pct}% of scanners flagged AI"><i style="width:${pct}%;background:var(--ai)"></i><i style="width:${100 - pct}%;background:var(--real)"></i></div>
+      <div class="meter" title="${pct}% of scanners flagged AI"><i style="width:${pct}%;background:var(--fill-ai)"></i><i style="width:${100 - pct}%;background:var(--fill-real)"></i></div>
       <span class="meta">found ${ago(v.firstSeen)}</span>`;
     const top = card.querySelector(".row");
-    top.append(hashTile(v.pHash, 40, cs.getPropertyValue(vd.cls === "ai" ? "--ai" : vd.cls === "real" ? "--real" : "--warn")));
+    top.append(hashTile(v.pHash, 40, cs.getPropertyValue(vd.cls === "ai" ? "--fill-ai" : vd.cls === "real" ? "--fill-real" : "--fill-unsure")));
     const h = document.createElement("span"); h.className = "meta"; h.textContent = v.pHash.slice(-16); top.append(h);
     card.onclick = () => showResult(null, v.pHash.slice(-16), v, 0);
     feed.append(card);
@@ -612,8 +619,8 @@ drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove
 (function logo() {
   const ctx = $("logo").getContext("2d");
   const cs = getComputedStyle(document.documentElement);
-  ctx.fillStyle = cs.getPropertyValue("--raised"); ctx.fillRect(0, 0, 8, 8);
-  ctx.fillStyle = cs.getPropertyValue("--accent");
+  ctx.fillStyle = cs.getPropertyValue("--night"); ctx.fillRect(0, 0, 8, 8);
+  ctx.fillStyle = cs.getPropertyValue("--lavender");
   const bits = "003c66dbdb663c00"; // an 8x8 eye mark
   for (let i = 0; i < 64; i++) if ((parseInt(bits[i >> 2], 16) >> (3 - (i & 3))) & 1) ctx.fillRect(i % 8, i >> 3, 1, 1);
 })();

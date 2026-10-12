@@ -195,6 +195,15 @@ The Node agent matches Sieve's own Python/PIL reference scores on Sieve's 17 lab
 
 Measured gas: about 110–140k per newly attested image. A judged verdict from a linked agent costs more, because it also writes the ERC-8004 feedback. That is why the extension caps batches at 50.
 
+## Design
+
+Nadeye's design system builds on Monad's brand kit:
+- **Color:** Monad purple, lavender and night, with Monad's pink, cyan and orange as the AI / real / unsure verdict colors.
+- **Type:** Inter for body text, Roboto Mono for labels and buttons, and Hanken Grotesk standing in for Britti Sans on headlines.
+- **Motif:** the 8×8 pixel grid of a perceptual hash, which is also the logo.
+
+Tokens and component styles are in `design/`, and the brand book is `design/README.md`.
+
 ## Security review
 
 The contract passed a stateful invariant fuzz campaign: 6 invariants, each held across 30,720 random calls, including against a hostile ERC-8004 registry. The campaign found and fixed one Medium issue: a gas-burning reputation registry could block attestations. See [SECURITY.md](SECURITY.md).

@@ -3,11 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      :root { --ink: #1c2430; --muted: #64748b; --line: #e5e7eb; --mon: #836ef9; --mon-ink: #4c3fd1; }
-      body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-             width: 300px; margin: 0; padding: 14px; color: var(--ink); }
+      :root { --ink: #f3f0ff; --muted: #a99fcc; --line: #3a2f5c; --line-strong: #7a6cae; --surface: #18112e; --sunken: #221a3b;
+              --brand: #6e54ff; --on-brand: #ffffff; --accent: #a797ff; --night: #0e091c; --unsure: #ffae45; --focus: #ddd7fe; color-scheme: dark; }
+      body { font: 13px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+             width: 300px; margin: 0; padding: 14px; color: var(--ink); background: var(--surface); }
+      :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
       h1 { font-size: 15px; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; }
-      h1 .dot { width: 10px; height: 10px; border-radius: 3px; background: var(--mon); display: inline-block; }
+      h1 .dot { width: 12px; height: 12px; border-radius: 2px; background: var(--brand); display: inline-block; }
       .sub { color: var(--muted); font-size: 11px; margin: 0 0 10px; }
       h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
            margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); }
@@ -15,19 +17,19 @@
       .stat { font-weight: 700; font-variant-numeric: tabular-nums; }
       .muted { color: var(--muted); font-size: 12px; }
       input[type="range"] { width: 120px; }
-      a { color: var(--mon-ink); text-decoration: none; }
+      a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
       .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; margin: 8px 0; }
-      .grid div { background: #f5f3ff; border-radius: 6px; padding: 5px 2px; }
+      .grid div { background: var(--sunken); border-radius: 6px; padding: 5px 2px; }
       .grid b { display: block; font-size: 14px; font-variant-numeric: tabular-nums; }
       .grid span { font-size: 10px; color: var(--muted); }
-      .addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; cursor: pointer; }
-      .notice { background: #fff7ed; color: #9a3412; border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 6px 0; }
+      .addr { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; cursor: pointer; }
+      .notice { background: var(--unsure); color: var(--night); border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 6px 0; }
       .handle { display: flex; gap: 4px; }
-      .handle input { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; font: inherit; }
-      button { font: inherit; border: 0; border-radius: 5px; padding: 4px 9px; background: var(--mon); color: #fff; cursor: pointer; }
+      .handle input { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 8px; font: inherit; background: var(--sunken); color: var(--ink); }
+      button { font: 500 12px "Roboto Mono", ui-monospace, monospace; border: 0; border-radius: 8px; padding: 5px 10px; background: var(--brand); color: var(--on-brand); cursor: pointer; }
       button:disabled { opacity: .5; cursor: default; }
-      select { font: inherit; }
+      select { font: inherit; background: var(--sunken); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 6px; }
       .links { display: flex; justify-content: space-between; margin-top: 10px; }
       [hidden] { display: none !important; }
     </style>

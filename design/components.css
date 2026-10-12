@@ -1,0 +1,83 @@
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap");
+/* Nadeye components. Every value comes from tokens.css; class prefix ny-. */
+html { background: var(--surface); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 24px; }
+body { margin: 0; padding: 16px; }
+.ny-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.ny-stack { display: grid; gap: var(--space-3); }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* Button */
+.ny-btn { font-family: var(--font-mono); font-size: 13px; line-height: 16px; font-weight: 500; letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; gap: var(--space-2); padding: 10px 16px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong); background: var(--surface-raised); color: var(--ink); cursor: pointer; }
+.ny-btn:hover { border-color: var(--accent); }
+.ny-btn--primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.ny-btn--primary:hover { filter: brightness(1.08); }
+.ny-btn:disabled { opacity: .5; cursor: default; }
+.ny-btn--sm { padding: 6px 12px; }
+
+/* Verdict badge: sits on top of a web image */
+.ny-badge { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; display: inline-flex; align-items: stretch;
+  border-radius: var(--radius-pill); overflow: hidden; box-shadow: var(--shadow-badge); color: var(--night); background: var(--night); }
+.ny-badge > span { padding: 3px var(--space-2); }
+.ny-badge__score { background: var(--surface-sunken); color: var(--ink); }
+.ny-badge--ai .ny-badge__score { background: var(--verdict-ai); color: var(--night); }
+.ny-badge--real .ny-badge__score { background: var(--verdict-real); color: var(--night); }
+.ny-badge--unsure .ny-badge__score { background: var(--verdict-unsure); color: var(--night); }
+.ny-badge__crowd { background: var(--ice); color: var(--night); }
+.ny-badge--degraded .ny-badge__score { outline: 1px dashed var(--night); outline-offset: -3px; }
+
+/* Verdict chip: verdicts inside the app */
+.ny-chip { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.04em;
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: var(--radius-pill); color: var(--night); }
+.ny-chip::before { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--night); }
+.ny-chip--ai { background: var(--verdict-ai); }
+.ny-chip--real { background: var(--verdict-real); }
+.ny-chip--unsure { background: var(--verdict-unsure); }
+.ny-chip--none { background: var(--surface-sunken); color: var(--muted); }
+.ny-chip--none::before { background: var(--muted); }
+
+/* Agent chip: ERC-8004 identity */
+.ny-agent { font-family: var(--font-mono); font-size: 12px; line-height: 16px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px 2px 4px; border-radius: var(--radius-pill); border: 1px solid var(--line-strong); color: var(--accent); background: var(--surface-raised); }
+.ny-agent i { width: 12px; height: 12px; border-radius: var(--radius-pixel); background: var(--brand); }
+
+/* Hash tile: the 8x8 pHash, the system's signature shape */
+.ny-hash { display: inline-grid; grid-template-columns: repeat(8, 1fr); gap: 1px; padding: 2px; border-radius: var(--radius-pixel);
+  border: 1px solid var(--line-strong); background: var(--surface-sunken); width: var(--ny-hash-size, 40px); aspect-ratio: 1; box-sizing: border-box; max-width: 100%; }
+.ny-hash > b { border-radius: 1px; background: transparent; }
+.ny-hash > b.on { background: var(--ny-hash-ink, var(--brand)); }
+.ny-hash--ai { --ny-hash-ink: var(--verdict-ai); }
+.ny-hash--real { --ny-hash-ink: var(--verdict-real); }
+.ny-hash--unsure { --ny-hash-ink: var(--verdict-unsure); }
+
+/* Consensus meter */
+.ny-meter { display: flex; height: 8px; border-radius: var(--radius-pill); overflow: hidden; background: var(--surface-sunken); gap: 2px; }
+.ny-meter > .ai { background: var(--verdict-ai); }
+.ny-meter > .real { background: var(--verdict-real); }
+.ny-meter-label { font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--muted); display: flex; justify-content: space-between; }
+
+/* Stat strip */
+.ny-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.ny-stat { background: var(--surface-raised); padding: var(--space-3) var(--space-4); display: grid; gap: 2px; }
+.ny-stat b { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ny-stat span { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+/* Status note */
+.ny-note { font-size: 13px; line-height: 20px; border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); border: 1px solid var(--line); background: var(--surface-raised); color: var(--ink); display: flex; gap: var(--space-2); }
+.ny-note::before { font-family: var(--font-mono); font-weight: 500; flex: none; }
+.ny-note--busy::before { content: "···"; color: var(--accent); }
+.ny-note--ok::before { content: "OK"; color: var(--real-ink); }
+.ny-note--error::before { content: "ERR"; color: var(--ai-ink); }
+.ny-note--example::before { content: "EXAMPLE"; color: var(--unsure-ink); }
+
+/* Scanner row (leaderboard) */
+.ny-table { width: 100%; border-collapse: collapse; background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.ny-table th { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  text-align: left; padding: 10px var(--space-4); background: var(--surface-sunken); border-bottom: 1px solid var(--line); }
+.ny-table td { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--line); white-space: nowrap; }
+.ny-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.ny-table .rank { font-family: var(--font-display); font-weight: 700; color: var(--muted); }
+.ny-table tr.top .rank { color: var(--accent); }
+.ny-table .addr { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-left: var(--space-2); }

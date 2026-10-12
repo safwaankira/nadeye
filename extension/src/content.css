@@ -3,9 +3,10 @@
   z-index: 2147483646;
   padding: 2px 7px;
   border-radius: 10px;
-  font: 600 11px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: rgba(30, 30, 30, 0.72);
-  color: #d8f5d0;
+  font: 500 11px/1.5 "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(14, 9, 28, 0.82); /* Nadeye night */
+  color: #f3f0ff;
+  box-shadow: 0 1px 3px rgba(14, 9, 28, 0.45);
   cursor: pointer;
   user-select: none;
   pointer-events: auto;
@@ -13,17 +14,17 @@
 }
 
 .aid-badge.aid-flagged {
-  background: rgba(180, 32, 32, 0.88);
-  color: #fff;
+  background: #ff8ee4; /* verdict-ai (Monad pink) */
+  color: #0e091c;
 }
 
 .aid-badge.aid-unsure {
-  background: rgba(186, 122, 18, 0.88);
-  color: #fff;
+  background: #ffae45; /* verdict-unsure (Monad orange) */
+  color: #0e091c;
 }
 
 .aid-badge.aid-degraded {
-  border: 1px dashed rgba(255, 255, 255, 0.7);
+  border: 1px dashed #0e091c;
 }
 
 .aid-badge.aid-na {
@@ -47,5 +48,5 @@
 
 /* Nadeye: badge carries a community verdict from the Monad registry */
 .aid-badge.aid-community {
-  box-shadow: inset 3px 0 0 #836ef9;
+  box-shadow: inset 4px 0 0 #b9e3f9, 0 1px 3px rgba(14, 9, 28, 0.45); /* ice = onchain community */
 }

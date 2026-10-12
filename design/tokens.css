@@ -1,0 +1,64 @@
+/* Nadeye — generated from tokens.json */
+:root, [data-theme="night"] {
+  --brand: #6e54ff;
+  --on-brand: #ffffff;
+  --lavender: #ddd7fe;
+  --night: #0e091c;
+  --surface: #0e091c;
+  --surface-raised: #18112e;
+  --surface-sunken: #221a3b;
+  --line: #3a2f5c;
+  --line-strong: #7a6cae;
+  --ink: #f3f0ff;
+  --muted: #a99fcc;
+  --accent: #a797ff;
+  --verdict-ai: #ff8ee4;
+  --verdict-real: #85e6ff;
+  --verdict-unsure: #ffae45;
+  --ice: #b9e3f9;
+  --ai-ink: #ff8ee4;
+  --real-ink: #85e6ff;
+  --unsure-ink: #ffae45;
+  --focus-ring: #ddd7fe;
+  --shadow-badge: 0 1px 3px rgba(14, 9, 28, 0.45);
+}
+[data-theme="day"] {
+  --surface: #f8f6ff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eeeafe;
+  --line: #ddd7fe;
+  --line-strong: #8a7ec0;
+  --ink: #0e091c;
+  --muted: #5a5277;
+  --accent: #5b40f2;
+  --ai-ink: #a3166f;
+  --real-ink: #00708f;
+  --unsure-ink: #8f5100;
+  --focus-ring: #6e54ff;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-pixel: 2px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+  --font-display: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.display-xl { font-family: var(--font-display); font-size: 56px; line-height: 58px; font-weight: 700; letter-spacing: -0.02em; }
+.display-l { font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 700; letter-spacing: -0.015em; }
+.heading { font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 600; }
+.numeral { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 700; }
+.body { font-family: var(--font-body); font-size: 15px; line-height: 24px; font-weight: 400; }
+.body-s { font-family: var(--font-body); font-size: 13px; line-height: 20px; font-weight: 400; }
+.body-strong { font-family: var(--font-body); font-size: 15px; line-height: 24px; font-weight: 600; }
+.label { font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.12em; }
+.button { font-family: var(--font-mono); font-size: 13px; line-height: 16px; font-weight: 500; letter-spacing: 0.02em; }
+.data { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 400; }
