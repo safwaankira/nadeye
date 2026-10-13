@@ -9,7 +9,12 @@ const envFile = join(process.cwd(), ".env");
 if (existsSync(envFile)) {
   for (const line of readFileSync(envFile, "utf8").split("\n")) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    if (!m || m[1] in process.env) continue;
+    let v = m[2];
+    const q = v.match(/^(["'])(.*)\1(\s+#.*)?$/);
+    // quoted values are taken as-is; unquoted ones end at " #" (an inline comment)
+    v = q ? q[2] : v.replace(/\s+#.*$/, "");
+    process.env[m[1]] = v;
   }
 }
 
