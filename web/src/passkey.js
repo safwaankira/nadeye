@@ -321,10 +321,21 @@ function setBusy(msg, error = null) {
   $("ppError").textContent = error || "";
   document.querySelectorAll("#view-me button").forEach((b) => {
     if (b.id === "ppToastClose") return;
-    const off = !!msg || (b.dataset.needs === "contract" && !configured) || (b.dataset.needs === "passkeys" && !passkeys);
+    const off = !!msg || (b.dataset.needs === "contract" && !configured) || (b.dataset.needs === "passkeys" && !passkeys)
+      || (b.id === "ppSaveHandle" && !handleChanged());
     if (off) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled");
   });
 }
+// "Save handle" only when the box differs from the handle already onchain (saving it again costs gas)
+const typedHandle = () => $("ppHandle").value.trim().replace(/^@/, "");
+const handleChanged = () => !!typedHandle() && typedHandle() !== (last?.scanner?.handle || "");
+function syncHandleButton() {
+  const saved = !!typedHandle() && !handleChanged();
+  $("ppSaveHandle").textContent = saved ? "Saved" : "Save handle";
+  if (!$("ppBusy").textContent) setBusy(null, $("ppError").textContent || null);
+}
+$("ppHandle").addEventListener("input", syncHandleButton);
+
 // Persistent banner: stays until dismissed or replaced (no auto-hiding toasts)
 function toast(t) { $("ppToastText").textContent = t; }
 $("ppToastClose").addEventListener("click", () => { $("ppToastText").textContent = ""; });
@@ -358,6 +369,8 @@ function render() {
   $("ppPkStatus").textContent = !passkeys ? "No PasskeyRegistry is configured for this page"
     : pk?.registered ? `Proved onchain on ${new Date(pk.at * 1000).toLocaleDateString()}` : pk ? "Not proved yet" : "–";
   $("ppProve").textContent = pk?.registered ? "Prove again" : "Prove with passkey";
+  $("ppProve").classList.toggle("primary", !pk?.registered); // once proved, re-proving is a secondary action
+  syncHandleButton();
   if (last?.error) setBusy(null, last.error);
   renderJournal();
   renderSession();

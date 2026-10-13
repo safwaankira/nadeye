@@ -153,6 +153,13 @@ assert.match(toast1, /Sent 0\.5 testnet MON/);
 const identity = (await page.locator("#ppIdAddr a").getAttribute("href")).split("/").pop();
 assert.ok((await pub.getBalance({ address: identity })) >= viem.parseEther("0.5"), "drip arrived");
 assert.match(await page.locator("#ppSession").textContent(), /wiped at/);
+// "Save handle" only when the box holds a new handle (no handle onchain yet here)
+assert.equal(await page.locator("#ppSaveHandle").getAttribute("aria-disabled"), "true", "empty box: disabled");
+await page.fill("#ppHandle", "@e2e_scanner");
+assert.equal(await page.locator("#ppSaveHandle").getAttribute("aria-disabled"), null, "typed a handle: enabled");
+assert.equal(await page.locator("#ppSaveHandle").textContent(), "Save handle");
+await page.fill("#ppHandle", "");
+assert.equal(await page.locator("#ppSaveHandle").getAttribute("aria-disabled"), "true", "cleared: disabled again");
 
 // journal: unlock (second PRF namespace), empty
 assert.equal(await page.locator("#ppJStatus").textContent(), "Locked");
