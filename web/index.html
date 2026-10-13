@@ -57,7 +57,7 @@ h1 em { font-style: normal; color: var(--accent-ink); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line);
   border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-block: 24px; }
 .stat { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; min-width: 0; }
-.stats { margin: 0; }
+.stats { margin: 0 0 22px; }
 .stat { display: flex; flex-direction: column-reverse; justify-content: flex-end; }
 .stat dd { margin: 0; font: 700 28px/1.15 var(--display); font-variant-numeric: tabular-nums; }
 .stat dt { font: 500 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
@@ -152,7 +152,8 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
 
 /* registry */
-.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: stretch; }
+.split > .panel { align-content: start; } /* equal-height boxes, content stays at the top */
 @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
 .panel h3 { font: 600 16px var(--display); margin: 0; letter-spacing: .02em; }
@@ -165,7 +166,7 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .hash { font: 13px var(--mono); word-break: break-all; }
 .verdict { font: 600 15px var(--display); letter-spacing: .02em; }
 .verdict.ai { color: var(--ai); } .verdict.real { color: var(--real); } .verdict.none { color: var(--muted); }
-.feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .card { background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; min-width: 0; cursor: pointer; text-align: left; color: var(--ink); font: inherit; }
 .card:hover { border-color: var(--accent); }
 .card .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
@@ -198,8 +199,8 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .status:empty, .banner:has(#ppToastText:empty) { display: none; }
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #view-me [aria-disabled="true"], #journalSlot [aria-disabled="true"] { opacity: .5; cursor: default; }
-.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-.act-totals { margin: 0 0 14px; }
+.act-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.act-totals { margin: 0 0 18px; }
 .act-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .act-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; min-width: 0; }
 .act-list button.act-row { all: unset; display: contents; cursor: pointer; }
@@ -340,7 +341,7 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
         <div class="toolbar" style="margin:0"><h3>Last 14 days</h3><span class="small"><span class="key ai"></span>AI votes <span class="key all"></span>all verdicts</span></div>
         <div id="actChart"></div>
       </div>
-      <div class="split">
+      <div class="act-split">
         <div class="panel">
           <h3>Latest verdicts</h3>
           <ol class="act-list" id="actFeed" aria-label="Latest verdicts, newest first"></ol>
