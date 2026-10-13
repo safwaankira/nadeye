@@ -6,6 +6,8 @@ import { indexer } from "envio";
 import { dailyStat, toKey, totals } from "./shared.js";
 
 const TAG = "nadeye/ai-image";
+/** the Nadeye Verifier's wallet on Monad testnet (ERC-8004 agent #2282) */
+const NADEYE_VERIFIER = "0x11B8524Cb25E6B2000a644ac7C9B4bcfdf064B5F";
 const PREFIX = "data:application/json;base64,";
 const MAX_REPORT = 16_384;
 
@@ -26,7 +28,7 @@ indexer.onEvent(
   async ({ event, context }) => {
     const { validatorAddress, agentId, requestHash, response, responseURI, tag } = event.params;
     if (tag !== TAG) return;
-    const only = process.env.ENVIO_VERIFIER_ADDRESS;
+    const only = process.env.ENVIO_VERIFIER_ADDRESS ?? NADEYE_VERIFIER; // "" = any validator using the tag
     if (only && validatorAddress.toLowerCase() !== only.toLowerCase()) return;
 
     const report = decodeReport(responseURI);

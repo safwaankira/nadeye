@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 # Nadeye indexer (Envio HyperIndex): verdict history, scanners, passkey proofs and the
 # verifier agent's ERC-8004 validation answers on Monad, behind one GraphQL API.
-# Addresses come from ENVIO_* variables (see .env.example), so the same config runs
-# locally (`envio dev`) and on Envio Cloud.
+# The deployed testnet addresses are the defaults (the free Envio Cloud plan has no env
+# variables); ENVIO_* variables override them, e.g. for local runs (see .env.example).
 name: nadeye-indexer
 description: Nadeye image-provenance registry on Monad
 disable_default_cross_chain: true
@@ -28,8 +28,8 @@ chains:
     start_block: ${ENVIO_START_BLOCK:-0}
     contracts:
       - name: Nadeye
-        address: ${ENVIO_NADEYE_ADDRESS}
+        address: ${ENVIO_NADEYE_ADDRESS:-0xD58eb04fb34E9b9151484BE82F2114B75323cDD5} # Nadeye, Monad testnet
       - name: PasskeyRegistry
-        address: ${ENVIO_PASSKEYS_ADDRESS}
+        address: ${ENVIO_PASSKEYS_ADDRESS:-0x16Bef696F687aC253d38B7eA4c84075375EB31B3} # PasskeyRegistry
       - name: ValidationRegistry
         address: "0x8004Cb1BF31DAf7788923b405b754f57acEB4272" # ERC-8004 Validation Registry, Monad testnet

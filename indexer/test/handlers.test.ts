@@ -23,7 +23,8 @@ const answer = (validator: Hex, requestHash: Hex, uri: string, tag = "nadeye/ai-
   ...meta(),
 });
 
-beforeEach(() => { delete process.env.ENVIO_VERIFIER_ADDRESS; });
+// "" = accept any validator that uses the tag; tests that check the filter set it themselves
+beforeEach(() => { process.env.ENVIO_VERIFIER_ADDRESS = ""; });
 
 describe("Nadeye verdicts", () => {
   it("tallies an image, its scanners, the history, the day and the totals", async (t) => {
@@ -116,5 +117,16 @@ describe("verifier agent answers (ERC-8004 Validation Registry)", () => {
       answer(other, hex("66".repeat(32)), report({ verdict: "ai" })),
     ] } } });
     t.expect((await indexer.VerifierAnswer.getAll()).map((a) => a.validator)).toEqual([verifier]);
+  });
+
+  it("by default, only the deployed Nadeye Verifier (#2282) counts", async (t) => {
+    delete process.env.ENVIO_VERIFIER_ADDRESS;
+    const real = hex("11B8524Cb25E6B2000a644ac7C9B4bcfdf064B5F");
+    const indexer = createTestIndexer();
+    await indexer.process({ chains: { [CHAIN]: { simulate: [
+      answer(real, hex("77".repeat(32)), report({ verdict: "ai" })),
+      answer(other, hex("88".repeat(32)), report({ verdict: "real" })),
+    ] } } });
+    t.expect((await indexer.VerifierAnswer.getAll()).map((a) => a.validator.toLowerCase())).toEqual([real.toLowerCase()]);
   });
 });
