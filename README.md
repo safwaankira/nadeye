@@ -70,7 +70,7 @@ Judges check what was built during the window, and the commit history is the evi
 
 ```bash
 git clone nadeye.bundle nadeye && cd nadeye
-git remote set-url origin https://github.com/safwaanDK/nadeye.git   # an empty public repo you created
+git remote set-url origin https://github.com/safwaankira/nadeye.git   # an empty public repo you created
 git push -u origin main
 ```
 
@@ -188,7 +188,7 @@ The indexer feeds the site's **Activity** tab. Without it the site still works a
 
 1. **Get a token.** Create a free HyperSync token at [envio.dev/app/api-tokens](https://envio.dev/app/api-tokens).
 2. **Check it locally (optional).** Run `cd indexer && npm install && npm test`, then `cp .env.example .env`, fill it in, and run `npm run dev`. That needs Docker and serves GraphQL at `http://localhost:8080/v1/graphql`.
-3. **Connect the repo.** In [Envio Cloud](https://envio.dev/app), sign in with GitHub, add an indexer from your public `nadeye` repository, and set the root directory to `indexer/`. The CLI does the same: `npx envio-cloud indexer add --name nadeye --repo safwaanDK/nadeye`, then `indexer settings set` to set the root directory.
+3. **Connect the repo.** In [Envio Cloud](https://envio.dev/app), sign in with GitHub, add an indexer from your public `nadeye` repository, and set the root directory to `indexer/`. The CLI does the same: `npx envio-cloud indexer add --name nadeye --repo safwaankira/nadeye`, then `indexer settings set` to set the root directory.
 4. **Variables are optional.** The deployed testnet addresses and the verifier's wallet are the defaults in `config.yaml` and the handler, because the free plan has no environment variables. On a paid plan, `ENVIO_NADEYE_ADDRESS`, `ENVIO_PASSKEYS_ADDRESS`, `ENVIO_START_BLOCK` and `ENVIO_VERIFIER_ADDRESS` override them.
 5. **Deploy and copy the endpoint.** Once it has synced, copy the GraphQL endpoint (`envio-cloud deployment endpoint …`). Rebuild the site with `--indexer=<endpoint>` and redeploy `dist/`.
 

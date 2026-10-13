@@ -118,7 +118,7 @@ The git history shows every commit.
 **Test credentials:** none needed. Passkeys are created on your own device, and testnet MON comes from the agent's drip or the faucet.
 
 ## Links
-- Repo: https://github.com/safwaanDK/nadeye
+- Repo: https://github.com/safwaankira/nadeye
 - Live site: https://nadeye.vercel.app
 - Nadeye (testnet): `0xD58eb04fb34E9b9151484BE82F2114B75323cDD5` · https://testnet.monadvision.com/address/0xD58eb04fb34E9b9151484BE82F2114B75323cDD5
 - PasskeyRegistry (testnet): `0x16Bef696F687aC253d38B7eA4c84075375EB31B3` · https://testnet.monadvision.com/address/0x16Bef696F687aC253d38B7eA4c84075375EB31B3
