@@ -69,6 +69,7 @@ async function createSession() {
 
   ort.env.wasm.wasmPaths = chrome.runtime.getURL("vendor/ort/");
   ort.env.wasm.numThreads = 1; // no SharedArrayBuffer in this context
+  ort.env.logLevel = "error"; // ORT's info warnings (e.g. shape ops placed on CPU) show as extension "Errors"
 
   // Debug/test setting: force the WASM path (also exercised in CI so the
   // trimmed vendor set provably serves machines without WebGPU). Offscreen
@@ -90,6 +91,7 @@ async function createSession() {
   const wasmSession = () => ort.InferenceSession.create(buf, {
     executionProviders: ["wasm"],
     graphOptimizationLevel: "all",
+    logSeverityLevel: 3,
   });
 
   try {
@@ -97,6 +99,7 @@ async function createSession() {
     const s = await ort.InferenceSession.create(buf, {
       executionProviders: ["webgpu"],
       graphOptimizationLevel: "all",
+      logSeverityLevel: 3,
     });
     // Numerical self-test: WebGPU stacks (drivers, Chromium forks) can
     // silently compute this fp16 graph WRONG while running fine — verified
