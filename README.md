@@ -56,6 +56,8 @@ Other third-party code:
 
 Everything else in this repo was written during the Metropolis build window (see the git history and `NOTICE`).
 
+**AI coding tools.** Nadeye was built with Claude (Anthropic) as an AI coding assistant, used for writing code, tests and docs under the author's direction. Commits made with it carry a `Co-Authored-By: Claude` trailer.
+
 ---
 
 ## Runbook: Monad testnet (Mac, about an hour)
