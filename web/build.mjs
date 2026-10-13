@@ -47,9 +47,16 @@ writeFileSync(join(here, "dist", "index.html"), `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 ${src}
 `);
 copyFileSync(join(here, "passkey.js"), join(here, "dist", "passkey.js"));
+// tab and home-screen icons: the same pixel-exact eye mark as the extension
+for (const [from, to] of [["icon16.png", "favicon-16.png"], ["icon32.png", "favicon-32.png"], ["icon128.png", "apple-touch-icon.png"]]) {
+  copyFileSync(join(here, "..", "extension", "icons", from), join(here, "dist", to));
+}
 // ethers ships with the site (version pinned in package.json) instead of loading from a CDN
 copyFileSync(join(here, "node_modules", "ethers", "dist", "ethers.umd.min.js"), join(here, "dist", "ethers.umd.min.js"));
 const live = src.match(/contract: "(0x[0-9a-fA-F]{40})"/)?.[1];
