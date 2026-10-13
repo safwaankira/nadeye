@@ -103,9 +103,22 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
     log(`Nadeye validator ${me} on ${cfg.network}, watching ValidationRegistry ${cfg.validation} from block ${from}`);
     const open = await chain.pub.readContract({ address: cfg.validation, abi: validationAbi, functionName: "getValidatorRequests", args: [me] });
     log(`${open.length} request(s) ever addressed to this validator`);
+    let failures = 0;
     for (;;) {
-      head = await chain.pub.getBlockNumber();
-      if (head >= from) { await scan(from, head); from = head + 1n; }
+      try {
+        head = await chain.pub.getBlockNumber();
+        if (head >= from) { await scan(from, head); from = head + 1n; }
+        failures = 0;
+      } catch (e) {
+        // a flaky RPC (timeouts, rate limits) must not stop the validator: resume after the
+        // last block it finished, with backoff
+        if (once) throw e;
+        failures++;
+        if (state.cursor) from = BigInt(state.cursor) + 1n;
+        log(`RPC error (${e.shortMessage || e.message}); retrying from block ${from}`);
+        await new Promise((r) => setTimeout(r, Math.min(pollMs * 2 ** failures, 60_000)));
+        continue;
+      }
       if (once) return state;
       await new Promise((r) => setTimeout(r, pollMs));
     }
