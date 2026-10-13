@@ -38,3 +38,19 @@ test("the connect-time guard blocks a name that resolves privately, even past th
     srv.close();
   }
 });
+
+test("a web page is refused as 'not an image', images and octet-stream pass", async () => {
+  const http = await import("node:http");
+  const types = { "/page": "text/html; charset=utf-8", "/json": "application/json", "/img": "image/jpeg", "/bin": "application/octet-stream" };
+  const srv = http.createServer((q, r) => { r.writeHead(200, { "content-type": types[q.url] }); r.end("data"); });
+  await new Promise((ok) => srv.listen(0, "127.0.0.1", ok));
+  const base = `http://localhost:${srv.address().port}`;
+  try {
+    await assert.rejects(fetchImageBytes(`${base}/page`, { allowPrivate: true }), /not an image: the URL returned text\/html/);
+    await assert.rejects(fetchImageBytes(`${base}/json`, { allowPrivate: true }), /not an image/);
+    assert.equal((await fetchImageBytes(`${base}/img`, { allowPrivate: true })).toString(), "data");
+    assert.equal((await fetchImageBytes(`${base}/bin`, { allowPrivate: true })).toString(), "data");
+  } finally {
+    srv.close();
+  }
+});

@@ -58,6 +58,9 @@ export function normalizeUrl(u) {
   return u;
 }
 
+/** the URL is reachable but isn't an image; retrying won't help */
+export class NotAnImageError extends Error {}
+
 export async function fetchImageBytes(rawUrl, { allowPrivate = false, skipPrecheck = false } = {}) {
   let url = normalizeUrl(String(rawUrl).trim());
   if (url.startsWith("data:")) {
@@ -93,6 +96,12 @@ export async function fetchImageBytes(rawUrl, { allowPrivate = false, skipPreche
       continue;
     }
     if (!resp.ok) throw new Error(`fetch failed: HTTP ${resp.status}`);
+    // a web page or other text is never an image: say so instead of failing inside the decoder
+    // (other types pass, since some hosts serve images as application/octet-stream)
+    const type = (resp.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (/^text\/|^application\/(json|xml|xhtml\+xml|javascript)$/.test(type)) {
+      throw new NotAnImageError(`not an image: the URL returned ${type}. Send a direct link to the image file`);
+    }
     const len = Number(resp.headers.get("content-length") || 0);
     if (len > MAX_BYTES) throw new Error("image too large");
     const chunks = [];

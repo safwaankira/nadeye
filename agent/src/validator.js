@@ -9,6 +9,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { validationAbi, VALIDATION_TAG, reportHash } from "./chain.js";
+import { NotAnImageError } from "./safefetch.js";
 
 const CHUNK = 100n; // public Monad RPCs cap eth_getLogs block ranges
 
@@ -55,9 +56,11 @@ export function createValidator({ cfg, chain, verifier, log = console.error }) {
     try {
       report = await verifier.verifyUrl(requestURI, { attest: true });
     } catch (e) {
-      const n = (state.failures[requestHash] || 0) + 1;
+      // a link that isn't an image won't become one on retry; anything else (network, timeouts) gets 3 tries
+      const final = e instanceof NotAnImageError;
+      const n = final ? 3 : (state.failures[requestHash] || 0) + 1;
       state.failures[requestHash] = n;
-      log(`  could not verify (${e.message}); attempt ${n}/3`);
+      log(final ? `  could not verify (${e.message}); not retrying` : `  could not verify (${e.message}); attempt ${n}/3`);
       if (n >= 3) state.done[requestHash] = `failed: ${e.message}`; // leave it unanswered rather than guess
       save();
       return;

@@ -110,7 +110,7 @@ export function createApi({ verifier, cfg, mcpHandler = null, publicUrl = null, 
       return send(405, { error: "use GET or POST" });
     } catch (e) {
       const msg = String(e?.message || e);
-      const code = /too-small|degenerate|refusing|unsupported|bad data|too large|fetch failed|Input buffer|unsupported image/i.test(msg) ? 422 : 500;
+      const code = /too-small|degenerate|refusing|unsupported|bad data|too large|fetch failed|Input buffer|unsupported image|not an image/i.test(msg) ? 422 : 500;
       return send(code, { error: msg });
     }
   });
