@@ -52,4 +52,5 @@ ${src}
 copyFileSync(join(here, "passkey.js"), join(here, "dist", "passkey.js"));
 // ethers ships with the site (version pinned in package.json) instead of loading from a CDN
 copyFileSync(join(here, "node_modules", "ethers", "dist", "ethers.umd.min.js"), join(here, "dist", "ethers.umd.min.js"));
-console.log(`web/dist ready${contract ? ` for ${contract} on ${network || "the page's network"}` : " (example data until a contract is set)"}`);
+const live = src.match(/contract: "(0x[0-9a-fA-F]{40})"/)?.[1];
+console.log(`web/dist ready${live && !/^0x0{40}$/.test(live) ? ` for Nadeye ${live}` : " (example data until a contract is set)"}`);

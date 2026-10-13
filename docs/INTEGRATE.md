@@ -10,7 +10,7 @@ Nadeye is an open registry of AI-image verdicts on Monad, keyed by a 64-bit perc
 | A contract that needs a human's passkey to approve an action | [`PasskeyRegistry.verifyFor`](#4-passkey-approval) | One `view` call: about 35k gas through the P256 precompile (measured on Foundry's Osaka EVM, which has the same precompile at `0x100`) |
 | Your own detector | [`attestBatch`](#5-write-verdicts) | Gas per batch |
 
-Addresses: Nadeye `<NADEYE_ADDRESS>`, PasskeyRegistry `<PASSKEYS_ADDRESS>` and NadeyeJournal `<JOURNAL_ADDRESS>` on Monad testnet (chain 10143). The README's runbook says where they come from.
+Addresses: Nadeye `0xD58eb04fb34E9b9151484BE82F2114B75323cDD5`, PasskeyRegistry `0x16Bef696F687aC253d38B7eA4c84075375EB31B3` and NadeyeJournal `0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18` on Monad testnet (chain 10143). The README's runbook says where they come from.
 
 ## 1. JavaScript: nadeye-sdk
 
@@ -21,7 +21,7 @@ npm install ./sdk   # from this repo; dependency: viem
 ```js
 import { createNadeyeClient } from "nadeye-sdk";
 
-const nadeye = createNadeyeClient({ network: "testnet", nadeye: "<NADEYE_ADDRESS>", passkeys: "<PASSKEYS_ADDRESS>" });
+const nadeye = createNadeyeClient({ network: "testnet", nadeye: "0xD58eb04fb34E9b9151484BE82F2114B75323cDD5", passkeys: "0x16Bef696F687aC253d38B7eA4c84075375EB31B3" });
 
 // Hash decoded pixels and look them up. The image never leaves your process.
 const ctx = canvas.getContext("2d");
@@ -68,7 +68,7 @@ A vote below 50% is "real"; anything between 50% and 80% is never recorded.
 
 ```json
 { "mcpServers": { "nadeye": { "command": "node", "args": ["/ABS/PATH/nadeye/agent/src/cli.js", "mcp"],
-  "env": { "NADEYE_NETWORK": "testnet", "NADEYE_CONTRACT": "<NADEYE_ADDRESS>" } } } }
+  "env": { "NADEYE_NETWORK": "testnet", "NADEYE_CONTRACT": "0xD58eb04fb34E9b9151484BE82F2114B75323cDD5" } } } }
 ```
 
 The tools:

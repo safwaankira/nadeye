@@ -120,9 +120,9 @@ The git history shows every commit.
 ## Links
 - Repo: https://github.com/safwaanDK/nadeye
 - Live site: `<SITE_URL>`
-- Nadeye (testnet): `<NADEYE_ADDRESS>` · https://testnet.monadvision.com/address/<NADEYE_ADDRESS>
-- PasskeyRegistry (testnet): `<PASSKEYS_ADDRESS>`
-- NadeyeJournal (testnet): `<JOURNAL_ADDRESS>`
+- Nadeye (testnet): `0xD58eb04fb34E9b9151484BE82F2114B75323cDD5` · https://testnet.monadvision.com/address/0xD58eb04fb34E9b9151484BE82F2114B75323cDD5
+- PasskeyRegistry (testnet): `0x16Bef696F687aC253d38B7eA4c84075375EB31B3` · https://testnet.monadvision.com/address/0x16Bef696F687aC253d38B7eA4c84075375EB31B3
+- NadeyeJournal (testnet): `0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18` · https://testnet.monadvision.com/address/0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18
 - Envio indexer (GraphQL): `<INDEXER_ENDPOINT>`
 - Verifier agent: ERC-8004 agent #`<id>` · wallet `<address>` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:<id>`; add the link if it does)
 - Demo video: `<link>` · Pitch video: `<link>`

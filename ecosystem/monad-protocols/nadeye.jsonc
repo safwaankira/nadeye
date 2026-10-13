@@ -9,10 +9,10 @@
     ],
     "addresses": {
         // verdict registry: attestations by perceptual hash, points, ERC-8004 agent links and consensus feedback
-        "Nadeye": "0xYOUR_NADEYE_ADDRESS",
+        "Nadeye": "0xD58eb04fb34E9b9151484BE82F2114B75323cDD5",
         // binds accounts to WebAuthn passkeys, verified with the P256 precompile; verifyFor() for passkey approval
-        "PasskeyRegistry": "0xYOUR_PASSKEYS_ADDRESS",
-        "NadeyeJournal": "0xYOUR_JOURNAL_ADDRESS"
+        "PasskeyRegistry": "0x16Bef696F687aC253d38B7eA4c84075375EB31B3",
+        "NadeyeJournal": "0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18"
     },
     "links": {
         "project": "https://YOUR_SITE_URL",
