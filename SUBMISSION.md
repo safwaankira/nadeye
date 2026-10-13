@@ -126,6 +126,10 @@ The git history shows every commit.
 - Envio indexer (GraphQL): `<INDEXER_ENDPOINT>`
 - Scanner (the founder, passkey-proved): ERC-8004 agent #2281
 - Verifier agent: ERC-8004 agent #2282 · wallet `0x11B8524Cb25E6B2000a644ac7C9B4bcfdf064B5F` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:2282`; add the link if it does)
+- **Live onchain evidence (Monad testnet):**
+  - A requester agent (#2283) asks the verifier (#2282) about an AI image through the ERC-8004 Validation Registry: https://testnet.monadvision.com/tx/0x163720e1e972d73be131327a603798988b65bd88abdf674d57f40383ca5a6097
+  - The verifier answers onchain, "ai", authenticity 0: https://testnet.monadvision.com/tx/0xc88cebf96689be85a9962f825955b3b78eaf3b3387f60cf330488fcebd46c5b6
+  - …and records its verdict in Nadeye as a scanner: https://testnet.monadvision.com/tx/0x38d2315e5c1cd950a872df4230b9dc5d5c18c0e3757bcabc255af35d5c43f532
 - Demo video: `<link>` · Pitch video: `<link>`
 
 ---
