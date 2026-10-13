@@ -118,8 +118,10 @@ await page.goto(SITE + "/");
 
 // Activity tab (Envio indexer): totals, chart, feed, verifier answers, click-through, errors
 await page.click('nav button[data-view="activity"]');
-await page.waitForFunction(() => document.getElementById("aScans").textContent === "42");
-assert.equal(await page.locator("#aPasskeys").textContent(), "2");
+await page.waitForFunction(() => document.getElementById("aPasskeys").textContent === "2");
+assert.equal(await page.locator("#aToday").textContent(), "12");
+assert.equal(await page.locator("#aAiShare").textContent(), "38%"); // 16 AI of 42 over 14 days
+assert.equal(await page.locator("#aAnswers").textContent(), "3");
 assert.equal(await page.locator("#actFeed li").count(), 2);
 assert.equal(await page.locator("#actFeed img").count(), 0, "a hostile handle stays text");
 assert.match(await page.locator("#actFeed li").first().textContent(), /<img src=x onerror=alert\(2\)> #7 passkey voted AI · agreed with the majority/);

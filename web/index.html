@@ -200,6 +200,7 @@ td .a, th .a { font: 12px var(--mono); color: var(--muted); margin-left: 6px; }
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #view-me [aria-disabled="true"], #journalSlot [aria-disabled="true"] { opacity: .5; cursor: default; }
 .act-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.act-split > .panel { align-content: start; } /* a short list stays compact at the top */
 .act-totals { margin: 0 0 18px; }
 .act-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .act-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; min-width: 0; }
@@ -332,10 +333,10 @@ footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
     <section id="view-activity" hidden>
       <div class="toolbar"><h2>Live activity</h2><span class="small" id="actNote" role="status" aria-live="polite"></span></div>
       <dl class="stats act-totals" aria-label="Indexed totals">
-        <div class="stat"><dt>Verdicts</dt><dd id="aScans">–</dd></div>
+        <div class="stat"><dt>Verdicts today</dt><dd id="aToday">–</dd></div>
+        <div class="stat"><dt>AI share, 14 days</dt><dd id="aAiShare">–</dd></div>
         <div class="stat"><dt>Passkey holders</dt><dd id="aPasskeys">–</dd></div>
         <div class="stat"><dt>Verifier answers</dt><dd id="aAnswers">–</dd></div>
-        <div class="stat"><dt>Scanners</dt><dd id="aScanners">–</dd></div>
       </dl>
       <div class="panel" style="margin-bottom:14px">
         <div class="toolbar" style="margin:0"><h3>Last 14 days</h3><span class="small"><span class="key ai"></span>AI votes <span class="key all"></span>all verdicts</span></div>
@@ -934,7 +935,7 @@ async function load() {
 // agent's ERC-8004 answers, read from the indexer's GraphQL API. Optional: without
 // CONFIG.indexer the tab stays hidden and nothing else changes.
 const ACTIVITY_QUERY = `query Activity {
-  Totals { scans scanners passkeys verifierAnswers }
+  Totals { passkeys verifierAnswers }
   DailyStat(order_by: {day: desc}, limit: 14) { day scans aiVotes }
   Attestation(order_by: [{block: desc}, {logIndex: desc}], limit: 15) {
     timestamp isAI consensus first
@@ -967,7 +968,12 @@ function renderActivity() {
     : ACT.state === "error" ? "The indexer is not reachable right now. Retrying when you come back to this tab."
     : ACT.stale ? `Could not refresh. Showing ${ACT.at.toLocaleTimeString()}.`
     : `Indexed by Envio · ${ACT.at.toLocaleTimeString()} · refreshes every 15 s`;
-  for (const [id, k] of [["aScans", "scans"], ["aPasskeys", "passkeys"], ["aAnswers", "verifierAnswers"], ["aScanners", "scanners"]]) $(id).textContent = t ? fmt(t[k]) : "–";
+  // only what the indexer adds: the hero strip above already shows the contract's totals
+  const days = d?.DailyStat || [], todayIdx = Math.floor(Date.now() / 86_400_000);
+  const scans14 = days.reduce((a, x) => a + x.scans, 0), ai14 = days.reduce((a, x) => a + x.aiVotes, 0);
+  $("aToday").textContent = d ? fmt(days.find((x) => x.day === todayIdx)?.scans || 0) : "–";
+  $("aAiShare").textContent = d ? (scans14 ? `${Math.round((100 * ai14) / scans14)}%` : "–") : "–";
+  for (const [id, k] of [["aPasskeys", "passkeys"], ["aAnswers", "verifierAnswers"]]) $(id).textContent = t ? fmt(t[k]) : "–";
   renderActChart(d?.DailyStat || []);
   const feed = $("actFeed"), answers = $("actAnswers");
   feed.replaceChildren(); answers.replaceChildren();
