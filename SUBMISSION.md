@@ -124,7 +124,8 @@ The git history shows every commit.
 - PasskeyRegistry (testnet): `0x16Bef696F687aC253d38B7eA4c84075375EB31B3` · https://testnet.monadvision.com/address/0x16Bef696F687aC253d38B7eA4c84075375EB31B3
 - NadeyeJournal (testnet): `0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18` · https://testnet.monadvision.com/address/0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18
 - Envio indexer (GraphQL): `<INDEXER_ENDPOINT>`
-- Verifier agent: ERC-8004 agent #`<id>` · wallet `<address>` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:<id>`; add the link if it does)
+- Scanner (the founder, passkey-proved): ERC-8004 agent #2281
+- Verifier agent: ERC-8004 agent #2282 · wallet `<address>` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:2282`; add the link if it does)
 - Demo video: `<link>` · Pitch video: `<link>`
 
 ---
