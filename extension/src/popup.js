@@ -63,6 +63,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "–");
 let pp = null;
+let savedHandle = "", configured = false; // the handle onchain, and whether a contract is set
 
 async function refreshPP() {
   const st = await chrome.runtime.sendMessage({ kind: "pp:status" });
@@ -89,7 +90,9 @@ async function refreshPP() {
   $("agent").textContent = me && me.agentId != null
     ? `#${me.agentId}${me.reputation && me.reputation.count ? ` · ${me.reputation.agreement.toFixed(0)}% agree (${me.reputation.count})` : ""}`
     : "not linked: sign in on the site";
-  if (me && me.handle && document.activeElement !== $("handle")) $("handle").value = `@${me.handle}`;
+  savedHandle = me?.handle || "";
+  configured = !!st.configured;
+  if (savedHandle && document.activeElement !== $("handle")) $("handle").value = `@${savedHandle}`;
   $("lasttx").innerHTML = "";
   if (st.lastTx) {
     const a = document.createElement("a");
@@ -98,8 +101,17 @@ async function refreshPP() {
     a.textContent = `Last batch: ${st.lastTx.n} verdicts · ${new Date(st.lastTx.at).toLocaleTimeString()}`;
     $("lasttx").append(a);
   }
-  $("savehandle").disabled = !st.configured;
+  syncSaveButton();
 }
+
+// "Save" only when the box differs from the handle already onchain (saving it again costs gas)
+function syncSaveButton() {
+  const typed = $("handle").value.trim().replace(/^@/, "");
+  const same = !!typed && typed === savedHandle;
+  $("savehandle").disabled = !configured || !typed || same;
+  $("savehandle").textContent = same ? "Saved" : "Save";
+}
+$("handle").addEventListener("input", syncSaveButton);
 
 $("network").addEventListener("change", async (e) => {
   await chrome.storage.sync.set({ ppNetwork: e.target.value });
@@ -128,8 +140,9 @@ $("savehandle").addEventListener("click", async () => {
   $("savehandle").disabled = true;
   $("savehandle").textContent = "…";
   const r = await chrome.runtime.sendMessage({ kind: "pp:set-handle", handle: h });
+  if (r && r.ok) savedHandle = h;
   $("savehandle").textContent = r && r.ok ? "✓" : "retry";
-  setTimeout(() => { $("savehandle").textContent = "Save"; refreshPP(); }, 1500);
+  setTimeout(() => { syncSaveButton(); refreshPP(); }, 1500);
 });
 const open = (url) => url && chrome.tabs.create({ url });
 $("board").addEventListener("click", () => open(pp?.leaderboard));
