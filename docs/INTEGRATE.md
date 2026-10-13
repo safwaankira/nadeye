@@ -156,7 +156,7 @@ Use your own salt string for your own app, so its namespace stays separate from 
 
 ## 6. History and analytics over GraphQL (Envio indexer)
 
-The contracts hold current totals. For history (every verdict, a scanner's record over time, daily counts, the verifier agent's answers), query the Nadeye indexer's GraphQL endpoint (`<INDEXER_ENDPOINT>`; `indexer/` in this repo, built with Envio HyperIndex):
+The contracts hold current totals. For history (every verdict, a scanner's record over time, daily counts, the verifier agent's answers), query the Nadeye indexer's GraphQL endpoint (`https://indexer.dev.hyperindex.xyz/d4f25ad/v1/graphql`; `indexer/` in this repo, built with Envio HyperIndex):
 
 ```graphql
 query ScannerHistory($id: String!) {

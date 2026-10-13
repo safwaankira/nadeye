@@ -123,7 +123,7 @@ The git history shows every commit.
 - Nadeye (testnet): `0xD58eb04fb34E9b9151484BE82F2114B75323cDD5` · https://testnet.monadvision.com/address/0xD58eb04fb34E9b9151484BE82F2114B75323cDD5
 - PasskeyRegistry (testnet): `0x16Bef696F687aC253d38B7eA4c84075375EB31B3` · https://testnet.monadvision.com/address/0x16Bef696F687aC253d38B7eA4c84075375EB31B3
 - NadeyeJournal (testnet): `0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18` · https://testnet.monadvision.com/address/0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18
-- Envio indexer (GraphQL): `<INDEXER_ENDPOINT>`
+- Envio indexer (GraphQL, Envio Cloud, synced on Monad testnet via HyperSync): https://indexer.dev.hyperindex.xyz/d4f25ad/v1/graphql
 - Scanner (the founder, passkey-proved): ERC-8004 agent #2281
 - Verifier agent: ERC-8004 agent #2282 · wallet `0x11B8524Cb25E6B2000a644ac7C9B4bcfdf064B5F` (after registering, check whether the Trust8004 indexer lists it at `https://trust8004.xyz/agents/10143:2282`; add the link if it does)
 - **Live onchain evidence (Monad testnet):**
