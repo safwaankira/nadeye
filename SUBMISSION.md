@@ -98,7 +98,7 @@ The git history shows every commit.
 
 ## For judges: access
 
-**Live site:** `<SITE_URL>`. It needs no account or wallet to explore.
+**Live site:** https://nadeye.vercel.app. It needs no account or wallet to explore.
 - **Leaderboard:** scanners, points and signal-to-noise, with ERC-8004 agent and passkey chips.
 - **Registry:** drop any image to see its community verdict. It is hashed in your browser and never uploaded.
 - **My scanner:**
@@ -119,7 +119,7 @@ The git history shows every commit.
 
 ## Links
 - Repo: https://github.com/safwaanDK/nadeye
-- Live site: `<SITE_URL>`
+- Live site: https://nadeye.vercel.app
 - Nadeye (testnet): `0xD58eb04fb34E9b9151484BE82F2114B75323cDD5` · https://testnet.monadvision.com/address/0xD58eb04fb34E9b9151484BE82F2114B75323cDD5
 - PasskeyRegistry (testnet): `0x16Bef696F687aC253d38B7eA4c84075375EB31B3` · https://testnet.monadvision.com/address/0x16Bef696F687aC253d38B7eA4c84075375EB31B3
 - NadeyeJournal (testnet): `0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18` · https://testnet.monadvision.com/address/0x3EDd9026A3ad114c67F6cF50EA00e7C93F740a18
